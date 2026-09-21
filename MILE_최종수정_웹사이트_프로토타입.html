@@ -224,21 +224,66 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 .comment-write textarea{margin:0 0 10px !important}
 .liked{color:#f1b4c7 !important}
 
-/* MILEAGE MODAL (LARGE & FIXED STARS) */
-.mileage-box { text-align: center; color: #f3f1eb; }
-.mileage-box h2 { margin: 0 0 8px; font-family: "Noto Serif KR", serif; font-weight: 500; font-size: 32px; color: #f4df93; }
-.mileage-box p { color: #a7aabd; font-size: 14px; margin-bottom: 20px; line-height: 1.6; }
-.mileage-status { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #d8dbec; }
-.mileage-status span { color: #f4df93; font-size: 28px; font-weight: 700; }
-.constellation-wrapper { background: radial-gradient(circle at center, #151d42 0%, #080c1e 100%); border-radius: 20px; border: 1px solid rgba(207,214,255,.18); margin: 20px 0; padding: 15px; overflow: hidden; box-shadow: inset 0 0 40px rgba(0,0,0,0.5); }
-#constellation-svg { width: 100%; height: 320px; display: block; }
-.constellation-line { stroke: #9aa4ee; stroke-width: 2.5; stroke-dasharray: 0; filter: drop-shadow(0 0 6px #9aa4ee); opacity: 0.2; transition: opacity 0.5s, stroke 0.5s; }
-.constellation-line.active { opacity: 1; stroke: #f4df93; filter: drop-shadow(0 0 8px #f4df93); }
-.star-node { fill: #2e365c; transition: fill 0.3s; }
-.star-node.active { fill: #f4df93; filter: drop-shadow(0 0 10px #f4df93) drop-shadow(0 0 18px #9aa4ee); }
-/* 애니메이션 제거: 별들 움직이지 않음 */
-.mileage-actions { display: flex; gap: 12px; justify-content: center; margin-top: 22px; }
-
+/* MILEAGE / STAR MAP */
+.mileage-box{text-align:left;color:#f3f1eb}
+.mileage-box h2{margin:0 0 7px;font-family:"Noto Serif KR",serif;font-weight:500;font-size:32px;color:#f4df93}
+.mileage-box>p{color:#a7aabd;font-size:14px;margin:0 0 18px;line-height:1.7}
+.mileage-status{display:flex;align-items:baseline;gap:7px;font-size:15px;font-weight:600;margin-bottom:18px;color:#d8dbec}
+.mileage-status span{color:#f4df93;font-size:29px;font-weight:700}
+.constellation-wrapper{
+  position:relative;background:
+    radial-gradient(circle at 22% 30%,rgba(129,150,255,.16),transparent 20%),
+    radial-gradient(circle at 74% 72%,rgba(244,223,147,.07),transparent 22%),
+    radial-gradient(circle at 48% 50%,rgba(84,103,193,.10),transparent 38%),
+    #060a1b;
+  border-radius:22px;border:1px solid rgba(207,214,255,.16);
+  margin:18px 0;padding:0;overflow:hidden;
+  box-shadow:inset 0 0 70px rgba(0,0,0,.58),0 15px 45px rgba(0,0,0,.22);
+}
+.constellation-wrapper:before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:1;opacity:.48;
+  background-image:
+    radial-gradient(circle at 7% 18%,#fff 0 1px,transparent 1.5px),
+    radial-gradient(circle at 17% 72%,#fff 0 1px,transparent 1.5px),
+    radial-gradient(circle at 29% 36%,#fff 0 .8px,transparent 1.4px),
+    radial-gradient(circle at 41% 82%,#fff 0 1px,transparent 1.5px),
+    radial-gradient(circle at 53% 19%,#fff 0 1px,transparent 1.5px),
+    radial-gradient(circle at 66% 58%,#fff 0 .8px,transparent 1.4px),
+    radial-gradient(circle at 79% 24%,#fff 0 1px,transparent 1.5px),
+    radial-gradient(circle at 91% 75%,#fff 0 1px,transparent 1.5px);
+  background-size:190px 160px,230px 190px,260px 210px,210px 180px,250px 190px,220px 170px,280px 210px,200px 180px;
+}
+.star-map-scroll{position:relative;z-index:2;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;scrollbar-color:#5f6da9 #080c1e;scrollbar-width:thin}
+.star-map-scroll::-webkit-scrollbar{height:9px}
+.star-map-scroll::-webkit-scrollbar-track{background:#080c1e}
+.star-map-scroll::-webkit-scrollbar-thumb{background:#4c598d;border-radius:99px}
+#constellation-svg{width:1380px;height:510px;display:block}
+.constellation-line{stroke:#7888d2;stroke-width:2;fill:none;opacity:.18;filter:drop-shadow(0 0 4px rgba(129,145,236,.35));transition:opacity .5s,stroke .5s}
+.constellation-line.active{opacity:.72;stroke:#aab6ff;filter:drop-shadow(0 0 7px #8e9cf1)}
+.star-node{fill:#252d4c;stroke:#59658f;stroke-width:1.5;transition:fill .35s,filter .35s,r .35s}
+.star-node.active{fill:#f4df93;stroke:#fff3c5;filter:drop-shadow(0 0 7px #f4df93) drop-shadow(0 0 17px #8f9bf2)}
+.star-node.current{animation:starPulse 2s ease-in-out infinite}
+.constellation-label{font-family:"Noto Sans KR",sans-serif;letter-spacing:.02em}
+.constellation-title{font-family:"Noto Serif KR",serif;letter-spacing:-.03em}
+.constellation-guide{position:absolute;z-index:4;left:18px;bottom:16px;padding:8px 12px;border:1px solid rgba(255,255,255,.09);border-radius:999px;background:rgba(5,8,20,.64);backdrop-filter:blur(8px);color:#858da9;font-size:10px;pointer-events:none}
+.mileage-legend{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 3px;color:#7f87a4;font-size:11px}
+.mileage-legend span{display:flex;align-items:center;gap:7px}
+.mileage-legend i{width:7px;height:7px;border-radius:50%;display:block}
+.mileage-legend .lit{background:#f4df93;box-shadow:0 0 9px #f4df93}
+.mileage-legend .dim{background:#303958}
+.mileage-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+.mileage-actions .primary{min-width:225px}
+.mileage-note{margin-top:10px;color:#666e8b;font-size:10px;text-align:center}
+@keyframes starPulse{0%,100%{filter:drop-shadow(0 0 7px #f4df93) drop-shadow(0 0 16px #8f9bf2)}50%{filter:drop-shadow(0 0 13px #fff0a6) drop-shadow(0 0 28px #9aa8ff)}}
+.energy-beam{stroke:#f7e8a8;stroke-width:3;fill:none;stroke-linecap:round;filter:drop-shadow(0 0 6px #f4df93) drop-shadow(0 0 13px #9aa4ee);stroke-dasharray:14 900;stroke-dashoffset:900;animation:beamTravel 1.15s cubic-bezier(.22,.72,.32,1) forwards}
+.energy-core{fill:#fff7ca;filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px #f4df93);animation:coreTravel 1.15s cubic-bezier(.22,.72,.32,1) forwards}
+@keyframes beamTravel{to{stroke-dashoffset:0}}
+@keyframes coreTravel{0%{opacity:0}15%{opacity:1}100%{opacity:1}}
+@media(max-width:850px){
+ .mileage-box h2{font-size:27px}
+ .modal-box.large-modal{padding:28px 22px}
+ #constellation-svg{height:450px}
+}
 /* PRODUCT CUSTOM UI - DARK THEME HARMONIZED */
 .product-page-container { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
 .product-head-eyebrow { color: #aab2ff; font-size: 12px; font-weight: 700; letter-spacing: 2px; margin-bottom: 8px; }
@@ -508,84 +553,217 @@ function go(id){
  if(id==='mymile')renderPrefs();
 }
 
-// ===== 별자리 마일리지 시스템 (대형 창 & 정적 고정 별들) =====
+// ===== 우주 지도형 마일리지 시스템 =====
 let userMileage = 0;
-const mileageStars = [
- { x: 80,  y: 200, name: "첫걸음" },
- { x: 210, y: 90,  name: "생활관리" },
- { x: 350, y: 240, name: "경험축적" },
- { x: 490, y: 110, name: "경제자립" },
- { x: 620, y: 210, name: "완전한자립" }
+let mileageLastUnlocked = 0;
+
+const mileageConstellations = [
+  {
+    title:"FIRST STEP",
+    subtitle:"처음 독립",
+    stars:[
+      {x:90,y:265,name:"첫걸음"},
+      {x:220,y:190,name:"생활 준비"},
+      {x:365,y:245,name:"새로운 방"},
+      {x:500,y:135,name:"생활 습관"}
+    ]
+  },
+  {
+    title:"DAILY LIFE",
+    subtitle:"생활 관리",
+    stars:[
+      {x:620,y:340,name:"빨래"},
+      {x:755,y:255,name:"식사"},
+      {x:885,y:310,name:"정리"},
+      {x:1015,y:180,name:"시간 관리"}
+    ]
+  },
+  {
+    title:"MY LIFE",
+    subtitle:"경제 생활",
+    stars:[
+      {x:1130,y:285,name:"소비"},
+      {x:1240,y:175,name:"예산"},
+      {x:1360,y:240,name:"저축"},
+      {x:1470,y:125,name:"경제 자립"}
+    ]
+  },
+  {
+    title:"NEXT MILE",
+    subtitle:"완전한 자립",
+    stars:[
+      {x:1595,y:330,name:"문제 해결"},
+      {x:1725,y:220,name:"스스로 결정"},
+      {x:1860,y:285,name:"나만의 기준"},
+      {x:1985,y:145,name:"완전한 자립"}
+    ]
+  }
 ];
+
+const mileageStars = mileageConstellations.flatMap(c => c.stars);
 const pointsPerStar = 10;
 
 function openMileage(){
- openCustom(`
-   <div class="mileage-box">
-     <h2>나의 별자리 마일리지</h2>
-     <p>구매 금액 <b>1,000원당 1 마일리지(P)</b>가 차곡차곡 적립됩니다.<br>10P가 모일 때마다 밤하늘의 별들이 하나씩 선으로 연결됩니다! ✨</p>
-     <div class="mileage-status">현재 마일리지: <span>${userMileage.toLocaleString()}</span> P</div>
-     <div class="constellation-wrapper">
-       <svg id="constellation-svg" viewBox="0 0 700 350"></svg>
-     </div>
-     <div class="mileage-actions">
-       <button class="primary" onclick="addMileageFromPrice(10000); openMileage();">🛍️ 10,000원 구매 테스트 (+10P)</button>
-       <button class="smallbtn" onclick="userMileage=0; openMileage();">초기화</button>
-       <button class="close" onclick="closeModal()">닫기</button>
-     </div>
-   </div>
- `, true); // large-modal flag
- setTimeout(renderConstellationSVG, 50);
+  openCustom(`
+    <div class="mileage-box">
+      <div class="label">MY MILE / STAR MAP</div>
+      <h2>나의 마일리지 우주 지도</h2>
+      <p>작은 적립이 하나의 별이 되고, 별과 별 사이의 거리가 나의 다음 한 걸음이 됩니다.<br>10P가 모일 때마다 다음 별까지 빛이 이어집니다. ✦</p>
+      <div class="mileage-status">현재 마일리지 <span>${userMileage.toLocaleString()}</span> P</div>
+
+      <div class="constellation-wrapper">
+        <div class="star-map-scroll" id="starMapScroll">
+          <svg id="constellation-svg" viewBox="0 0 2080 510" preserveAspectRatio="xMinYMid meet"></svg>
+        </div>
+        <div class="constellation-guide">← 가로로 밀어 나의 다음 별을 찾아보세요 →</div>
+      </div>
+
+      <div class="mileage-legend">
+        <span><i class="lit"></i> 도착한 별</span>
+        <span><i class="dim"></i> 아직 닿지 않은 별</span>
+        <span>10P = 다음 별 1개</span>
+      </div>
+
+      <div class="mileage-actions">
+        <button class="primary" onclick="addMileageFromPrice(10000); openMileage();">🛍️ 10,000원 구매 테스트 (+10P)</button>
+        <button class="smallbtn" onclick="userMileage=0; mileageLastUnlocked=0; openMileage();">초기화</button>
+        <button class="close" onclick="closeModal()">닫기</button>
+      </div>
+      <div class="mileage-note">※ 실제 결제 기능이 아닌 프로토타입 시연용 마일리지입니다.</div>
+    </div>
+  `, true);
+
+  setTimeout(() => renderConstellationSVG(mileageLastUnlocked), 50);
 }
 
 function addMileageFromPrice(price){
- const earned = Math.floor(price / 1000);
- userMileage += earned;
- toast(`${price.toLocaleString()}원 결제! ${earned} 마일리지가 적립되었습니다. ✨`);
+  const earned = Math.floor(price / 1000);
+  const before = Math.floor(userMileage / pointsPerStar);
+  userMileage += earned;
+  const after = Math.floor(userMileage / pointsPerStar);
+  mileageLastUnlocked = after > before ? before : -1;
+  toast(`${price.toLocaleString()}원 결제! ${earned} 마일리지가 적립되었습니다. ✨`);
 }
 
-function renderConstellationSVG(){
- const svg = document.getElementById('constellation-svg');
- if(!svg) return;
- svg.innerHTML = '';
- 
- // 연결 선 그리기
- for(let i = 0; i < mileageStars.length - 1; i++){
-   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-   line.setAttribute('x1', mileageStars[i].x);
-   line.setAttribute('y1', mileageStars[i].y);
-   line.setAttribute('x2', mileageStars[i+1].x);
-   line.setAttribute('y2', mileageStars[i+1].y);
-   line.setAttribute('class', 'constellation-line' + (userMileage >= (i+1)*pointsPerStar ? ' active' : ''));
-   svg.appendChild(line);
- }
+function svgEl(tag, attrs={}){
+  const el = document.createElementNS('http://www.w3.org/2000/svg',tag);
+  Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k,v));
+  return el;
+}
 
- // 별 노드 및 라벨 그리기 (고정된 별)
- const activeStarCount = Math.min(Math.floor(userMileage / pointsPerStar) + 1, mileageStars.length);
- mileageStars.forEach((star, index) => {
-   const isActive = index < activeStarCount && (userMileage >= index * pointsPerStar || index === 0);
-   
-   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-   
-   const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-   circle.setAttribute('cx', star.x);
-   circle.setAttribute('cy', star.y);
-   circle.setAttribute('r', '8');
-   circle.setAttribute('class', 'star-node' + (isActive ? ' active' : ''));
-   
-   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-   text.setAttribute('x', star.x);
-   text.setAttribute('y', star.y + 28);
-   text.setAttribute('text-anchor', 'middle');
-   text.setAttribute('fill', isActive ? '#f4df93' : '#6f7590');
-   text.setAttribute('font-size', '12');
-   text.setAttribute('font-weight', '500');
-   text.textContent = star.name;
+function drawConstellationLabel(svg, constellation){
+  const first = constellation.stars[0];
+  const title = svgEl('text',{
+    x:first.x,y:55,class:'constellation-title',
+    fill:'#c4c9e5','font-size':'15','font-weight':'500'
+  });
+  title.textContent = constellation.title;
+  svg.appendChild(title);
 
-   g.appendChild(circle);
-   g.appendChild(text);
-   svg.appendChild(g);
- });
+  const sub = svgEl('text',{
+    x:first.x,y:77,class:'constellation-label',
+    fill:'#6e7696','font-size':'10','letter-spacing':'1.2'
+  });
+  sub.textContent = constellation.subtitle;
+  svg.appendChild(sub);
+}
+
+function renderConstellationSVG(animateSegment=-1){
+  const svg = document.getElementById('constellation-svg');
+  if(!svg) return;
+  svg.innerHTML = '';
+
+  // 별자리마다 은은한 궤적을 만들고, 마일리지 진행도에 따라 순서대로 밝힙니다.
+  let globalIndex = 0;
+
+  mileageConstellations.forEach((constellation, cIndex) => {
+    drawConstellationLabel(svg,constellation);
+
+    // 별자리 내부 연결선
+    for(let i=0;i<constellation.stars.length-1;i++){
+      const a=constellation.stars[i], b=constellation.stars[i+1];
+      const line=svgEl('line',{
+        x1:a.x,y1:a.y,x2:b.x,y2:b.y,
+        class:'constellation-line'+(userMileage >= (globalIndex+i+1)*pointsPerStar ? ' active':'')
+      });
+      svg.appendChild(line);
+
+      // 이번 적립으로 새롭게 연결된 구간에 빛을 쏘기
+      if(animateSegment === globalIndex+i){
+        const beam=svgEl('line',{
+          x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'energy-beam'
+        });
+        svg.appendChild(beam);
+
+        const core=svgEl('circle',{cx:a.x,cy:a.y,r:4,class:'energy-core'});
+        const motion=svgEl('animateMotion',{
+          dur:'1.15s',fill:'freeze',path:`M ${a.x} ${a.y} L ${b.x} ${b.y}`
+        });
+        core.appendChild(motion);
+        svg.appendChild(core);
+      }
+    }
+
+    // 별자리 사이를 직접 연결하지 않고, 각각의 영역이 우주 지도처럼 독립적으로 뻗어 보이게 함
+    const centerX=constellation.stars.reduce((sum,s)=>sum+s.x,0)/constellation.stars.length;
+    const centerY=430;
+    const arc=svgEl('path',{
+      d:`M ${centerX-145} ${centerY} Q ${centerX} ${centerY+35} ${centerX+145} ${centerY}`,
+      fill:'none',stroke:'rgba(125,139,207,.12)','stroke-width':'1',
+      'stroke-dasharray':'3 8'
+    });
+    svg.appendChild(arc);
+
+    constellation.stars.forEach((star,i)=>{
+      const idx=globalIndex+i;
+      const isActive = idx === 0 || userMileage >= (idx)*pointsPerStar;
+      const isCurrent = isActive && userMileage < (idx+1)*pointsPerStar;
+
+      const g=svgEl('g');
+      const halo=svgEl('circle',{
+        cx:star.x,cy:star.y,r:isActive?18:12,
+        fill:'none',stroke:isActive?'rgba(244,223,147,.16)':'rgba(100,112,155,.06)',
+        'stroke-width':'1'
+      });
+      const node=svgEl('circle',{
+        cx:star.x,cy:star.y,r:isActive?7:5,
+        class:'star-node'+(isActive?' active':'')+(isCurrent?' current':'')
+      });
+      const label=svgEl('text',{
+        x:star.x,y:star.y+29,'text-anchor':'middle',
+        fill:isActive?'#e9d994':'#59627f',
+        'font-size':'11',class:'constellation-label',
+        'font-weight':isActive?'600':'400'
+      });
+      label.textContent=star.name;
+
+      g.appendChild(halo);g.appendChild(node);g.appendChild(label);
+      svg.appendChild(g);
+    });
+
+    globalIndex += constellation.stars.length;
+  });
+
+  // 다음 별을 향하는 작은 방향 표시
+  const current=Math.min(Math.floor(userMileage/pointsPerStar),mileageStars.length-1);
+  const next=mileageStars[Math.min(current+1,mileageStars.length-1)];
+  if(next && current < mileageStars.length-1){
+    const marker=svgEl('text',{
+      x:next.x,y:next.y-24,'text-anchor':'middle',
+      fill:'#8c96bd','font-size':'9','letter-spacing':'1.2'
+    });
+    marker.textContent='NEXT STAR';
+    svg.appendChild(marker);
+  }
+
+  // 새로 열린 별자리 위치까지 부드럽게 이동
+  if(animateSegment >= 0){
+    const target=mileageStars[Math.min(animateSegment+1,mileageStars.length-1)];
+    setTimeout(()=>{
+      const scroll=document.getElementById('starMapScroll');
+      if(scroll && target) scroll.scrollTo({left:Math.max(0,target.x-scroll.clientWidth*.42),behavior:'smooth'});
+    },900);
+  }
 }
 
 // ===== 상품 개별 수량 조절 로직 =====
