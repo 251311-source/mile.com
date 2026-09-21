@@ -73,7 +73,7 @@ button{cursor:pointer}
 .page{display:none;background:transparent}.page.active{display:block}
 .section{padding:100px 7vw;background:transparent;color:var(--ink)}
 .section.white{background:#0b1022}
-.section-head{display:flex;justify-space-between;align-items:end;margin-bottom:42px}
+.section-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:42px}
 .label{font-size:12px;letter-spacing:2px;color:#aab2ff;font-weight:700}
 .section h2{font-size:43px;font-weight:400;letter-spacing:-2.5px;margin:10px 0;color:#f3f1eb}
 .section-head p,.section p{color:var(--muted);line-height:1.7}
@@ -141,7 +141,7 @@ button{cursor:pointer}
 .floating-label{position:absolute;z-index:6;color:#aab1d3;font-size:9px;letter-spacing:.18em;padding:8px 11px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(8,11,25,.36);backdrop-filter:blur(8px)}
 .label-one{left:10%;bottom:24%}.label-two{right:20%;bottom:18%}
 
-/* SERVICES */
+/* SERVICE GRID */
 .service-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .service{position:relative;min-height:280px;border:1px solid rgba(202,208,255,.11);border-radius:24px;padding:31px;overflow:hidden;transition:.25s;background:linear-gradient(145deg,#10162c,#0e1328);box-shadow:0 16px 50px rgba(0,0,0,.12)}
 .service:nth-child(2){background:linear-gradient(145deg,#121831,#10152b)}
@@ -188,7 +188,7 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 
 .lock{background:#141831;border:1px dashed #7077b9;border-radius:20px;padding:25px;margin-bottom:30px}
 .lock h3{margin:0 0 6px;font-weight:500;color:#f3f1eb}.lock p{color:#9ca2b8;font-size:13px}
-.lock input{padding:12px;border:1px solid rgba(206,212,255,.12);background:#0d1328;color:#fff;border-radius:9px;width:220px}
+.lock input{padding:12px;border:1px solid rgba(206,212,255,.12);background:#0d1328;color:#fff;border-radius:99px;width:220px}
 
 .post{padding:25px}.post h3{font-weight:500;font-size:19px;color:#f3f1eb}.meta{color:#999;font-size:11px}
 .post p{color:#9fa4ba;font-size:13px;line-height:1.7}.post-actions{display:flex;gap:13px;margin-top:18px}
@@ -223,7 +223,7 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 .comment-write textarea{margin:0 0 10px !important}
 .liked{color:#f1b4c7 !important}
 
-/* ===== 별자리 마일리지 모달 스타일 ===== */
+/* MILEAGE MODAL */
 .mileage-box { text-align: center; color: #f3f1eb; }
 .mileage-box h2 { margin: 0 0 5px; font-family: "Noto Serif KR", serif; font-weight: 500; font-size: 24px; color: #f4df93; }
 .mileage-box p { color: #a7aabd; font-size: 13px; margin-bottom: 15px; }
@@ -238,10 +238,10 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 @keyframes starPulse { 0% { transform: scale(1); } 100% { transform: scale(1.3); } }
 .mileage-actions { display: flex; gap: 10px; justify-content: center; margin-top: 18px; }
 
-/* ===== 상품 상세 커스텀 UI 스타일 ===== */
+/* PRODUCT CUSTOM UI */
 .product-page-container { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
 .product-head-eyebrow { color: #8e96bc; font-size: 13px; font-weight: 500; letter-spacing: 0.1em; margin-bottom: 8px; }
-.product-head-title { font-family: "Noto Serif KR", serif; font-size: 32px; font-weight: 600; color: #1a1e36; margin: 0 0 35px 0; }
+.product-head-title { font-family: "Noto Serif KR", serif; font-size: 32px; font-weight: 600; color: #f3f1eb; margin: 0 0 35px 0; }
 .product-card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
 .product-item-card { background: #f3f5fc; border-radius: 20px; overflow: hidden; border: 1px solid rgba(200,208,240,0.4); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
 .product-item-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(30,40,90,0.08); }
@@ -374,7 +374,7 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
   <div class="section-head"><div><div class="label">MILE SERVICE</div><h2>당신에게 필요한<br>다음 한 걸음</h2></div><p>생활을 준비하고, 정보를 찾고,<br>같은 길을 걷는 사람들과 연결됩니다.</p></div>
   <div class="service-grid">
    <div class="service"><div class="num">01 / FIRST STEP KIT</div><h3>첫걸음 키트</h3><p>처음 독립한다면 무엇부터 준비해야 할까요?<br>생활에 필요한 제품을 한곳에서 확인하세요.</p><button class="go" onclick="go('kit')">키트 둘러보기 →</button><div class="mini-path"></div></div>
-   <div class="service"><div class="num">02 / INFO-MILE</div><h3>info-mile</h3><p>흩어진 생활정보를 나에게 필요한 정보로.<br>청소년·청년을 위한 정책을 찾아보세요.</p><button class="go" onclick="go('info')">정보 찾아보기 →</button><div class="mini-path"></div></div>
+   <div class="service"><div class="num">02 / INFO-MILE</div><h3>info-mile</h3><p>흩어진 생활정보를 나에게 필요한 정보로.<br>청소년·청년을 위한 정책을 찾아보세요.</p><button class="go" onclick="go('info')">정보 찾아보기 Japanese→</button><div class="mini-path"></div></div>
    <div class="service"><div class="num">03 / COMMUNITY</div><h3>Community</h3><p>혼자 시작하지만, 혼자 걸어갈 필요는 없으니까.<br>비슷한 생활환경의 사람들과 이야기를 나눠요.</p><button class="go" onclick="go('community')">커뮤니티 가기 →</button><div class="mini-path"></div></div>
   </div>
  </section>
@@ -439,15 +439,6 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
   </div>
 </section>
 
-<!-- CUSTOM BUILDER -->
-<section id="custom" class="page"><section class="section"><div class="builder"><div class="label">MY KIT</div><h2>나만의 첫걸음 키트</h2><p style="color:var(--muted)">나의 생활에 필요한 제품을 직접 골라보세요.</p>
- <div class="builder-step"><h3>STEP 01 어떤 생활을 시작하나요?</h3><div class="choices"><button class="choice active">기숙사</button><button class="choice">자취</button></div></div>
- <div class="builder-step"><h3>STEP 02 어떤 물품이 필요한가요?</h3><div class="choices" id="catChoices"></div></div>
- <div class="builder-step"><h3>STEP 03 제품을 선택하세요.</h3><div id="kitChecks" class="grid"></div></div>
- <div class="totalbox"><div><small>나의 MILE KIT</small><div id="kitSummary">선택한 제품이 없습니다.</div></div><strong id="kitTotal">0원</strong></div>
- <button class="primary" style="margin-top:18px" onclick="toast('나의 MILE KIT 구성이 준비되었습니다.')">이 구성으로 시작하기</button>
- </div></section></section>
-
 <!-- INFO POLICY PAGE -->
 <section id="info" class="page"><section class="section"><div class="label">INFO-MILE</div><h2>흩어진 생활정보를,<br>나에게 필요한 정보로.</h2><p style="color:var(--muted)">청소년·청년의 독립생활에 필요한 정보를 찾아보세요.</p>
  <div class="lock"><div class="label">MILE UPGRADE</div><h3>더 나에게 맞는 정보로 찾아보세요.</h3><p>데모 코드 <b>MILE2026</b>을 입력하면 맞춤형 필터가 잠금 해제됩니다.</p><input id="upgradeCode" placeholder="Upgrade Code"><button class="primary" onclick="upgrade()">Upgrade</button></div>
@@ -483,7 +474,7 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 <div id="toast" class="toast"></div>
 
 <script>
-// 기본 데이터
+// 데이터 정의
 const policies=[
 {name:'청년 주거 지원',cat:'주거',target:'청년',region:'지역별',desc:'청년의 주거비 부담 완화를 위한 정책 정보를 확인하세요.',period:'정책별 상이'},
 {name:'청년 월세 지원',cat:'주거',target:'청년',region:'지역별',desc:'청년의 주거비 부담을 줄이기 위한 지원 정보를 확인하세요.',period:'정책별 상이'},
@@ -501,7 +492,7 @@ const posts=[
 ['중고 나눔','남는 생활용품 필요한 분 필요한가요?','마일러','15']
 ];
 
-let cart=[], qty=1, upgradeOn=false;
+let cart=[], upgradeOn=false;
 
 // 네비게이션 페이지 이동
 function go(id){
@@ -522,7 +513,7 @@ const mileageStars = [
  { x: 370, y: 100 },
  { x: 440, y: 190 }
 ];
-const pointsPerStar = 10; // 1,000원당 1P -> 10P(10,000원)마다 별자리가 1개 연결
+const pointsPerStar = 10;
 
 function openMileage(){
  openCustom(`
@@ -575,7 +566,7 @@ function renderConstellationSVG(){
  });
 }
 
-// ===== 상품 커스텀 및 동적 계산 로직 =====
+// ===== 상품 동적 커스텀 로직 =====
 let currentKitType = 'custom';
 let currentSit = 'dorm';
 let kitQty = 1;
@@ -757,7 +748,7 @@ function addCustomKitToCart(totalPrice) {
 }
 
 function updateBadge(){
-  document.getElementById('badge').textContent=cart.length;
+  document.getElementById('badge').textContent = cart.length;
 }
 
 function openCart(){
@@ -790,7 +781,7 @@ function buyDemo(){
  `);
 }
 
-// 기타 기능
+// 정책 및 게시글 관련 함수
 function renderPolicies(){
  let q=(document.getElementById('isearch')?.value||'').toLowerCase(),c=document.getElementById('icat')?.value||'전체';
  document.getElementById('policies').innerHTML=policies.filter(p=>(c==='전체'||p.cat===c)&&p.name.toLowerCase().includes(q)||( !q&&c==='전체')).map((p,i)=>`<article class="policy"><span class="pill">${p.cat}</span><h3>${p.name}</h3><p>${p.desc}</p><div class="source">지원 대상: ${p.target} · 지역: ${p.region}<br>신청 기간: ${p.period}</div><button class="textbtn" onclick="showPolicy(${i})">자세히 보기 →</button></article>`).join('');
