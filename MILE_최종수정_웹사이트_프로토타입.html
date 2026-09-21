@@ -25,7 +25,7 @@
 }
 
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;background:#080b19}
+html{scroll-behavior:smooth;background:#080b19;scrollbar-gutter:stable}
 body{
  margin:0;
  background:
@@ -52,16 +52,30 @@ body:before{
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 
-/* NAV */
+/* NAV — 상단 화면 고정 */
 .nav{
- position:sticky;top:0;z-index:100;height:74px;padding:0 5.5vw;
+ position:fixed;left:0;right:0;top:0;z-index:1000;height:92px;padding:0 5.5vw;
  display:flex;align-items:center;
- background:rgba(8,11,25,.78);backdrop-filter:blur(18px);
+ background:rgba(8,11,25,.92);backdrop-filter:blur(18px);
  border-bottom:1px solid rgba(203,210,255,.10);
  box-shadow:0 12px 40px rgba(0,0,0,.18);
 }
-.logo{width:104px;height:auto;display:block}
-.navlinks{display:flex;gap:28px;margin-left:70px}
+.nav-brand-button{
+ border:0;background:none;padding:0;width:150px;height:46px;
+ display:flex;align-items:center;justify-content:flex-start;flex:0 0 150px;
+}
+.brand-mark{
+ display:inline-flex;align-items:center;gap:8px;color:#f3f1eb;
+ font-family:"DM Serif Display","Noto Serif KR",serif;
+ font-size:29px;font-weight:400;letter-spacing:.08em;line-height:1;
+ white-space:nowrap;
+}
+.brand-spark{
+ color:#f4df93;font-size:15px;
+ filter:drop-shadow(0 0 6px rgba(244,223,147,.65));
+}
+.logo{width:auto;height:auto;display:block}
+.navlinks{display:flex;gap:28px;margin-left:28px}
 .navlinks button,.navright button{border:0;background:none;color:#c8cbe0;font-size:14px}
 .navlinks button:hover,.navright button:hover{color:#fff}
 .navright{margin-left:auto;display:flex;gap:16px;align-items:center}
@@ -70,7 +84,7 @@ button{cursor:pointer}
 .mobile-menu{display:none;margin-left:auto;border:0;background:none;font-size:23px;color:#fff}
 
 /* PAGES & SECTIONS */
-.page{display:none;background:transparent}.page.active{display:block}
+.page{display:none;background:transparent}.page.active{display:block;padding-top:92px}
 .section{padding:100px 7vw;background:transparent;color:var(--ink)}
 .section.white{background:#0b1022}
 .section-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:42px}
@@ -198,10 +212,30 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 .footer img{width:100px}.footer p{color:#c7c8d5;font-size:13px}
 
 /* MODAL & TOAST */
-.modal{position:fixed;inset:0;background:rgba(3,5,13,.82);backdrop-filter:blur(10px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{position:fixed;inset:0;background:rgba(3,5,13,.92);backdrop-filter:blur(10px);z-index:900;display:none;align-items:flex-start;justify-content:center;padding:92px 0 0}
 .modal.open{display:flex}
+body.modal-open{overflow:hidden}
 .modal-box{width:min(480px,100%);background:linear-gradient(145deg,#121832,#0e1429);color:#f3f1eb;border-radius:24px;padding:30px;border:1px solid rgba(207,214,255,.12);box-shadow:0 30px 100px rgba(0,0,0,.45);transition:all 0.3s}
 .modal-box.large-modal{width:min(880px,94vw);padding:36px 40px}
+.modal-box.mileage-fullscreen{
+ width:100%;max-width:none;height:calc(100vh - 92px);min-height:0;
+ padding:30px 5.5vw 18px;border-radius:0;border:0;
+ border-top:1px solid rgba(207,214,255,.08);
+ box-shadow:none;
+ background:
+   radial-gradient(circle at 20% 20%,rgba(83,103,190,.10),transparent 28%),
+   linear-gradient(180deg,#080c1c 0%,#050817 100%);
+ overflow:hidden;display:flex;flex-direction:column;
+}
+.footer-brand{margin-bottom:18px}
+.mileage-fullscreen .mileage-box{height:100%;min-height:0;display:flex;flex-direction:column}
+.mileage-fullscreen .constellation-wrapper{flex:1;min-height:0;margin:12px 0}
+.mileage-fullscreen .star-map-scroll{height:100%;min-height:0}
+.mileage-fullscreen #constellation-svg{
+ height:100%;min-height:500px;width:2080px;min-width:2080px;
+}
+.mileage-fullscreen .mileage-actions{margin-top:12px}
+.mileage-fullscreen .mileage-note{margin-top:7px}
 .modal-box input,.modal-box textarea{width:100%;padding:13px;background:#0b1022;color:#f3f1eb;border:1px solid rgba(207,214,255,.12);border-radius:10px;margin:8px 0}
 .modal-box input::placeholder,.modal-box textarea::placeholder{color:#6f7590}
 .modal-actions{display:flex;gap:10px;margin-top:15px}.close{border:0;background:none;color:#a2a7ba}
@@ -257,7 +291,7 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 .star-map-scroll::-webkit-scrollbar{height:9px}
 .star-map-scroll::-webkit-scrollbar-track{background:#080c1e}
 .star-map-scroll::-webkit-scrollbar-thumb{background:#4c598d;border-radius:99px}
-#constellation-svg{width:1380px;height:510px;display:block}
+#constellation-svg{width:2080px;min-width:2080px;height:510px;display:block}
 .constellation-line{stroke:#7888d2;stroke-width:2;fill:none;opacity:.18;filter:drop-shadow(0 0 4px rgba(129,145,236,.35));transition:opacity .5s,stroke .5s}
 .constellation-line.active{opacity:.72;stroke:#aab6ff;filter:drop-shadow(0 0 7px #8e9cf1)}
 .star-node{fill:#252d4c;stroke:#59658f;stroke-width:1.5;transition:fill .35s,filter .35s,r .35s}
@@ -275,11 +309,18 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 .mileage-actions .primary{min-width:225px}
 .mileage-note{margin-top:10px;color:#666e8b;font-size:10px;text-align:center}
 @keyframes starPulse{0%,100%{filter:drop-shadow(0 0 7px #f4df93) drop-shadow(0 0 16px #8f9bf2)}50%{filter:drop-shadow(0 0 13px #fff0a6) drop-shadow(0 0 28px #9aa8ff)}}
-.energy-beam{stroke:#f7e8a8;stroke-width:3;fill:none;stroke-linecap:round;filter:drop-shadow(0 0 6px #f4df93) drop-shadow(0 0 13px #9aa4ee);stroke-dasharray:14 900;stroke-dashoffset:900;animation:beamTravel 1.15s cubic-bezier(.22,.72,.32,1) forwards}
-.energy-core{fill:#fff7ca;filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px #f4df93);animation:coreTravel 1.15s cubic-bezier(.22,.72,.32,1) forwards}
+.energy-beam{stroke:#f7e8a8;stroke-width:3;fill:none;stroke-linecap:round;filter:drop-shadow(0 0 6px #f4df93) drop-shadow(0 0 13px #9aa4ee);stroke-dasharray:30 700;stroke-dashoffset:730;animation:beamTravel 1.45s cubic-bezier(.22,.72,.32,1) forwards}
+.energy-core{fill:#fff7ca;filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px #f4df93);animation:coreTravel 1.45s cubic-bezier(.22,.72,.32,1) forwards}
 @keyframes beamTravel{to{stroke-dashoffset:0}}
 @keyframes coreTravel{0%{opacity:0}15%{opacity:1}100%{opacity:1}}
 @media(max-width:850px){
+ .nav{height:74px;padding:0 20px}
+ .nav-brand-button{width:auto;flex:0 0 auto;margin-right:auto}
+ .navlinks,.navright{display:none}.mobile-menu{display:block}
+ .page.active{padding-top:74px}
+ .modal{padding-top:74px}
+ .modal-box.mileage-fullscreen{height:calc(100vh - 74px);padding:24px 18px 14px}
+ .mileage-fullscreen #constellation-svg{height:100%;min-height:430px;width:2080px;min-width:2080px}
  .mileage-box h2{font-size:27px}
  .modal-box.large-modal{padding:28px 22px}
  #constellation-svg{height:450px}
@@ -372,7 +413,7 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 <body>
 
 <nav class="nav">
- <button style="border:0;background:none;padding:0" onclick="go('home')"><img class="logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+YAAAGuCAYAAAAd9BwPAABJeUlEQVR42u3dfahW553v/3erkIAZBD0koJBBh+SgP+zWIYFYLHGoP7QkxBJLUlxsQ1OybxJiyF2a0hBDLTGkJKErjCFhbZmEus8tYxhDDZEqNYxSGWUSjjoyyiijjPwUEo5yZBQiKPn9sa4dt8/74X5Y67reL7jZttm69/quh2t91vWwvvPNN98gSZIkSVLVDA4dfAy4HzgJbBno77sc43Z+x2AuSZIkSapYIJ8GvAc8OeL/3gz8fKC/70Js2/tdd7kkSZIkqWKuDeWE//1GjBtrj7kkSZIkqTIGhw72Axtv8S1zB/r7jsS0zfaYS5IkSZKqpHmb//6z2DbYYC5JkiRJqoTBoYNLgQW3+baVBnNJkiRJkjpjNKF7Zlit3WAuSZIkSVK7DA4dnAQ8Pspvf9pgLkmSJElSe60A7hrl9y4fHDo4y2AuSZIkSVL7PD7G74+m19xgLkmSJEnqqTCM/ZEx/rVoVmc3mEuSJEmSem0lox/GPmzm4NDBJwzmkiRJkiRN3Ipx/r0oes2/880333gISJIkSZJ6YnDo4DTgzAT+ibkD/X1H6lwDe8wlSZIkSb20coJ/v/a95gZzSZIkSVKdg/nKuhfAYC5JkiRJ6onBoYPzgYUT/GdmDg4d7DeYS5IkSZI0dk9X7N/pCRd/kyRJkiR1XXh3+f9l7K9Ju5nFA/19u+tYC3vMJUmSJEm98GwbQ/nwv1dLBnNJkiRJUi802/zvPTk4dHBOHQsx2WNBkqT6ajRbs4AlwDzgPuBeYCpwZ/iWO27yVy+Gr18D54CTwDHgELCnyLMjVleS1CmDQwefB2Z34J9+EWjUrR7OMZckqX5hfAblq2FWAgs69GOOA9uALUWe7bbqkqQ2hvIpwH8AMzv0I+YO9PfV6gGzwVySpPoE8vmU8+cGuvyjDwMfAh8UeXbWPSFJmmAwfxN4qYM/YuNAf99TBnNJktTuQN4EVvX4V7kE5MA7RZ6dds9IksYRyudQPvDttIUD/X376lIXF3+TJKm6gXxao9kqgP0VCOVQrk3zEvBfjWbrFfeQJGkc3ujSz/lNnYpij7kkSdUM5c8Av6e9r5Fpt/1A0znokqTRGBw62A9s7OKPHBjo79tgMJckSWMN5DOA94DlNfq11xR59rp7T5J0i1A+DTgKTO/ijz0PfG+gv+9E1evjUHZJkqoTyh8D/q1moRxgXaPZ+lN4qCBJ0o281+VQDuWos7wOxTGYS5JUjVD+CrC1Bzct7bIM+NdGs/WQe1OSNNLg0MFfAk/26McvHxw6WPl1URzKLklS70N5QfdfgdYpl4AVRZ594p6VJA0OHVwKbK/Ar7J8oL+vsm2TwVySpN6G8j9Sv6Hro7oBMpxLUvKhfD7wF6qxkOkl4AdVfYWawVySJEN5pyx2xXZJSjaUzwihfHaFfq1TIZxXbjE455hLktSbUF5EHsoBtjSarTnubUlKMpR/WrFQDjAT+DT8fgZzSZISD+WvEM+c8luZDrQazdYk97okJRfKF1T0V5wL/Llq4dxgLklSd0P5Y8C6hDZ5AfCBe16Skgjls4A/VziUjwznleo5d465JEndC+UzKN9TPj3BzR8o8myDR4EkRRvK5wNbqN7w9Vs5DDxahTnnBnNJkroXzP9I/PPKb+Y88L0iz04kfgzMAO4D7gfuHfG5G5gK3Bm+9Y4J/qiL4es54CRwCNjpSvmSOhTKHwNaVGP19bE6Bfyk16u1G8wlSepOIHsGGEy8DJuLPPtpIvt7Tgjg88Ln/vC/e33Tuh9Ya0CX1MZQ/gpxTNFaNdDfN2QwlyQ3p3p" alt="logo"></button>
+ <button class="nav-brand-button" onclick="go('home')" aria-label="MILE 홈"><span class="brand-mark"><span class="brand-spark">✦</span><span>MILE</span></span></button>
  <div class="navlinks"><button onclick="go('kit')">첫걸음 키트</button><button onclick="go('info')">info-mile</button><button onclick="go('community')">Community</button><button onclick="go('magazine')">Magazine</button></div>
  <div class="navright">
    <button onclick="openModal('search')">⌕ 검색</button>
@@ -515,7 +556,7 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 </main>
 
 <footer class="footer">
- <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+YAAAGuCAYAAAAd9BwPAABJeUlEQVR42u3dfahW553v/3erkIAZBD0koJBBh+SgP+zWIYFYLHGoP7QkxBJLUlxsQ1OybxJiyF2a0hBDLTGkJKErjCFhbZmEus8tYxhDDZEqNYxSGWUSjjoyyiijjPwUEo5yZBQiKPn9sa4dt8/74X5Y67reL7jZttm69/quh2t91vWwvvPNN98gSZIkSVLVDA4dfAy4HzgJbBno77sc43Z+x2AuSZIkSapYIJ8GvAc8OeL/3gz8fKC/70Js2/tdd7kkSZIkqWKuDeWE//1GjBtrj7kkSZIkqTIGhw72Axtv8S1zB/r7jsS0zfaYS5IkSZKqpHmb//6z2DbYYC5JkiRJqoTBoYNLgQW3+baVBnNJkiRJkjpjNKF7Zlit3WAuSZIkSVK7DA4dnAQ8Pspvf9pgLkmSJElSe60A7hrl9y4fHDo4y2AuSZIkSVL7PD7G74+m19xgLkmSJEnqqTCM/ZEx/rVoVmc3mEuSJEmSem0lox/GPmzm4NDBJwzmkiRJkiRN3Ipx/r0oes2/880333gISJIkSZJ6YnDo4DTgzAT+ibkD/X1H6lwDe8wlSZIkSb20coJ/v/a95gZzSZIkSVKdg/nKuhfAYC5JkiRJ6onBoYPzgYUT/GdmDg4d7DeYS5IkSZI0dk9X7N/pCRd/kyRJkiR1XXh3+f9l7K9Ju5nFA/19u+tYC3vMJUmSJEm98GwbQ/nwv1dLBnNJkiRJUi802/zvPTk4dHBOHQsx2WNBkqT6ajRbs4AlwDzgPuBeYCpwZ/iWO27yVy+Gr18D54CTwDHgELCnyLMjVleS1CmDQwefB2Z34J9+EWjUrR7OMZckqX5hfAblq2FWAgs69GOOA9uALUWe7bbqkqQ2hvIpwH8AMzv0I+YO9PfV6gGzwVySpPoE8vmU8+cGuvyjDwMfAh8UeXbWPSFJmmAwfxN4qYM/YuNAf99TBnNJktTuQN4EVvX4V7kE5MA7RZ6dds9IksYRyudQPvDttIUD/X376lIXF3+TJKm6gXxao9kqgP0VCOVQrk3zEvBfjWbrFfeQJGkc3ujSz/lNnYpij7kkSdUM5c8Av6e9r5Fpt/1A0znokqTRGBw62A9s7OKPHBjo79tgMJckSWMN5DOA94DlNfq11xR59rp7T5J0i1A+DTgKTO/ijz0PfG+gv+9E1evjUHZJkqoTyh8D/q1moRxgXaPZ+lN4qCBJ0o281+VQDuWos7wOxTGYS5JUjVD+CrC1Bzct7bIM+NdGs/WQe1OSNNLg0MFfAk/26McvHxw6WPl1URzKLklS70N5QfdfgdYpl4AVRZ594p6VJA0OHVwKbK/Ar7J8oL+vsm2TwVySpN6G8j9Sv6Hro7oBMpxLUvKhfD7wF6qxkOkl4AdVfYWawVySJEN5pyx2xXZJSjaUzwihfHaFfq1TIZxXbjE455hLktSbUF5EHsoBtjSarTnubUlKMpR/WrFQDjAT+DT8fgZzSZISD+WvEM+c8luZDrQazdYk97okJRfKF1T0V5wL/Llq4dxgLklSd0P5Y8C6hDZ5AfCBe16Skgjls4A/VziUjwznleo5d465JEndC+UzKN9TPj3BzR8o8myDR4EkRRvK5wNbqN7w9Vs5DDxahTnnBnNJkroXzP9I/PPKb+Y88L0iz04kfgzMAO4D7gfuHfG5G5gK3Bm+9Y4J/qiL4es54CRwCNjpSvmSOhTKHwNaVGP19bE6Bfyk16u1G8wlSepOIHsGGEy8DJuLPPtpIvt7Tgjg88Ln/vC/e33Tuh9Ya0CX1MZQ/gpxTNFaNdDfN2QwlyQ3p3p" alt="logo">
+ <div class="brand-mark footer-brand"><span class="brand-spark">✦</span><span>MILE</span></div>
  <p>MILE — 자립까지, 삶의 거리를 함께 쌓다.</p>
  <p>학교 창업 프로젝트용 프로토타입 · 실제 결제·개인정보 저장 없음</p>
 </footer>
@@ -633,7 +674,7 @@ function openMileage(){
     </div>
   `, true);
 
-  setTimeout(() => renderConstellationSVG(mileageLastUnlocked), 50);
+  setTimeout(() => renderConstellationSVG(mileageLastUnlocked), 80);
 }
 
 function addMileageFromPrice(price){
@@ -697,7 +738,7 @@ function renderConstellationSVG(animateSegment=-1){
 
         const core=svgEl('circle',{cx:a.x,cy:a.y,r:4,class:'energy-core'});
         const motion=svgEl('animateMotion',{
-          dur:'1.15s',fill:'freeze',path:`M ${a.x} ${a.y} L ${b.x} ${b.y}`
+          dur:'1.45s',begin:'0s',fill:'freeze',repeatCount:'1',path:`M ${a.x} ${a.y} L ${b.x} ${b.y}`
         });
         core.appendChild(motion);
         svg.appendChild(core);
@@ -1115,16 +1156,19 @@ function openCustom(c, isLarge = false){
  box.innerHTML = c;
  if(isLarge){
    box.classList.add('large-modal');
+   if(box.querySelector('.mileage-box')) box.classList.add('mileage-fullscreen');
  } else {
-   box.classList.remove('large-modal');
+   box.classList.remove('large-modal','mileage-fullscreen');
  }
  document.getElementById('modal').classList.add('open');
+ document.body.classList.add('modal-open');
 }
 
 function closeModal(){
  const box = document.getElementById('modalBox');
  box.classList.remove('large-modal');
  document.getElementById('modal').classList.remove('open');
+ document.body.classList.remove('modal-open');
 }
 
 function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>e.style.display='none',2200)}
