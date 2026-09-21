@@ -99,7 +99,7 @@ button{cursor:pointer}
 .hero h1 em{font-family:"DM Serif Display","Noto Serif KR",serif;font-style:normal;color:#aab3ff;letter-spacing:-.035em;text-shadow:0 0 32px rgba(144,155,255,.16)}
 .hero-desc{color:#a9adc1 !important;font-size:15px !important;line-height:1.95 !important}
 .hero-actions{display:flex;align-items:center;margin-top:32px;gap:22px}
-.primary{border:0;background:#a0a9ef;color:#11162d;padding:14px 23px;border-radius:999px;box-shadow:0 10px 30px rgba(121,133,232,.20)}
+.primary{border:0;background:#a0a9ef;color:#11162d;padding:14px 23px;border-radius:999px;box-shadow:0 10px 30px rgba(121,133,232,.20);font-weight:600}
 .primary:hover{background:#c0c7ff;color:#10142a;transform:translateY(-2px)}
 .textbtn{border:0;background:none;color:#b5bcf3;padding:12px 2px}
 .hero-trail{margin-top:44px;display:flex;align-items:center;gap:13px;color:#6f7699;font-size:11px;letter-spacing:.04em}
@@ -198,13 +198,14 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 .footer img{width:100px}.footer p{color:#c7c8d5;font-size:13px}
 
 /* MODAL & TOAST */
-.modal{position:fixed;inset:0;background:rgba(3,5,13,.78);backdrop-filter:blur(8px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal{position:fixed;inset:0;background:rgba(3,5,13,.82);backdrop-filter:blur(10px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
 .modal.open{display:flex}
-.modal-box{width:min(480px,100%);background:linear-gradient(145deg,#121832,#0e1429);color:#f3f1eb;border-radius:24px;padding:30px;border:1px solid rgba(207,214,255,.12);box-shadow:0 30px 100px rgba(0,0,0,.45)}
+.modal-box{width:min(480px,100%);background:linear-gradient(145deg,#121832,#0e1429);color:#f3f1eb;border-radius:24px;padding:30px;border:1px solid rgba(207,214,255,.12);box-shadow:0 30px 100px rgba(0,0,0,.45);transition:all 0.3s}
+.modal-box.large-modal{width:min(880px,94vw);padding:36px 40px}
 .modal-box input,.modal-box textarea{width:100%;padding:13px;background:#0b1022;color:#f3f1eb;border:1px solid rgba(207,214,255,.12);border-radius:10px;margin:8px 0}
 .modal-box input::placeholder,.modal-box textarea::placeholder{color:#6f7590}
 .modal-actions{display:flex;gap:10px;margin-top:15px}.close{border:0;background:none;color:#a2a7ba}
-.toast{position:fixed;z-index:300;bottom:25px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:12px;padding:13px 18px;display:none;font-size:13px}
+.toast{position:fixed;z-index:300;bottom:25px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:12px;padding:13px 18px;display:none;font-size:13px;border:1px solid rgba(207,214,255,0.2)}
 
 /* COMMENTS */
 .comment-modal{width:100%}
@@ -223,74 +224,78 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 .comment-write textarea{margin:0 0 10px !important}
 .liked{color:#f1b4c7 !important}
 
-/* MILEAGE MODAL */
+/* MILEAGE MODAL (LARGE & FIXED STARS) */
 .mileage-box { text-align: center; color: #f3f1eb; }
-.mileage-box h2 { margin: 0 0 5px; font-family: "Noto Serif KR", serif; font-weight: 500; font-size: 24px; color: #f4df93; }
-.mileage-box p { color: #a7aabd; font-size: 13px; margin-bottom: 15px; }
-.mileage-status { font-size: 16px; font-weight: 600; margin-bottom: 15px; color: #d8dbec; }
-.mileage-status span { color: #f4df93; font-size: 22px; font-weight: 700; }
-.constellation-wrapper { background: radial-gradient(circle at center, #131936 0%, #080c1e 100%); border-radius: 16px; border: 1px solid rgba(207,214,255,.15); margin: 15px 0; overflow: hidden; }
-#constellation-svg { width: 100%; height: auto; display: block; }
-.constellation-line { stroke: #9aa4ee; stroke-width: 2; stroke-dasharray: 500; stroke-dashoffset: 500; transition: stroke-dashoffset 1s ease-in-out; filter: drop-shadow(0 0 6px #9aa4ee); }
-.constellation-line.active { stroke-dashoffset: 0; }
-.star-node { fill: #2e365c; transition: all 0.5s ease; }
-.star-node.active { fill: #f4df93; filter: drop-shadow(0 0 8px #f4df93) drop-shadow(0 0 15px #9aa4ee); animation: starPulse 2s infinite alternate; }
-@keyframes starPulse { 0% { transform: scale(1); } 100% { transform: scale(1.3); } }
-.mileage-actions { display: flex; gap: 10px; justify-content: center; margin-top: 18px; }
+.mileage-box h2 { margin: 0 0 8px; font-family: "Noto Serif KR", serif; font-weight: 500; font-size: 32px; color: #f4df93; }
+.mileage-box p { color: #a7aabd; font-size: 14px; margin-bottom: 20px; line-height: 1.6; }
+.mileage-status { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #d8dbec; }
+.mileage-status span { color: #f4df93; font-size: 28px; font-weight: 700; }
+.constellation-wrapper { background: radial-gradient(circle at center, #151d42 0%, #080c1e 100%); border-radius: 20px; border: 1px solid rgba(207,214,255,.18); margin: 20px 0; padding: 15px; overflow: hidden; box-shadow: inset 0 0 40px rgba(0,0,0,0.5); }
+#constellation-svg { width: 100%; height: 320px; display: block; }
+.constellation-line { stroke: #9aa4ee; stroke-width: 2.5; stroke-dasharray: 0; filter: drop-shadow(0 0 6px #9aa4ee); opacity: 0.2; transition: opacity 0.5s, stroke 0.5s; }
+.constellation-line.active { opacity: 1; stroke: #f4df93; filter: drop-shadow(0 0 8px #f4df93); }
+.star-node { fill: #2e365c; transition: fill 0.3s; }
+.star-node.active { fill: #f4df93; filter: drop-shadow(0 0 10px #f4df93) drop-shadow(0 0 18px #9aa4ee); }
+/* 애니메이션 제거: 별들 움직이지 않음 */
+.mileage-actions { display: flex; gap: 12px; justify-content: center; margin-top: 22px; }
 
-/* PRODUCT CUSTOM UI */
+/* PRODUCT CUSTOM UI - DARK THEME HARMONIZED */
 .product-page-container { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
-.product-head-eyebrow { color: #8e96bc; font-size: 13px; font-weight: 500; letter-spacing: 0.1em; margin-bottom: 8px; }
-.product-head-title { font-family: "Noto Serif KR", serif; font-size: 32px; font-weight: 600; color: #f3f1eb; margin: 0 0 35px 0; }
+.product-head-eyebrow { color: #aab2ff; font-size: 12px; font-weight: 700; letter-spacing: 2px; margin-bottom: 8px; }
+.product-head-title { font-family: "Noto Serif KR", serif; font-size: 36px; font-weight: 500; color: #f3f1eb; margin: 0 0 35px 0; }
 .product-card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
-.product-item-card { background: #f3f5fc; border-radius: 20px; overflow: hidden; border: 1px solid rgba(200,208,240,0.4); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
-.product-item-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(30,40,90,0.08); }
-.product-card-img-wrap { height: 320px; background: #e2e7f6; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
-.product-card-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
-.product-card-info { padding: 20px 24px 24px; }
-.product-card-tag { font-size: 13px; color: #6b75a1; margin-bottom: 6px; }
-.product-card-name { font-size: 18px; font-weight: 600; color: #1f2442; margin: 0 0 6px 0; }
-.product-card-price { font-size: 15px; color: #5a638b; }
+.product-item-card { background: linear-gradient(145deg, #10162d, #0d1328); border-radius: 24px; overflow: hidden; border: 1px solid rgba(207,214,255,.11); cursor: pointer; transition: transform 0.25s, box-shadow 0.25s; }
+.product-item-card:hover { transform: translateY(-5px); box-shadow: 0 20px 50px rgba(0,0,0,.3); border-color: rgba(154,164,238,0.4); }
+.product-card-img-wrap { height: 300px; background: #151b37; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+.product-card-img-wrap img { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; transition: opacity 0.3s; }
+.product-item-card:hover .product-card-img-wrap img { opacity: 1; }
+.product-card-info { padding: 22px 26px 26px; }
+.product-card-tag { font-size: 12px; color: #9aa4ee; font-weight: 600; margin-bottom: 6px; letter-spacing: 1px; }
+.product-card-name { font-size: 20px; font-weight: 500; color: #f3f1eb; margin: 0 0 8px 0; }
+.product-card-price { font-size: 15px; color: #a7aabd; }
 
-.detail-custom-container { background: #eef1f9; border-radius: 24px; padding: 36px; display: grid; grid-template-columns: 420px 1fr; gap: 40px; }
+.detail-custom-container { background: linear-gradient(145deg, #10162d, #0d1328); border-radius: 28px; padding: 40px; display: grid; grid-template-columns: 380px 1fr; gap: 40px; border: 1px solid rgba(207,214,255,.12); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
 .detail-img-box { position: relative; }
-.detail-img-wrapper { background: #dce2f4; border-radius: 18px; height: 420px; overflow: hidden; border: 1px solid rgba(255,255,255,0.6); }
+.detail-img-wrapper { background: #151b37; border-radius: 20px; height: 380px; overflow: hidden; border: 1px solid rgba(207,214,255,.15); }
 .detail-img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
-.detail-img-tag { margin-top: 14px; font-size: 13px; color: #68729c; }
+.detail-img-tag { margin-top: 14px; font-size: 12px; color: #a7aabd; letter-spacing: 1px; }
 
 .detail-content-box { display: flex; flex-direction: column; }
-.detail-sub-path { font-size: 12px; color: #8892b8; letter-spacing: 0.05em; margin-bottom: 10px; }
-.detail-main-title { font-family: "Noto Serif KR", serif; font-size: 28px; font-weight: 600; color: #1a1e38; margin: 0 0 10px 0; }
-.detail-price-text { font-size: 22px; font-weight: 700; color: #1e2444; margin-bottom: 20px; }
-.detail-desc-p { font-size: 13px; color: #6e78a0; line-height: 1.7; margin: 0 0 28px 0; }
+.detail-sub-path { font-size: 12px; color: #9aa4ee; letter-spacing: 0.1em; margin-bottom: 10px; font-weight: 600; }
+.detail-main-title { font-family: "Noto Serif KR", serif; font-size: 32px; font-weight: 500; color: #f3f1eb; margin: 0 0 10px 0; }
+.detail-price-text { font-size: 24px; font-weight: 700; color: #f4df93; margin-bottom: 18px; }
+.detail-desc-p { font-size: 14px; color: #a7aabd; line-height: 1.75; margin: 0 0 28px 0; }
 
-.option-group-title { font-size: 13px; font-weight: 600; color: #232948; margin-bottom: 10px; }
-.option-group-sub { font-size: 12px; color: #8892b8; margin: -4px 0 12px 0; }
+.option-group-title { font-size: 14px; font-weight: 600; color: #f3f1eb; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+.option-group-sub { font-size: 12px; color: #a7aabd; margin: -4px 0 14px 0; }
 
 .situation-btn-group { display: flex; gap: 10px; margin-bottom: 24px; }
-.sit-btn { padding: 10px 22px; border-radius: 99px; border: 1px solid #d4dbf0; background: #f7f9ff; color: #434c74; font-size: 13px; cursor: pointer; transition: all 0.2s; }
-.sit-btn.active { background: #222741; color: #ffffff; border-color: #222741; font-weight: 600; }
+.sit-btn { padding: 10px 22px; border-radius: 99px; border: 1px solid rgba(207,214,255,.15); background: #151b37; color: #a7aabd; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+.sit-btn.active { background: #9aa4ee; color: #080b19; border-color: #9aa4ee; font-weight: 700; box-shadow: 0 4px 15px rgba(154,164,238,0.25); }
 
-.item-selection-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 28px; }
-.select-item-btn { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-radius: 12px; border: 1px solid #d8e0f5; background: #ffffff; color: #2e3558; font-size: 13px; cursor: pointer; transition: all 0.2s; user-select: none; }
-.select-item-btn.selected { background: #ffffff; border-color: #92a0d8; box-shadow: 0 2px 8px rgba(100,115,180,0.12); font-weight: 500; }
-.select-item-btn.unselected { background: #e8edfa; border-color: transparent; color: #9aa3c4; text-decoration: line-through; }
-.select-item-btn .item-p { font-size: 12px; color: #6b759e; }
-.select-item-btn.unselected .item-p { color: #b0b8d6; }
+.item-selection-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 28px; }
+.select-item-btn { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-radius: 14px; border: 1px solid rgba(207,214,255,.12); background: #121832; color: #f3f1eb; font-size: 13.5px; transition: all 0.2s; user-select: none; }
+.select-item-btn.selected { background: linear-gradient(145deg, #18224b, #131a3b); border-color: #9aa4ee; box-shadow: 0 4px 16px rgba(154,164,238,0.12); }
+.select-item-btn.unselected { background: #0b0e20; border-color: rgba(207,214,255,.05); color: #5c627d; }
+.select-item-btn .item-info-wrap { display: flex; flex-direction: column; gap: 2px; }
+.select-item-btn .item-p { font-size: 12px; color: #a7aabd; }
+.select-item-btn.unselected .item-p { color: #494f68; }
 
-.add-item-btn { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-radius: 12px; border: 1px solid transparent; background: #e6ebf8; color: #4c5680; font-size: 13px; cursor: pointer; transition: all 0.2s; }
-.add-item-btn.selected { background: #ffffff; border-color: #8e9cd0; color: #1e2444; font-weight: 600; box-shadow: 0 2px 8px rgba(100,115,180,0.1); }
+/* 상품 개별 수량 조절 버튼 (Stepper) */
+.item-qty-stepper { display: flex; align-items: center; background: rgba(255,255,255,0.08); border-radius: 8px; padding: 2px 6px; gap: 8px; border: 1px solid rgba(207,214,255,0.15); }
+.item-qty-stepper button { border: 0; background: none; color: #f4df93; font-size: 15px; font-weight: bold; cursor: pointer; width: 20px; height: 24px; display: grid; place-items: center; }
+.item-qty-stepper button:hover { color: #ffffff; }
+.item-qty-stepper span { font-size: 13px; font-weight: 600; color: #ffffff; min-width: 14px; text-align: center; }
 
-.detail-bottom-bar { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(200,208,235,0.6); }
-.qty-stepper { display: flex; align-items: center; background: #e6ecf8; border-radius: 99px; padding: 4px 12px; gap: 16px; }
-.qty-stepper button { border: 0; background: none; font-size: 18px; color: #404970; cursor: pointer; width: 24px; height: 30px; }
-.qty-stepper span { font-size: 14px; font-weight: 600; color: #1e2444; min-width: 16px; text-align: center; }
+.item-add-toggle-btn { background: #9aa4ee; color: #080b19; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.item-add-toggle-btn.off { background: rgba(207,214,255,0.1); color: #8e95b3; }
 
-.cart-submit-btn-wrap { text-align: right; }
-.cart-submit-btn { background: #222741; color: #ffffff; border: none; padding: 14px 28px; border-radius: 99px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 6px 20px rgba(34,39,65,0.25); }
-.cart-submit-btn:hover { background: #32385b; transform: translateY(-1px); }
-.cart-submit-btn:disabled { background: #a4accd; cursor: not-allowed; box-shadow: none; }
-.mileage-benefit-info { font-size: 11px; color: #7681ac; margin-top: 8px; text-align: right; }
+.detail-bottom-bar { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 24px; border-top: 1px solid rgba(207,214,255,.12); }
+.cart-submit-btn-wrap { width: 100%; text-align: right; }
+.cart-submit-btn { width: 100%; background: #a0a9ef; color: #080b19; border: none; padding: 16px 28px; border-radius: 99px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 10px 30px rgba(160,169,239,0.25); }
+.cart-submit-btn:hover { background: #c0c7ff; transform: translateY(-2px); }
+.cart-submit-btn:disabled { background: #222949; color: #5c627d; cursor: not-allowed; box-shadow: none; }
+.mileage-benefit-info { font-size: 12px; color: #a7aabd; margin-top: 10px; text-align: center; }
 
 @media(max-width:850px){
  .nav{padding:0 20px}.navlinks,.navright{display:none}.mobile-menu{display:block}
@@ -374,7 +379,7 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
   <div class="section-head"><div><div class="label">MILE SERVICE</div><h2>당신에게 필요한<br>다음 한 걸음</h2></div><p>생활을 준비하고, 정보를 찾고,<br>같은 길을 걷는 사람들과 연결됩니다.</p></div>
   <div class="service-grid">
    <div class="service"><div class="num">01 / FIRST STEP KIT</div><h3>첫걸음 키트</h3><p>처음 독립한다면 무엇부터 준비해야 할까요?<br>생활에 필요한 제품을 한곳에서 확인하세요.</p><button class="go" onclick="go('kit')">키트 둘러보기 →</button><div class="mini-path"></div></div>
-   <div class="service"><div class="num">02 / INFO-MILE</div><h3>info-mile</h3><p>흩어진 생활정보를 나에게 필요한 정보로.<br>청소년·청년을 위한 정책을 찾아보세요.</p><button class="go" onclick="go('info')">정보 찾아보기 Japanese→</button><div class="mini-path"></div></div>
+   <div class="service"><div class="num">02 / INFO-MILE</div><h3>info-mile</h3><p>흩어진 생활정보를 나에게 필요한 정보로.<br>청소년·청년을 위한 정책을 찾아보세요.</p><button class="go" onclick="go('info')">정보 찾아보기 →</button><div class="mini-path"></div></div>
    <div class="service"><div class="num">03 / COMMUNITY</div><h3>Community</h3><p>혼자 시작하지만, 혼자 걸어갈 필요는 없으니까.<br>비슷한 생활환경의 사람들과 이야기를 나눠요.</p><button class="go" onclick="go('community')">커뮤니티 가기 →</button><div class="mini-path"></div></div>
   </div>
  </section>
@@ -401,7 +406,7 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 <!-- PRODUCTS MAIN LIST -->
 <section id="kit" class="page">
   <div class="product-page-container">
-    <div class="product-head-eyebrow">01 / 상품</div>
+    <div class="product-head-eyebrow">01 / PRODUCTS</div>
     <h1 class="product-head-title">자취 첫 방, 필요한 것들</h1>
 
     <div class="product-card-grid">
@@ -411,9 +416,9 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
           <img src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&q=80" alt="커스텀 첫걸음 키트">
         </div>
         <div class="product-card-info">
-          <div class="product-card-tag">키트</div>
+          <div class="product-card-tag">CUSTOM KIT</div>
           <h3 class="product-card-name">커스텀 첫걸음 키트</h3>
-          <div class="product-card-price">시작가 ₩40,000</div>
+          <div class="product-card-price">필요한 품목과 수량을 자유롭게 조합하세요</div>
         </div>
       </div>
 
@@ -423,9 +428,9 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
           <img src="https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=800&q=80" alt="첫걸음 리필 키트">
         </div>
         <div class="product-card-info">
-          <div class="product-card-tag">리필</div>
+          <div class="product-card-tag">REFILL KIT</div>
           <h3 class="product-card-name">첫걸음 리필 키트</h3>
-          <div class="product-card-price">시작가 ₩2,000</div>
+          <div class="product-card-price">다 쓴 품목만 개별 수량으로 채워보세요</div>
         </div>
       </div>
     </div>
@@ -474,7 +479,6 @@ select{padding:13px 15px;border:1px solid rgba(206,212,255,.12);background:#1016
 <div id="toast" class="toast"></div>
 
 <script>
-// 데이터 정의
 const policies=[
 {name:'청년 주거 지원',cat:'주거',target:'청년',region:'지역별',desc:'청년의 주거비 부담 완화를 위한 정책 정보를 확인하세요.',period:'정책별 상이'},
 {name:'청년 월세 지원',cat:'주거',target:'청년',region:'지역별',desc:'청년의 주거비 부담을 줄이기 위한 지원 정보를 확인하세요.',period:'정책별 상이'},
@@ -494,7 +498,7 @@ const posts=[
 
 let cart=[], upgradeOn=false;
 
-// 네비게이션 페이지 이동
+// 네비게이션 이동
 function go(id){
  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
  document.getElementById(id).classList.add('active');
@@ -504,14 +508,14 @@ function go(id){
  if(id==='mymile')renderPrefs();
 }
 
-// ===== 별자리 마일리지 시스템 =====
+// ===== 별자리 마일리지 시스템 (대형 창 & 정적 고정 별들) =====
 let userMileage = 0;
 const mileageStars = [
- { x: 60,  y: 180 },
- { x: 150, y: 80 },
- { x: 260, y: 220 },
- { x: 370, y: 100 },
- { x: 440, y: 190 }
+ { x: 80,  y: 200, name: "첫걸음" },
+ { x: 210, y: 90,  name: "생활관리" },
+ { x: 350, y: 240, name: "경험축적" },
+ { x: 490, y: 110, name: "경제자립" },
+ { x: 620, y: 210, name: "완전한자립" }
 ];
 const pointsPerStar = 10;
 
@@ -519,10 +523,10 @@ function openMileage(){
  openCustom(`
    <div class="mileage-box">
      <h2>나의 별자리 마일리지</h2>
-     <p>구매 금액 <b>1,000원당 1 마일리지(P)</b>가 적립됩니다.<br>(10P가 모일 때마다 별자리가 하나씩 이어집니다! ✨)</p>
+     <p>구매 금액 <b>1,000원당 1 마일리지(P)</b>가 차곡차곡 적립됩니다.<br>10P가 모일 때마다 밤하늘의 별들이 하나씩 선으로 연결됩니다! ✨</p>
      <div class="mileage-status">현재 마일리지: <span>${userMileage.toLocaleString()}</span> P</div>
      <div class="constellation-wrapper">
-       <svg id="constellation-svg" viewBox="0 0 500 300"></svg>
+       <svg id="constellation-svg" viewBox="0 0 700 350"></svg>
      </div>
      <div class="mileage-actions">
        <button class="primary" onclick="addMileageFromPrice(10000); openMileage();">🛍️ 10,000원 구매 테스트 (+10P)</button>
@@ -530,7 +534,7 @@ function openMileage(){
        <button class="close" onclick="closeModal()">닫기</button>
      </div>
    </div>
- `);
+ `, true); // large-modal flag
  setTimeout(renderConstellationSVG, 50);
 }
 
@@ -545,6 +549,7 @@ function renderConstellationSVG(){
  if(!svg) return;
  svg.innerHTML = '';
  
+ // 연결 선 그리기
  for(let i = 0; i < mileageStars.length - 1; i++){
    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
    line.setAttribute('x1', mileageStars[i].x);
@@ -555,65 +560,81 @@ function renderConstellationSVG(){
    svg.appendChild(line);
  }
 
+ // 별 노드 및 라벨 그리기 (고정된 별)
  const activeStarCount = Math.min(Math.floor(userMileage / pointsPerStar) + 1, mileageStars.length);
  mileageStars.forEach((star, index) => {
+   const isActive = index < activeStarCount && (userMileage >= index * pointsPerStar || index === 0);
+   
+   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+   
    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
    circle.setAttribute('cx', star.x);
    circle.setAttribute('cy', star.y);
-   circle.setAttribute('r', '7');
-   circle.setAttribute('class', 'star-node' + (index < activeStarCount && userMileage >= index * pointsPerStar ? ' active' : ''));
-   svg.appendChild(circle);
+   circle.setAttribute('r', '8');
+   circle.setAttribute('class', 'star-node' + (isActive ? ' active' : ''));
+   
+   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+   text.setAttribute('x', star.x);
+   text.setAttribute('y', star.y + 28);
+   text.setAttribute('text-anchor', 'middle');
+   text.setAttribute('fill', isActive ? '#f4df93' : '#6f7590');
+   text.setAttribute('font-size', '12');
+   text.setAttribute('font-weight', '500');
+   text.textContent = star.name;
+
+   g.appendChild(circle);
+   g.appendChild(text);
+   svg.appendChild(g);
  });
 }
 
-// ===== 상품 동적 커스텀 로직 =====
+// ===== 상품 개별 수량 조절 로직 =====
 let currentKitType = 'custom';
 let currentSit = 'dorm';
-let kitQty = 1;
 
 const kitData = {
   custom: {
-    tag: '키트',
+    tag: 'CUSTOM KIT',
     title: '커스텀 첫걸음 키트',
-    desc: '처음 방을 채울 때 꼭 쓰게 되는 것만 담았습니다. 기숙사와 1인 가구 중 상황을 고르고, 필요한 품목을 더하면 금액이 바로 바뀝니다.',
+    desc: '처음 방을 채울 때 꼭 쓰게 되는 품목들입니다. 필요한 물품과 각 개별 수량을 자유롭게 선택하면 금액이 바로 반영됩니다.',
     img: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&q=80',
     baseItems: [
-      { id: 'b1', name: '제습제', price: 3000, active: true },
-      { id: 'b2', name: '빨래 세제', price: 6500, active: true },
-      { id: 'b3', name: '돌돌이', price: 3500, active: true },
-      { id: 'b4', name: '텀블러용 발포 세정제', price: 4500, active: true },
-      { id: 'b5', name: '핸드워시', price: 4000, active: true },
-      { id: 'b6', name: '빨래 바구니', price: 7500, active: true },
-      { id: 'b7', name: '벌레 퇴치제', price: 5500, active: true },
-      { id: 'b8', name: '샤워볼(타월)', price: 3000, active: true },
-      { id: 'b9', name: '계량컵', price: 2500, active: true }
+      { id: 'b1', name: '제습제', price: 3000, qty: 1 },
+      { id: 'b2', name: '빨래 세제', price: 6500, qty: 1 },
+      { id: 'b3', name: '돌돌이', price: 3500, qty: 1 },
+      { id: 'b4', name: '텀블러용 발포 세정제', price: 4500, qty: 1 },
+      { id: 'b5', name: '핸드워시', price: 4000, qty: 1 },
+      { id: 'b6', name: '빨래 바구니', price: 7500, qty: 1 },
+      { id: 'b7', name: '벌레 퇴치제', price: 5500, qty: 1 },
+      { id: 'b8', name: '샤워볼(타월)', price: 3000, qty: 1 },
+      { id: 'b9', name: '계량컵', price: 2500, qty: 1 }
     ],
     addItems: [
-      { id: 'a1', name: '욕실 슬리퍼', price: 4500, active: false },
-      { id: 'a2', name: '옷걸이 10개 세트', price: 5000, active: false },
-      { id: 'a3', name: '무타공 후크 4개', price: 3500, active: false },
-      { id: 'a4', name: '수면 안대 · 귀마개', price: 6000, active: false },
-      { id: 'a5', name: '미니 바늘 세트', price: 3000, active: false }
+      { id: 'a1', name: '욕실 슬리퍼', price: 4500, qty: 0 },
+      { id: 'a2', name: '옷걸이 10개 세트', price: 5000, qty: 0 },
+      { id: 'a3', name: '무타공 후크 4개', price: 3500, qty: 0 },
+      { id: 'a4', name: '수면 안대 · 귀마개', price: 6000, qty: 0 },
+      { id: 'a5', name: '미니 바늘 세트', price: 3000, qty: 0 }
     ]
   },
   refill: {
-    tag: '리필',
+    tag: 'REFILL KIT',
     title: '첫걸음 리필 키트',
-    desc: '다 쓴 품목만 골라 다시 채웁니다. 필요한 것만 선택하면 그만큼만 결제됩니다.',
+    desc: '다 쓴 품목만 골라 다시 채웁니다. 필요한 상품의 개별 수량을 원하는 만큼 조절하세요.',
     img: 'https://images.unsplash.com/photo-1585421514284-efb74c2b69ba?w=800&q=80',
     baseItems: [
-      { id: 'r1', name: '빨래 세제 리필', price: 5500, active: false },
-      { id: 'r2', name: '주방세제 리필', price: 3800, active: false },
-      { id: 'r3', name: '핸드워시 리필', price: 3200, active: false },
-      { id: 'r4', name: '제습제 리필 2입', price: 4800, active: false },
-      { id: 'r5', name: '돌돌이 리필 2롤', price: 3800, active: false },
-      { id: 'r6', name: '텀블러 발포 세정제 20정', price: 4200, active: false },
-      { id: 'r7', name: '하수구 발포 세정제 12정', price: 4000, active: false },
-      { id: 'r8', name: '매직블럭 4입', price: 2600, active: false },
-      { id: 'r9', name: '수세미 3입', price: 2800, active: false },
-      { id: 'r10', name: '배수구 망 30매', price: 2400, active: false },
-      { id: 'r11', name: '탈취제 리필', price: 4300, active: false },
-      { id: 'r12', name: '곰팡이 제거제 리필', price: 5200, active: false }
+      { id: 'r1', name: '빨래 세제 리필', price: 5500, qty: 0 },
+      { id: 'r2', name: '주방세제 리필', price: 3800, qty: 0 },
+      { id: 'r3', name: '핸드워시 리필', price: 3200, qty: 0 },
+      { id: 'r4', name: '제습제 리필 2입', price: 4800, qty: 0 },
+      { id: 'r5', name: '돌돌이 리필 2롤', price: 3800, qty: 0 },
+      { id: 'r6', name: '텀블러 발포 세정제 20정', price: 4200, qty: 0 },
+      { id: 'r7', name: '하수구 발포 세정제 12정', price: 4000, qty: 0 },
+      { id: 'r8', name: '매직블럭 4입', price: 2600, qty: 0 },
+      { id: 'r9', name: '수세미 3입', price: 2800, qty: 0 },
+      { id: 'r10', name: '배수구 망 30매', price: 2400, qty: 0 },
+      { id: 'r11', name: '탈취제 리필', price: 4300, qty: 0 },
+      { id: 'r12', name: '곰팡이 제거제 리필', price: 5200, qty: 0 }
     ],
     addItems: []
   }
@@ -621,7 +642,6 @@ const kitData = {
 
 function loadKitDetail(type) {
   currentKitType = type;
-  kitQty = 1;
   go('productDetail');
   renderKitDetailView();
 }
@@ -631,10 +651,10 @@ function renderKitDetailView() {
   const area = document.getElementById('productDetailRenderArea');
   if (!area) return;
 
-  const baseSum = data.baseItems.filter(i => i.active).reduce((sum, i) => sum + i.price, 0);
-  const addSum = data.addItems.filter(i => i.active).reduce((sum, i) => sum + i.price, 0);
-  const unitPrice = baseSum + addSum;
-  const totalPrice = unitPrice * kitQty;
+  const baseSum = data.baseItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
+  const addSum = data.addItems.reduce((sum, i) => sum + (i.price * i.qty), 0);
+  const totalPrice = baseSum + addSum;
+  const totalItemCount = data.baseItems.reduce((sum, i) => sum + i.qty, 0) + data.addItems.reduce((sum, i) => sum + i.qty, 0);
   const mileageEarned = Math.floor(totalPrice / 1000);
 
   let html = `
@@ -647,44 +667,66 @@ function renderKitDetailView() {
       </div>
 
       <div class="detail-content-box">
-        <div class="detail-sub-path">상세 · 구성 선택</div>
+        <div class="detail-sub-path">상세 · 개별 품목 구성</div>
         <h2 class="detail-main-title">${data.title}</h2>
-        <div class="detail-price-text">₩${unitPrice.toLocaleString()}</div>
+        <div class="detail-price-text">총 ₩${totalPrice.toLocaleString()} <span style="font-size:14px;color:#a7aabd;font-weight:400">(${totalItemCount}개 선택됨)</span></div>
         <p class="detail-desc-p">${data.desc}</p>
   `;
 
   if (currentKitType === 'custom') {
     html += `
-      <div class="option-group-title">상황</div>
+      <div class="option-group-title">상황 맞춤 선택</div>
       <div class="situation-btn-group">
         <button class="sit-btn ${currentSit === 'dorm' ? 'active' : ''}" onclick="setSituation('dorm')">고등학교 기숙사</button>
         <button class="sit-btn ${currentSit === 'single' ? 'active' : ''}" onclick="setSituation('single')">1인 가구</button>
       </div>
-      <div class="option-group-sub">${currentSit === 'dorm' ? '공동 생활에 맞춘 최소 구성' : '1인 가구 추천 구성'}</div>
+      <div class="option-group-sub">${currentSit === 'dorm' ? '공동 생활에 맞춘 구성' : '1인 가구 추천 구성'}</div>
     `;
   }
 
-  const sectionTitle = currentKitType === 'custom' ? '기본 구성 · 빼고 싶은 품목은 눌러 해제' : '리필할 품목 · 필요한 것만';
-  html += `<div class="option-group-title">${sectionTitle}</div>`;
+  const sectionTitle = currentKitType === 'custom' ? '기본 구성 · 개별 수량 조절' : '리필 품목 선택 · 수량 조절';
+  html += `<div class="option-group-title"><span>${sectionTitle}</span></div>`;
   html += `<div class="item-selection-grid">`;
   data.baseItems.forEach((item, index) => {
     html += `
-      <div class="select-item-btn ${item.active ? 'selected' : 'unselected'}" onclick="toggleKitItem('base', ${index})">
-        <span>${item.name}</span>
-        <span class="item-p">₩${item.price.toLocaleString()}</span>
+      <div class="select-item-btn ${item.qty > 0 ? 'selected' : 'unselected'}">
+        <div class="item-info-wrap" onclick="toggleItemDirect('base', ${index})">
+          <span>${item.name}</span>
+          <span class="item-p">₩${item.price.toLocaleString()}</span>
+        </div>
+        ${item.qty > 0 ? `
+          <div class="item-qty-stepper">
+            <button onclick="changeItemQty('base', ${index}, -1)">−</button>
+            <span>${item.qty}</span>
+            <button onclick="changeItemQty('base', ${index}, 1)">+</button>
+          </div>
+        ` : `
+          <button class="item-add-toggle-btn off" onclick="changeItemQty('base', ${index}, 1)">+ 추가</button>
+        `}
       </div>
     `;
   });
   html += `</div>`;
 
   if (data.addItems.length > 0) {
-    html += `<div class="option-group-title" style="margin-top:10px">추가 선택 · 원하는 만큼</div>`;
+    html += `<div class="option-group-title" style="margin-top:10px"><span>추가 선택 품목</span></div>`;
     html += `<div class="item-selection-grid">`;
     data.addItems.forEach((item, index) => {
       html += `
-        <div class="add-item-btn ${item.active ? 'selected' : ''}" onclick="toggleKitItem('add', ${index})">
-          <span>${item.name}</span>
-          <span class="item-p">+₩${item.price.toLocaleString()}</span>
+        <div class="select-item-btn ${item.qty > 0 ? 'selected' : 'unselected'}">
+          <div class="item-info-wrap" onclick="toggleItemDirect('add', ${index})">
+            <span>${item.name}</span>
+            <span class="item-p">+₩${item.price.toLocaleString()}</span>
+          </div>
+          ${item.qty > 0 ? `
+            <div class="item-qty-stepper">
+              <button onclick="changeItemQty('add', ${index}, -1)">−</button>
+              <span>${item.qty}</span>
+              <button onclick="changeItemQty('add', ${index}, 1)">+</button>
+            </div>
+          ` : `
+            <button class="item-add-toggle-btn off" onclick="changeItemQty('add', ${index}, 1)">+ 추가</button>
+          `}
         </div>
       `;
     });
@@ -692,19 +734,10 @@ function renderKitDetailView() {
   }
 
   const isBtnDisabled = totalPrice === 0;
-  const btnSubText = isBtnDisabled ? '품목을 한 개 이상 선택하세요' : `구매 시 ${mileageEarned}마일 적립`;
+  const btnSubText = isBtnDisabled ? '선택된 상품이 없습니다.' : `구매 완료 시 ${mileageEarned} 마일리지(P)가 자동 적립됩니다.`;
 
   html += `
         <div class="detail-bottom-bar">
-          <div>
-            <div style="font-size:12px;color:#8892b8;margin-bottom:6px">수량</div>
-            <div class="qty-stepper">
-              <button onclick="changeKitQty(-1)">−</button>
-              <span>${kitQty}</span>
-              <button onclick="changeKitQty(1)">+</button>
-            </div>
-          </div>
-
           <div class="cart-submit-btn-wrap">
             <button class="cart-submit-btn" ${isBtnDisabled ? 'disabled' : ''} onclick="addCustomKitToCart(${totalPrice})">
               장바구니 담기 · ₩${totalPrice.toLocaleString()}
@@ -724,24 +757,43 @@ function setSituation(sit) {
   renderKitDetailView();
 }
 
-function toggleKitItem(group, index) {
+// 개별 상품 수량 변경 (- / +)
+function changeItemQty(group, index, delta) {
   const data = kitData[currentKitType];
-  if (group === 'base') data.baseItems[index].active = !data.baseItems[index].active;
-  else if (group === 'add') data.addItems[index].active = !data.addItems[index].active;
+  const list = group === 'base' ? data.baseItems : data.addItems;
+  if (!list[index]) return;
+  
+  list[index].qty = Math.max(0, list[index].qty + delta);
   renderKitDetailView();
 }
 
-function changeKitQty(delta) {
-  kitQty = Math.max(1, kitQty + delta);
+// 개별 상품 직접 토글 (클릭 시 켜기/끄기)
+function toggleItemDirect(group, index) {
+  const data = kitData[currentKitType];
+  const list = group === 'base' ? data.baseItems : data.addItems;
+  if (!list[index]) return;
+  
+  if (list[index].qty > 0) {
+    list[index].qty = 0;
+  } else {
+    list[index].qty = 1;
+  }
   renderKitDetailView();
 }
 
 function addCustomKitToCart(totalPrice) {
   if (totalPrice === 0) return;
   const data = kitData[currentKitType];
+  const selectedList = [
+    ...data.baseItems.filter(i => i.qty > 0),
+    ...data.addItems.filter(i => i.qty > 0)
+  ];
+  const totalCount = selectedList.reduce((a, b) => a + b.qty, 0);
+
   cart.push({
-    name: `${data.title} (${kitQty}개)`,
-    price: totalPrice
+    name: `${data.title} (${totalCount}개 품목)`,
+    price: totalPrice,
+    items: selectedList
   });
   updateBadge();
   toast(`${data.title}이(가) 장바구니에 담겼습니다!`);
@@ -755,11 +807,17 @@ function openCart(){
   const total = cart.reduce((s,p)=>s+p.price,0);
   openCustom(`
     <h2>장바구니</h2>
-    ${cart.length?cart.map(p=>`<p>${p.name} ₩${p.price.toLocaleString()}</p>`).join(''):`<p style="color:var(--muted)">아직 담긴 상품이 없습니다.</p>`}
-    <hr style="border-color:rgba(200,200,255,0.1)">
-    <b>총액 ₩${total.toLocaleString()}</b>
-    <p style="font-size:12px;color:#999">학교 프로젝트 데모 — 실제 결제가 진행되지 않습니다.</p>
-    <button class="primary" ${cart.length===0?'disabled':''} onclick="closeModal();buyDemo()">구매하기</button>
+    ${cart.length ? cart.map(p => `
+      <div style="padding:10px 0;border-bottom:1px solid rgba(207,214,255,0.1)">
+        <b>${p.name}</b>
+        <div style="font-size:12px;color:#a7aabd;margin-top:4px">${p.items ? p.items.map(i=>`${i.name}×${i.qty}`).join(', ') : ''}</div>
+        <div style="color:#f4df93;font-weight:600;margin-top:4px">₩${p.price.toLocaleString()}</div>
+      </div>
+    `).join('') : `<p style="color:var(--muted)">아직 담긴 상품이 없습니다.</p>`}
+    <hr style="border-color:rgba(200,200,255,0.1);margin:16px 0">
+    <div style="font-size:18px;font-weight:bold;color:#fff;margin-bottom:15px">총 금액: ₩${total.toLocaleString()}</div>
+    <p style="font-size:12px;color:#999;margin-bottom:15px">학교 프로젝트 데모 — 실제 결제가 진행되지 않습니다.</p>
+    <button class="primary" style="width:100%" ${cart.length===0?'disabled':''} onclick="closeModal();buyDemo()">구매하기</button>
   `);
 }
 
@@ -774,14 +832,14 @@ function buyDemo(){
    <h2>구매 완료</h2>
    <p style="color:var(--muted);line-height:1.8">
      총 <b>₩${totalPrice.toLocaleString()}</b> 결제가 완료되었습니다.<br>
-     <span style="color:#f4df93;font-size:16px;font-weight:bold;">${earned} 마일리지(P)</span>가 적립되었습니다! ✨<br>
+     <span style="color:#f4df93;font-size:18px;font-weight:bold;">+${earned} 마일리지(P)</span>가 차곡차곡 적립되었습니다! ✨<br>
      <small style="font-size:11px;color:#7e849c">(1,000원당 1P 자동 적립)</small>
    </p>
    <button class="primary" onclick="closeModal(); openMileage();">별자리 마일리지 확인하기</button>
  `);
 }
 
-// 정책 및 게시글 관련 함수
+// 정책 및 커뮤니티 기능
 function renderPolicies(){
  let q=(document.getElementById('isearch')?.value||'').toLowerCase(),c=document.getElementById('icat')?.value||'전체';
  document.getElementById('policies').innerHTML=policies.filter(p=>(c==='전체'||p.cat===c)&&p.name.toLowerCase().includes(q)||( !q&&c==='전체')).map((p,i)=>`<article class="policy"><span class="pill">${p.cat}</span><h3>${p.name}</h3><p>${p.desc}</p><div class="source">지원 대상: ${p.target} · 지역: ${p.region}<br>신청 기간: ${p.period}</div><button class="textbtn" onclick="showPolicy(${i})">자세히 보기 →</button></article>`).join('');
@@ -874,8 +932,23 @@ function openModal(type){
  openCustom(c);
 }
 
-function openCustom(c){document.getElementById('modalBox').innerHTML=c;document.getElementById('modal').classList.add('open')}
-function closeModal(){document.getElementById('modal').classList.remove('open')}
+function openCustom(c, isLarge = false){
+ const box = document.getElementById('modalBox');
+ box.innerHTML = c;
+ if(isLarge){
+   box.classList.add('large-modal');
+ } else {
+   box.classList.remove('large-modal');
+ }
+ document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(){
+ const box = document.getElementById('modalBox');
+ box.classList.remove('large-modal');
+ document.getElementById('modal').classList.remove('open');
+}
+
 function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>e.style.display='none',2200)}
 
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
