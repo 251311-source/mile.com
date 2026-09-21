@@ -652,6 +652,91 @@ function openCustom(c){document.getElementById('modalBox').innerHTML=c;document.
 function closeModal(){document.getElementById('modal').classList.remove('open')}
 function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>e.style.display='none',2200)}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});renderProducts();
+<!-- HTML 맨 아래 </script> 태그 바로 위에 덮어씌울 코드 -->
+
+// ===== 마일리지 및 별자리 시스템 기능 (1,000원당 1P 적립 방식) =====
+let userMileage = 0;
+const mileageStars = [
+ { x: 60,  y: 180 },
+ { x: 150, y: 80 },
+ { x: 260, y: 220 },
+ { x: 370, y: 100 },
+ { x: 440, y: 190 }
+];
+
+// 1,000원당 1P 적립이므로 10P(10,000원 구매)마다 별이 하나씩 연결됩니다.
+const pointsPerStar = 10; 
+
+function openMileage(){
+ openCustom(`
+   <div class="mileage-box">
+     <h2>나의 별자리 마일리지</h2>
+     <p>구매 금액 <b>1,000원당 1 마일리지(P)</b>가 적립됩니다.<br>(10P가 모일 때마다 별자리가 하나씩 이어집니다! ✨)</p>
+     <div class="mileage-status">현재 마일리지: <span>${userMileage.toLocaleString()}</span> P</div>
+     <div class="constellation-wrapper">
+       <svg id="constellation-svg" viewBox="0 0 500 300"></svg>
+     </div>
+     <div class="mileage-actions">
+       <button class="primary" onclick="addMileageFromPrice(10000); openMileage();">🛍️ 10,000원 구매 테스트 (+10P)</button>
+       <button class="smallbtn" onclick="userMileage=0; openMileage();">초기화</button>
+       <button class="close" onclick="closeModal()">닫기</button>
+     </div>
+   </div>
+ `);
+ setTimeout(renderConstellationSVG, 50);
+}
+
+// 결제 금액(원)을 받아 1,000원당 1P 계산 후 적립
+function addMileageFromPrice(price){
+ const earned = Math.floor(price / 1000);
+ userMileage += earned;
+ toast(`${price.toLocaleString()}원 결제! ${earned} 마일리지가 적립되었습니다. ✨`);
+}
+
+function renderConstellationSVG(){
+ const svg = document.getElementById('constellation-svg');
+ if(!svg) return;
+ svg.innerHTML = '';
+ 
+ for(let i = 0; i < mileageStars.length - 1; i++){
+   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+   line.setAttribute('x1', mileageStars[i].x);
+   line.setAttribute('y1', mileageStars[i].y);
+   line.setAttribute('x2', mileageStars[i+1].x);
+   line.setAttribute('y2', mileageStars[i+1].y);
+   line.setAttribute('class', 'constellation-line' + (userMileage >= (i+1)*pointsPerStar ? ' active' : ''));
+   svg.appendChild(line);
+ }
+
+ const activeStarCount = Math.min(Math.floor(userMileage / pointsPerStar) + 1, mileageStars.length);
+ mileageStars.forEach((star, index) => {
+   const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+   circle.setAttribute('cx', star.x);
+   circle.setAttribute('cy', star.y);
+   circle.setAttribute('r', '7');
+   circle.setAttribute('class', 'star-node' + (index < activeStarCount && userMileage >= index * pointsPerStar ? ' active' : ''));
+   svg.appendChild(circle);
+ });
+}
+
+// 실제 장바구니/상품 구매 시 금액 기반으로 마일리지 적립 연동
+function buyDemo(){
+ const totalPrice = cart.reduce((s,p)=>s+p.price,0) || 10000; // 장바구니에 담긴 상품들의 총 금액 (없으면 기본 10,000원)
+ const earned = Math.floor(totalPrice / 1000); // 1,000원당 1P 계산
+ userMileage += earned;
+ cart = []; // 결제 후 장바구니 비우기
+ updateBadge();
+ 
+ openCustom(`
+   <h2>구매 완료</h2>
+   <p style="color:var(--muted);line-height:1.8">
+     총 <b>${totalPrice.toLocaleString()}원</b> 결제가 완료되었습니다.<br>
+     <span style="color:#f4df93;font-size:16px;font-weight:bold;">${earned} 마일리지(P)</span>가 적립되었습니다! ✨<br>
+     <small style="font-size:11px;color:#7e849c">(1,000원당 1P 자동 적립)</small>
+   </p>
+   <button class="primary" onclick="closeModal(); openMileage();">별자리 마일리지 확인하기</button>
+ `);
+}
 </script>
 </body>
 </html>
