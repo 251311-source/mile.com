@@ -1945,6 +1945,53 @@ main,
  .cmd-title{font-size:30px}
 }
 </style>
+<style>
+/* ===== 홈 히어로: 움직이는 밤하늘 ===== */
+.hero-sky{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.hero-constellation{cursor:crosshair}
+.hero-constellation:before{animation:heroSkyDrift 160s linear infinite}
+@keyframes heroSkyDrift{to{background-position:-720px 120px,-920px 150px,-1040px 170px,-840px 140px}}
+.constellation{transition:translate .8s cubic-bezier(.2,.7,.3,1)}
+.constellation .node{animation:heroNode 3.4s ease-in-out infinite}
+.constellation .node:nth-child(2){animation-delay:.9s}
+.constellation .node:nth-child(3){animation-delay:1.7s}
+.constellation .node:nth-child(4){animation-delay:2.4s}
+@keyframes heroNode{0%,100%{opacity:.55;transform:scale(.85)}50%{opacity:1;transform:scale(1.25);box-shadow:0 0 18px rgba(207,213,245,.9)}}
+.constellation .line{animation:heroLine 6s ease-in-out infinite}
+.constellation .line:nth-of-type(2n){animation-delay:2s}
+@keyframes heroLine{0%,100%{opacity:.45}50%{opacity:1;box-shadow:0 0 8px rgba(190,199,244,.5)}}
+.moon-orb{animation:heroMoon 10s ease-in-out infinite;transition:translate 1s cubic-bezier(.2,.7,.3,1)}
+@keyframes heroMoon{0%,100%{opacity:.16;box-shadow:0 0 60px rgba(240,232,197,.12)}50%{opacity:.26;box-shadow:0 0 90px rgba(240,232,197,.22)}}
+.sky-glow{animation:heroGlow 12s ease-in-out infinite}
+.glow-two{animation-delay:-6s}
+@keyframes heroGlow{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.15);opacity:1}}
+.hero-card{will-change:transform}
+.hero-card:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.07) 48%,rgba(255,255,255,.02) 54%,transparent 62%);background-size:260% 100%;animation:heroSheen 8s ease-in-out infinite}
+@keyframes heroSheen{0%,55%{background-position:120% 0}100%{background-position:-60% 0}}
+.hero-card-brand{color:transparent;background:linear-gradient(100deg,rgba(181,190,255,.16) 42%,rgba(214,220,255,.42) 50%,rgba(181,190,255,.16) 58%);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;animation:heroBrand 9s linear infinite}
+@keyframes heroBrand{0%{background-position:100% 0}100%{background-position:-200% 0}}
+.hero-card-star{display:inline-block;animation:heroSpark 5s ease-in-out infinite}
+@keyframes heroSpark{0%,100%{transform:rotate(0) scale(1)}50%{transform:rotate(90deg) scale(1.25);text-shadow:0 0 26px rgba(244,223,147,.9)}}
+.hero-card-top span:first-child{transition:color .4s}
+.hero-card-top span.tick{color:#f4df93}
+.hero-card-route span{transition:transform .5s,box-shadow .5s,background .5s}
+.hero-card-route span.lit{transform:scale(1.6);background:#fff;box-shadow:0 0 18px rgba(255,255,255,.9),0 0 34px rgba(244,223,147,.6)}
+.route-traveler{position:absolute;top:11px;left:0;width:7px;height:7px;margin-left:-3px;border-radius:50%;background:#fff8dc;box-shadow:0 0 10px #f4df93,0 0 22px rgba(244,223,147,.7);opacity:0}
+.route-traveler:before{content:"";position:absolute;right:3px;top:2px;width:70px;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,rgba(244,223,147,.55))}
+.hero-card-bottom span{transition:color .5s,text-shadow .5s}
+.hero-card-bottom span.arrive{color:#f4df93;text-shadow:0 0 14px rgba(244,223,147,.7)}
+.road-star{animation:heroRoadStar 4.5s ease-in-out infinite}
+@keyframes heroRoadStar{0%,100%{transform:translateY(0) rotate(0) scale(1)}50%{transform:translateY(-10px) rotate(45deg) scale(1.15);text-shadow:0 0 34px rgba(244,223,147,.95)}}
+.road-front{animation:heroRoad 5s ease-in-out infinite}
+@keyframes heroRoad{0%,100%{border-color:rgba(176,185,249,.34)}50%{border-color:rgba(206,212,255,.62);box-shadow:0 0 30px rgba(150,160,240,.32)}}
+.floating-label{animation:heroFloat 6s ease-in-out infinite}
+.label-two{animation-duration:7.5s;animation-delay:-2s}
+@keyframes heroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@media (prefers-reduced-motion: reduce){
+ .hero-constellation:before,.constellation .node,.constellation .line,.moon-orb,.sky-glow,.hero-card:before,.hero-card-brand,.hero-card-star,.road-star,.road-front,.floating-label{animation:none}
+ .route-traveler{display:none}
+}
+</style>
 </head>
 <body>
 <nav class="nav">
@@ -3634,6 +3681,140 @@ function applyStarKit() {
 }
 
 renderStarTest();
+
+/* =========================================
+   홈 히어로: 움직이는 밤하늘
+   (반짝이는 별 · 별똥별 · 시차 효과 · 카드 기울기 · 여정 혜성)
+   ========================================= */
+(function heroNightSky() {
+  const vis = document.querySelector('.hero-constellation');
+  if (!vis || !window.requestAnimationFrame) return;
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const cv = document.createElement('canvas');
+  cv.className = 'hero-sky';
+  vis.prepend(cv);
+  const ctx = cv.getContext('2d');
+  const card = vis.querySelector('.hero-card');
+  const route = vis.querySelector('.hero-card-route');
+  const dots = route ? [...route.querySelectorAll('span')] : [];
+  const counter = vis.querySelector('.hero-card-top span');
+  const endLabel = vis.querySelector('.hero-card-bottom span:last-child');
+  const layers = [...vis.querySelectorAll('.constellation, .moon-orb')];
+  let traveler = null;
+  if (route && !reduce) { traveler = document.createElement('i'); traveler.className = 'route-traveler'; route.appendChild(traveler); }
+
+  let w = 0, h = 0, stars = [], shoots = [], mx = 0, my = 0, px = 0, py = 0, rx = 0, ry = 0;
+  let onScreen = true, lastT = performance.now(), nextShoot = 1800, lastStep = -1;
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = vis.clientWidth; h = vis.clientHeight;
+    if (!w || !h) return;
+    cv.width = w * dpr; cv.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = Math.min(260, Math.round(w * h / 4200));
+    stars = Array.from({ length: n }, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      r: Math.random() * 1.15 + 0.35, z: Math.random() * 0.85 + 0.15,
+      ph: Math.random() * Math.PI * 2, sp: Math.random() * 1.6 + 0.4,
+      gold: Math.random() < 0.07
+    }));
+    if (reduce) draw(performance.now(), 0);
+  }
+
+  function shoot(x, y) {
+    const a = Math.PI * (0.16 + Math.random() * 0.14);
+    const sp = 0.55 + Math.random() * 0.35;
+    shoots.push({ x: x ?? w * (0.35 + Math.random() * 0.65), y: y ?? h * Math.random() * 0.35,
+      vx: -Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: 900 + Math.random() * 500 });
+  }
+
+  function draw(t, dt) {
+    ctx.clearRect(0, 0, w, h);
+    px += (mx - px) * 0.05; py += (my - py) * 0.05;
+    for (const s of stars) {
+      if (!reduce) { s.x -= s.z * dt * 0.006; if (s.x < -4) { s.x = w + 4; s.y = Math.random() * h; } }
+      const a = reduce ? 0.7 : 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(t * 0.0012 * s.sp + s.ph));
+      const x = s.x + px * s.z * 16, y = s.y + py * s.z * 11;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = s.gold ? '#f4df93' : '#e4e7ff';
+      ctx.beginPath(); ctx.arc(x, y, s.r, 0, Math.PI * 2); ctx.fill();
+      if (s.r > 1.25 && a > 0.75) {           // 밝은 별은 십자 빛
+        ctx.globalAlpha = (a - 0.75) * 1.6;
+        ctx.fillRect(x - s.r * 4, y - 0.4, s.r * 8, 0.8);
+        ctx.fillRect(x - 0.4, y - s.r * 4, 0.8, s.r * 8);
+      }
+    }
+    ctx.globalAlpha = 1;
+    for (let i = shoots.length - 1; i >= 0; i--) {
+      const s = shoots[i];
+      s.life += dt; s.x += s.vx * dt; s.y += s.vy * dt;
+      const k = s.life / s.max;
+      if (k >= 1) { shoots.splice(i, 1); continue; }
+      const fade = Math.sin(Math.PI * k);
+      const tail = 130 * fade;
+      const g = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * tail / 0.7, s.y - s.vy * tail / 0.7);
+      g.addColorStop(0, `rgba(255,248,220,${0.95 * fade})`);
+      g.addColorStop(1, 'rgba(244,223,147,0)');
+      ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * tail / 0.7, s.y - s.vy * tail / 0.7); ctx.stroke();
+      ctx.fillStyle = `rgba(255,250,230,${fade})`;
+      ctx.beginPath(); ctx.arc(s.x, s.y, 1.6, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  function journey(t) {
+    if (!traveler) return;
+    const DUR = 7000, p = (t % DUR) / DUR;
+    const move = Math.min(1, p / 0.82);                       // 82% 동안 이동, 나머지는 도착 후 쉼
+    const e = move < 0.5 ? 2 * move * move : 1 - Math.pow(-2 * move + 2, 2) / 2;
+    traveler.style.left = (e * 100) + '%';
+    traveler.style.opacity = p < 0.03 ? p / 0.03 : p > 0.92 ? Math.max(0, (1 - p) / 0.08) : 1;
+    const stops = [0.12, 0.51, 0.9];
+    let step = 0;
+    dots.forEach((d, i) => { const lit = e >= stops[i] && p < 0.97; d.classList.toggle('lit', lit); if (lit) step = i + 1; });
+    const arrived = move >= 1 && p < 0.97;
+    if (endLabel) endLabel.classList.toggle('arrive', arrived);
+    const n = arrived ? 4 : Math.max(1, step);
+    if (counter && n !== lastStep) {
+      counter.textContent = 'MILE / 0' + n;
+      counter.classList.toggle('tick', n > 1);
+      lastStep = n;
+    }
+  }
+
+  function frame(t) {
+    const dt = Math.min(50, t - lastT); lastT = t;
+    const homeOn = vis.offsetParent !== null;
+    if (onScreen && homeOn && !document.hidden) {
+      if (!w) resize();
+      draw(t, dt);
+      nextShoot -= dt;
+      if (nextShoot <= 0) { shoot(); nextShoot = 2600 + Math.random() * 4200; }
+      journey(t);
+      rx += (my * -5 - rx) * 0.06; ry += (mx * 7 - ry) * 0.06;
+      if (card) card.style.transform = `perspective(1100px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) translateY(${(Math.sin(t / 1900) * 7).toFixed(2)}px)`;
+      layers.forEach((el, i) => { const d = el.classList.contains('moon-orb') ? 8 : 14 + i * 6; el.style.translate = `${(-px * d).toFixed(1)}px ${(-py * d * 0.7).toFixed(1)}px`; });
+    }
+    requestAnimationFrame(frame);
+  }
+
+  vis.addEventListener('pointermove', e => {
+    const r = vis.getBoundingClientRect();
+    mx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+    my = ((e.clientY - r.top) / r.height - 0.5) * 2;
+  });
+  vis.addEventListener('pointerleave', () => { mx = 0; my = 0; });
+  vis.addEventListener('click', e => {
+    if (reduce) return;
+    const r = vis.getBoundingClientRect();
+    shoot(e.clientX - r.left, e.clientY - r.top);
+  });
+  if ('ResizeObserver' in window) new ResizeObserver(resize).observe(vis); else window.addEventListener('resize', resize);
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => { onScreen = es[0].isIntersecting; }).observe(vis);
+  resize();
+  if (!reduce) requestAnimationFrame(frame);
+})();
 </script>
 <!-- ================================
      MILE 별자리
