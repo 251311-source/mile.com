@@ -2099,6 +2099,14 @@ main,
  .ct-steps i{flex-basis:20px}
 }
 </style>
+<style>
+/* ===== 스크롤 등장 모션 ===== */
+.rv{opacity:0;transform:translateY(32px)}
+.rv.rv-blur{filter:blur(8px)}
+.rv.in{opacity:1;transform:none;filter:none;transition:opacity .9s cubic-bezier(.16,.84,.3,1) var(--rvd,0ms),transform .9s cubic-bezier(.16,.84,.3,1) var(--rvd,0ms),filter .9s ease var(--rvd,0ms)}
+.rv.rv-now{transition:none}
+@media (prefers-reduced-motion: reduce){.rv{opacity:1;transform:none;filter:none}}
+</style>
 </head>
 <body>
 <nav class="nav">
@@ -3444,6 +3452,42 @@ const kitData = {
   }
 };
 
+// 상황별 구성: 고등학교 기숙사 / 1인 가구 (상황마다 선택한 수량을 따로 기억)
+const customSets = {
+  dorm: { label: '고등학교 기숙사', note: '공동 생활에 맞춘 최소 구성', base: kitData.custom.baseItems, add: kitData.custom.addItems },
+  single: {
+    label: '1인 가구', note: '주방 · 욕실 살림까지 포함한 구성',
+    base: [
+      { name: '다용도 행주', price: 3500, qty: 1 },
+      { name: '주방세제', price: 4500, qty: 1 },
+      { name: '매직랩', price: 4000, qty: 1 },
+      { name: '매직블럭', price: 3000, qty: 1 },
+      { name: '곰팡이 제거제', price: 6000, qty: 1 },
+      { name: '배수구 망', price: 2500, qty: 1 },
+      { name: '빨래 세제', price: 6500, qty: 1 },
+      { name: '탈취제', price: 5000, qty: 1 },
+      { name: '돌돌이', price: 3500, qty: 1 },
+      { name: '수세미', price: 2500, qty: 1 },
+      { name: '계량 스티커', price: 2000, qty: 1 },
+      { name: '냉장고 유통기한 라벨', price: 2500, qty: 1 },
+      { name: '하수구용 발포 세정제', price: 4500, qty: 1 }
+    ],
+    add: [
+      { name: '고무장갑', price: 3500, qty: 0 },
+      { name: '규격 종량제 봉투 10L', price: 3000, qty: 0 },
+      { name: '분무기', price: 3500, qty: 0 },
+      { name: '실리콘 건조 매트', price: 6500, qty: 0 },
+      { name: '상비약 미니 키트', price: 7500, qty: 0 }
+    ]
+  }
+};
+function useKitSet(sit) {
+  if (!customSets[sit]) return;
+  currentSit = sit;
+  kitData.custom.baseItems = customSets[sit].base;
+  kitData.custom.addItems = customSets[sit].add;
+}
+
 const won = n => '₩' + n.toLocaleString();
 const kitPicked = d => [...d.baseItems, ...d.addItems].filter(i => i.qty > 0);
 const kitTotal = d => kitPicked(d).reduce((s, i) => s + i.price * i.qty, 0);
@@ -3500,7 +3544,7 @@ function renderKitDetailView() {
             <button type="button" class="${currentSit === 'dorm' ? 'active' : ''}" onclick="setSituation('dorm')">고등학교 기숙사</button>
             <button type="button" class="${currentSit === 'single' ? 'active' : ''}" onclick="setSituation('single')">1인 가구</button>
           </div>
-          <div class="kitdetail-sitnote">${currentSit === 'dorm' ? '공동 생활에 맞춘 최소 구성' : '1인 가구 추천 구성'}</div>` : ''}
+          <div class="kitdetail-sitnote">${customSets[currentSit].note}</div>` : ''}
         <div class="kitdetail-group">${d.baseTitle} <span>· ${d.baseHint}</span></div>
         <div class="kitdetail-items">${kitItemTiles('base', d.baseItems, '')}</div>
         ${d.addItems.length ? `
@@ -3520,7 +3564,7 @@ function renderKitDetailView() {
     </div>`;
 }
 
-function setSituation(sit) { currentSit = sit; renderKitDetailView(); }
+function setSituation(sit) { useKitSet(sit); renderKitDetailView(); }
 
 function kitItemAt(group, i) {
   const d = kitData[currentKitType];
@@ -3758,12 +3802,12 @@ function showStarResult() {
 function applyStarKit() {
   if (!stLast) return;
   const t = starTypes[stLast.key], d = kitData[t.kit];
+  if (t.kit === 'custom') useKitSet('dorm');
   d.baseItems.forEach(i => i.qty = t.preset.all ? 1 : 0);
   d.addItems.forEach(i => i.qty = 0);
   const set = Object.assign({}, t.preset.items);
   if (!stLast.dawn && t.kit === 'custom') set['수면 안대 · 귀마개'] = 1;
   [...d.baseItems, ...d.addItems].forEach(i => { if (set[i.name] != null) i.qty = set[i.name]; });
-  if (t.kit === 'custom') currentSit = 'dorm';
   loadKitDetail(t.kit);
   toast(t.name + ' 추천 구성을 담았어요. 수량은 자유롭게 바꿀 수 있어요.');
 }
@@ -3934,8 +3978,10 @@ function addKitToCart() {
   if (!unit) return;
   const qty = ctEditQty && ctEditQty.type === currentKitType ? ctEditQty.qty : 1;
   ctEditQty = null;
-  addCartLine({ key: kitLineKey(currentKitType, items), type: 'kit', kitType: currentKitType, title: d.title, tag: d.tag, items, unit, qty });
-  toast('✦ ' + d.title + (qty > 1 ? ' ' + qty + '개' : '') + '를 장바구니에 담았어요.');
+  const isCustom = currentKitType === 'custom';
+  const title = d.title + (isCustom ? ' · ' + customSets[currentSit].label : '');
+  addCartLine({ key: kitLineKey(currentKitType + (isCustom ? ':' + currentSit : ''), items), type: 'kit', kitType: currentKitType, sit: isCustom ? currentSit : null, title, tag: d.tag, items, unit, qty });
+  toast('✦ ' + title + (qty > 1 ? ' ' + qty + '개' : '') + '를 장바구니에 담았어요.');
 }
 function subscribeMagazine() {
   addCartLine({ key: 'mag:annual', type: 'mag', title: 'MILE 계간지 연간 구독', tag: '2026 ANNUAL', cover: '2026', unit: 24000, qty: 1 });
@@ -4076,6 +4122,7 @@ function removeCartLine(i) {
 }
 function editCartKit(i) {
   const l = cart[i]; if (!l || l.type !== 'kit') return;
+  if (l.kitType === 'custom') useKitSet(l.sit || 'dorm');
   const d = kitData[l.kitType];
   [...d.baseItems, ...d.addItems].forEach(it => { const m = l.items.find(x => x.name === it.name); it.qty = m ? m.qty : 0; });
   ctEditQty = { type: l.kitType, qty: l.qty };
@@ -4129,6 +4176,85 @@ function cartDoneView(o) {
   </div>`;
 }
 updateBadge();
+
+/* =========================================
+   스크롤 등장 모션
+   - 화면에 들어올 때 아래에서 떠오르듯 나타남
+   - 페이지를 열 때는 보이는 요소가 순서대로 등장
+   - 클릭 · 입력으로 다시 그려진 요소는 바로 표시
+   ========================================= */
+(function scrollReveal() {
+  if (!('IntersectionObserver' in window)) return;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const SEL = ['.section-head', '.section > .label', '.section > h2', '.section > p', '.service', '.journey-top', '.jstep', '.mag', '.policy', '.post',
+    '.kitshop-head', '.kitshop-card', '.kitdetail', '.im-head', '.im-search', '.im-suggest', '.im-bar', '.im-filters', '.im-row', '.im-count',
+    '.cm-tools', '.cm-box', '.cm-post', '.imd', '.imd-related', '.im-back', '.cm-meta', '.cmd-title', '.cmd-body', '.cmd-actions', '.cmd-comment',
+    '.ct-steps', '.ct-box', '.ct-done', '.ct-empty', '.mile-age-intro', '.mile-constellation', '.mile-earn', '.mile-complete-message',
+    '.st-wrap', '.builder-step', '.totalbox', '.footer > *'].join(',');
+  const BLUR = '.section-head, .section > h2, .kitshop-head, .im-head, .cmd-title, .mile-age-intro';
+  let enterUntil = performance.now() + 900;      // 첫 화면도 순서대로 등장
+  const fresh = new WeakSet();
+  const io = new IntersectionObserver(entries => {
+    const now = performance.now();
+    let n = 0;
+    entries.forEach(e => {
+      const el = e.target, first = fresh.has(el);
+      fresh.delete(el);
+      if (!e.isIntersecting) return;
+      io.unobserve(el);
+      if (first && now > enterUntil) { show(el, 0, true); return; }   // 다시 그려진 요소 → 바로 표시
+      show(el, Math.min(n++, 8) * 70, false);
+    });
+  }, { rootMargin: '0px 0px -6% 0px', threshold: 0.05 });
+
+  function show(el, delay, instant) {
+    el.style.setProperty('--rvd', delay + 'ms');
+    if (instant) el.classList.add('rv-now');
+    el.classList.add('in');
+    setTimeout(() => { el.classList.remove('rv', 'in', 'rv-now', 'rv-blur'); el.style.removeProperty('--rvd'); }, instant ? 30 : 1000 + delay);
+  }
+  function tag(el, redrawn) {
+    if (el.closest('.hero') || el.parentElement?.closest('.rv')) return;
+    // 페이지가 이미 자리 잡은 뒤 화면 안에서 다시 그려진 요소는 모션 없이 바로 표시
+    if (redrawn && performance.now() > enterUntil && el.getBoundingClientRect().top < innerHeight) return;
+    el.classList.remove('in', 'rv-now');
+    el.classList.add('rv');
+    if (el.matches(BLUR)) el.classList.add('rv-blur');
+    fresh.add(el);
+    io.observe(el);
+  }
+  // 안전장치: 스크롤이 멈추면 화면 안에 남아 있는 요소를 모두 등장시킴
+  let sweepTimer = 0;
+  function sweep() {
+    let n = 0;
+    document.querySelectorAll('.rv:not(.in)').forEach(el => {
+      if (!el.offsetParent) return;
+      const r = el.getBoundingClientRect();
+      if (r.bottom <= 0) { io.unobserve(el); fresh.delete(el); show(el, 0, true); }            // 이미 지나간 요소
+      else if (r.top < innerHeight) { io.unobserve(el); fresh.delete(el); show(el, Math.min(n++, 8) * 60, false); }
+    });
+  }
+  window.addEventListener('scroll', () => { clearTimeout(sweepTimer); sweepTimer = setTimeout(sweep, 160); }, { passive: true });
+  const scan = (root, redrawn) => {
+    if (root.nodeType !== 1) return;
+    if (root.matches(SEL)) tag(root, redrawn);
+    root.querySelectorAll(SEL).forEach(el => tag(el, redrawn));
+  };
+  scan(document.body);
+  new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => scan(n, true))))
+    .observe(document.querySelector('main') || document.body, { childList: true, subtree: true });
+
+  // 페이지를 열 때마다 그 페이지의 요소를 다시 등장시킴
+  const baseGo = window.go;
+  if (typeof baseGo === 'function') {
+    window.go = function (id) {
+      enterUntil = performance.now() + 700;
+      const page = document.getElementById(id);
+      if (page && !page.classList.contains('active')) page.querySelectorAll(SEL).forEach(el => { io.unobserve(el); tag(el); });
+      return baseGo.apply(this, arguments);
+    };
+  }
+})();
 </script>
 <!-- ================================
      MILE 별자리
