@@ -96,6 +96,15 @@ button { font: inherit; }
 
 #cosmosGL.ready { opacity: 1; }
 
+/* 그림 위로 떠다니는 별가루와 별똥별 */
+#stardust {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: screen;
+}
+
 /* 스크롤하면 배경을 은은하게 어둡게 해 본문 가독성 확보 */
 .cosmos-veil {
   position: absolute;
@@ -716,6 +725,7 @@ footer img { width: 70px; height: auto; }
     </div>
   </div>
   <div class="cosmos-veil"></div>
+  <canvas id="stardust"></canvas>
 </div>
 <div class="noise" aria-hidden="true"></div>
 
@@ -1210,6 +1220,111 @@ footer img { width: 70px; height: auto; }
     };
     requestAnimationFrame(loop);
   };
+
+  // 떠다니는 별가루 · 은은한 빛망울 · 가끔 지나가는 별똥별
+  const dust = document.getElementById("stardust");
+  if (dust && !reducedMotion) {
+    const ctx = dust.getContext("2d");
+    const colors = ["255,255,255", "222,218,255", "190,202,255", "238,226,255"];
+    const pick = () => colors[Math.floor(Math.random() * colors.length)];
+    let width, height, motes = [], meteors = [];
+    let nextMeteor = performance.now() + 1500;
+
+    const spawnMote = (anywhere) => {
+      const big = Math.random() < .12;
+      return {
+        x: Math.random() * width,
+        y: anywhere ? Math.random() * height : height + 20,
+        r: big ? Math.random() * 2 + 2 : Math.random() * 1.2 + .35,
+        vy: Math.random() * .25 + .06,
+        sway: Math.random() * .6 + .2,
+        phase: Math.random() * Math.PI * 2,
+        speed: Math.random() * .02 + .008,
+        color: pick()
+      };
+    };
+
+    const spawnMeteor = () => {
+      const angle = Math.PI * (.74 + Math.random() * .08);
+      const speed = Math.random() * 6 + 11;
+      return {
+        x: width * (.25 + Math.random() * .85),
+        y: -20 + Math.random() * height * .2,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        len: Math.random() * 160 + 150,
+        life: 1
+      };
+    };
+
+    const glow = (x, y, r, color, alpha) => {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r * 5);
+      g.addColorStop(0, `rgba(${color},${alpha})`);
+      g.addColorStop(.3, `rgba(${color},${alpha * .3})`);
+      g.addColorStop(1, `rgba(${color},0)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(x - r * 5, y - r * 5, r * 10, r * 10);
+    };
+
+    const resize = () => {
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      dust.width = width * ratio;
+      dust.height = height * ratio;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      motes = Array.from({ length: Math.round(Math.min(110, width * height / 11000)) }, () => spawnMote(true));
+    };
+
+    const draw = (now) => {
+      ctx.clearRect(0, 0, width, height);
+      // 본문을 읽는 동안에는 조금 더 은은하게
+      const calm = 1 - (parseFloat(root.style.getPropertyValue("--veil")) || 0) * .5;
+
+      for (const m of motes) {
+        m.phase += m.speed;
+        m.y -= m.vy;
+        m.x += Math.sin(m.phase * .7) * m.sway * .3;
+        if (m.y < -20) Object.assign(m, spawnMote(false));
+        const twinkle = (Math.sin(m.phase * 2.2) + 1) / 2;
+        const alpha = (m.r > 2 ? .18 + twinkle * .25 : .15 + twinkle * .8) * calm;
+        glow(m.x, m.y, m.r, m.color, alpha);
+      }
+
+      if (now > nextMeteor) {
+        meteors.push(spawnMeteor());
+        nextMeteor = now + 2500 + Math.random() * 4500;
+      }
+      meteors = meteors.filter(m => m.life > 0 && m.y < height + 200);
+      for (const m of meteors) {
+        m.x += m.vx;
+        m.y += m.vy;
+        m.life -= .011;
+        const speed = Math.hypot(m.vx, m.vy);
+        const tx = m.x - m.vx / speed * m.len;
+        const ty = m.y - m.vy / speed * m.len;
+        const fade = Math.min(m.life * 2, 1) * calm;
+        const trail = ctx.createLinearGradient(m.x, m.y, tx, ty);
+        trail.addColorStop(0, `rgba(255,255,255,${fade})`);
+        trail.addColorStop(.25, `rgba(205,210,255,${fade * .5})`);
+        trail.addColorStop(1, "rgba(160,170,255,0)");
+        ctx.strokeStyle = trail;
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(m.x, m.y);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+        glow(m.x, m.y, 1.8, "255,255,255", fade);
+      }
+
+      requestAnimationFrame(draw);
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+    requestAnimationFrame(draw);
+  }
 
   if (glCanvas && picture && !reducedMotion) {
     if (picture.complete && picture.naturalWidth) startCosmos();
