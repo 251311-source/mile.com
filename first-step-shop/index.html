@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b1033">
+<title>MILE 첫걸음 상점</title>
+<style>
+:root {
+  --navy: #0b1033;
+  --navy-2: #141a4a;
+  --navy-3: #1f2766;
+  --star: #ffd86b;
+  --star-soft: #ffe9a8;
+  --cream: #fff6e2;
+  --cream-2: #f6e8c8;
+  --ink: #1b2150;
+  --ink-soft: #5a5f86;
+  --good: #8fe3b0;
+  --bad: #ff9a8a;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: #060920;
+  color: var(--cream);
+  font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+
+button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action: manipulation; }
+
+/* 세로 화면 기준 게임 판 (360~430px) */
+#app {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  height: 100%;
+  min-height: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% -10%, #2b3590 0%, transparent 55%),
+    linear-gradient(180deg, var(--navy) 0%, #0d1440 60%, #10174a 100%);
+  box-shadow: 0 0 60px #00000080;
+}
+
+.sky { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+
+.sky i {
+  position: absolute;
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  background: #fff8dc;
+  box-shadow: 0 0 6px #fff3c0;
+  animation: twinkle var(--t) ease-in-out var(--d) infinite alternate;
+}
+
+/* 상단 정보 */
+.hud {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(12px, env(safe-area-inset-top)) 14px 8px;
+}
+
+.day {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--star);
+  letter-spacing: .02em;
+}
+
+.stats { display: flex; gap: 8px; }
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #ffffff12;
+  border: 1px solid #ffffff1c;
+  font-size: 13px;
+}
+
+.stat b { color: var(--star-soft); font-variant-numeric: tabular-nums; }
+.stat.bump { animation: bump .4s; }
+
+.queue {
+  position: relative;
+  padding: 0 14px;
+  font-size: 11.5px;
+  color: #b9bfe8;
+}
+
+/* 손님 카운터 */
+.counter {
+  position: relative;
+  height: 210px;
+  margin: 6px 12px 0;
+  flex-shrink: 0;
+}
+
+.bubble {
+  position: absolute;
+  left: 0;
+  right: 92px;
+  top: 4px;
+  min-height: 108px;
+  padding: 12px 14px;
+  border-radius: 18px 18px 6px 18px;
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: 0 6px 0 var(--cream-2), 0 10px 24px #00000055;
+  font-size: 14.5px;
+  line-height: 1.5;
+  word-break: keep-all;
+  transition: opacity .3s, transform .3s;
+}
+
+.bubble::after {
+  content: "";
+  position: absolute;
+  right: -10px;
+  bottom: 14px;
+  border: 10px solid transparent;
+  border-left-color: var(--cream);
+  border-right: 0;
+}
+
+.bubble.hide { opacity: 0; transform: translateY(6px) scale(.97); }
+
+.bubble .tag {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--navy-3);
+  color: var(--star);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.bubble .tag:empty { display: none; }
+.bubble p { margin: 0; }
+.bubble.react p { font-weight: 700; }
+
+.customer {
+  position: absolute;
+  right: 0;
+  top: 18px;
+  width: 86px;
+  text-align: center;
+  transition: transform .45s cubic-bezier(.3,1.4,.5,1), opacity .35s;
+}
+
+.customer.out { transform: translateX(120px); opacity: 0; }
+
+.face {
+  position: relative;
+  font-size: 58px;
+  line-height: 1;
+  filter: drop-shadow(0 6px 10px #00000066);
+  animation: idle 2.4s ease-in-out infinite alternate;
+}
+
+.mood {
+  position: absolute;
+  top: -4px;
+  right: 2px;
+  font-size: 20px;
+}
+
+.name {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #d5d9ff;
+  white-space: nowrap;
+}
+
+.patience {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ffffff14;
+  border: 1px solid #ffffff22;
+  overflow: hidden;
+}
+
+.patience-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--star), var(--star-soft));
+  box-shadow: 0 0 10px var(--star);
+}
+
+.patience-fill.warn { background: linear-gradient(90deg, #ffb36b, #ffd08a); box-shadow: 0 0 10px #ffb36b; }
+.patience-fill.danger { background: linear-gradient(90deg, #ff7f6b, #ffab8a); box-shadow: 0 0 10px #ff7f6b; }
+
+.patience-label {
+  position: absolute;
+  left: 2px;
+  bottom: 0;
+  font-size: 10.5px;
+  color: #aab0dc;
+}
+
+/* 키트 상자 */
+.kit {
+  position: relative;
+  margin: 0 12px;
+  padding: 10px 12px 12px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #2a3279, #1d2462);
+  border: 2px dashed #ffd86b66;
+  flex-shrink: 0;
+}
+
+.kit-title {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--star);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.kit-title span { color: #aab0dc; font-weight: 400; }
+
+.kit-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 40px;
+  align-content: flex-start;
+}
+
+.kit-empty { font-size: 12px; color: #8f96c8; align-self: center; }
+
+.kit-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: 0 3px 0 var(--cream-2);
+  animation: pop .25s ease-out;
+}
+
+.kit-chip .x { color: var(--ink-soft); font-size: 11px; margin-left: 2px; }
+
+/* 버튼 */
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr 1.2fr;
+  gap: 8px;
+  margin: 10px 12px 0;
+  flex-shrink: 0;
+}
+
+.btn {
+  padding: 12px 6px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  transition: transform .1s, opacity .2s;
+}
+
+.btn:active:not(:disabled) { transform: translateY(2px); }
+.btn:disabled { opacity: .4; }
+
+.btn-ghost { background: #ffffff14; border: 1px solid #ffffff26; }
+.btn-wrong { background: #3a2f6e; border: 1px solid #b9a6ff66; color: #e8deff; }
+
+.btn-serve {
+  background: linear-gradient(180deg, #ffe08a, var(--star));
+  color: var(--ink);
+  box-shadow: 0 4px 0 #c99a2e, 0 0 18px #ffd86b55;
+}
+
+/* 진열대 */
+.shelf-wrap {
+  position: relative;
+  flex: 1;
+  margin: 12px 0 0;
+  padding: 10px 12px max(14px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #19205a, #121845);
+  border-top: 3px solid #ffd86b44;
+  overflow-y: auto;
+}
+
+.shelf-label {
+  font-size: 11.5px;
+  color: #aab0dc;
+  margin: 0 2px 8px;
+}
+
+.shelf {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 3px 7px;
+  border-radius: 14px;
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: 0 4px 0 var(--cream-2);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  word-break: keep-all;
+  transition: transform .1s;
+}
+
+.item .emoji { font-size: 26px; line-height: 1.1; }
+.item .kind { font-size: 9.5px; font-weight: 500; color: var(--ink-soft); }
+.item:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--cream-2); }
+
+.item.in {
+  background: #fff1bf;
+  outline: 2.5px solid var(--star);
+  box-shadow: 0 4px 0 #e2bf5c, 0 0 14px #ffd86b88;
+}
+
+.item.in::after {
+  content: "✓";
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 11px;
+  color: #b07d00;
+}
+
+.item.locked {
+  background: #2a316f;
+  color: #8f96c8;
+  box-shadow: 0 4px 0 #1c2258;
+}
+
+.item.locked .emoji { filter: grayscale(1) brightness(.6); opacity: .5; }
+.item.locked .kind { color: #7d84b8; }
+.item.new::before {
+  content: "NEW";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  translate: -50% 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--star);
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+/* 알림 */
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 92px;
+  z-index: 30;
+  translate: -50% 0;
+  max-width: 90%;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: var(--cream);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-align: center;
+  word-break: keep-all;
+  box-shadow: 0 8px 24px #00000066;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity .25s, transform .25s;
+  pointer-events: none;
+}
+
+.toast.show { opacity: 1; transform: none; }
+.toast .gain { display: block; margin-top: 2px; font-size: 12.5px; color: #8a6400; }
+
+.float {
+  position: absolute;
+  z-index: 25;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--star);
+  text-shadow: 0 0 10px #ffd86b;
+  pointer-events: none;
+  animation: floatUp 1s ease-out forwards;
+}
+
+/* 전체 화면 안내창 */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #060920d9;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.overlay[hidden] { display: none; }
+
+.card {
+  width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 22px 18px;
+  border-radius: 22px;
+  background: var(--cream);
+  color: var(--ink);
+  text-align: center;
+  box-shadow: 0 8px 0 var(--cream-2), 0 20px 50px #00000080;
+  animation: pop .35s ease-out;
+}
+
+.card h1, .card h2 { margin: 0; line-height: 1.35; word-break: keep-all; }
+.card h1 { font-size: 26px; }
+.card h2 { font-size: 21px; }
+.card .sub { margin: 8px 0 0; font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; word-break: keep-all; }
+.card .eyebrow { font-size: 11.5px; font-weight: 800; color: #b07d00; letter-spacing: .08em; margin-bottom: 6px; }
+.card .big-emoji { font-size: 52px; margin-bottom: 6px; }
+
+.how {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f3e3bf;
+  text-align: left;
+  font-size: 12.5px;
+  line-height: 1.65;
+  list-style: none;
+}
+
+.how li::before { content: "✦ "; color: #b07d00; }
+
+.new-items {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.new-items span, .rank li {
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1.5px solid #ead7a8;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.summary div {
+  padding: 10px 4px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1.5px solid #ead7a8;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.summary b { display: block; font-size: 18px; color: var(--ink); }
+
+.card .btn { width: 100%; margin-top: 16px; padding: 14px; font-size: 15px; }
+.card .btn-ghost { background: #f0e1bd; border: 0; color: var(--ink); }
+.card a.btn { display: block; text-decoration: none; }
+
+/* 별자리 */
+.constellation {
+  margin: 12px -6px 0;
+  border-radius: 18px;
+  background: radial-gradient(ellipse at 50% 30%, #2b3590, var(--navy) 75%);
+}
+
+.constellation svg { display: block; width: 100%; height: auto; }
+
+.rank {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  text-align: left;
+}
+
+.rank li { display: flex; justify-content: space-between; }
+.rank small { color: var(--ink-soft); font-weight: 500; }
+
+@keyframes twinkle { from { opacity: .2; } to { opacity: 1; } }
+@keyframes idle { to { transform: translateY(-4px); } }
+@keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes bump { 50% { transform: scale(1.15); } }
+@keyframes floatUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-40px); } }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+@keyframes glow { from { opacity: .55; } to { opacity: 1; } }
+
+.shake { animation: shake .3s; }
+
+@media (max-height: 680px) {
+  .counter { height: 188px; }
+  .bubble { min-height: 96px; font-size: 13.5px; }
+  .face { font-size: 50px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="sky" id="sky" aria-hidden="true"></div>
+
+  <header class="hud">
+    <div class="day" id="dayLabel">MILE 첫걸음 상점</div>
+    <div class="stats">
+      <div class="stat" id="coinStat">🪙 <b id="coins">0</b></div>
+      <div class="stat" id="mileStat">✦ <b id="mile">0</b></div>
+    </div>
+  </header>
+  <div class="queue" id="queueInfo"></div>
+
+  <section class="counter">
+    <div class="bubble hide" id="bubble">
+      <span class="tag" id="tag"></span>
+      <p id="requestText"></p>
+    </div>
+    <div class="customer out" id="customer">
+      <div class="face"><span id="face">🧑‍🎓</span><span class="mood" id="mood"></span></div>
+      <div class="name" id="custName"></div>
+    </div>
+    <div class="patience"><div class="patience-fill" id="patienceFill"></div></div>
+    <div class="patience-label">기다리는 마음</div>
+  </section>
+
+  <section class="kit">
+    <div class="kit-title">📦 키트 상자 <span>담긴 물건을 누르면 빼요</span></div>
+    <div class="kit-items" id="kitItems"></div>
+  </section>
+
+  <div class="actions">
+    <button class="btn btn-ghost" id="clearBtn">비우기</button>
+    <button class="btn btn-wrong" id="wrongBtn">이 가게 아니에요!</button>
+    <button class="btn btn-serve" id="serveBtn">건네기 ✦</button>
+  </div>
+
+  <section class="shelf-wrap">
+    <div class="shelf-label">진열대 · 눌러서 키트 상자에 담아요</div>
+    <div class="shelf" id="shelf"></div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+  <div class="overlay" id="overlay" hidden><div class="card" id="card"></div></div>
+</div>
+
+<script>
+/* =========================================================
+   수정하기 쉬운 설정값 — 물건, 손님, 점수는 모두 여기서 바꿔요
+   ========================================================= */
+
+// 물건 12종: durable(오래 쓰는 물건) / consumable(소모품)
+// round: 몇 번째 영업부터 진열대에 나오는지 (0부터 시작)
+const ITEMS = [
+  { id: "strip",    name: "멀티탭",       emoji: "🔌", type: "durable",    price: 12, round: 0 },
+  { id: "rack",     name: "빨래 건조대",  emoji: "🧺", type: "durable",    price: 15, round: 0 },
+  { id: "slippers", name: "슬리퍼",       emoji: "🩴", type: "durable",    price: 8,  round: 0 },
+  { id: "tissue",   name: "휴지",         emoji: "🧻", type: "consumable", price: 4,  round: 0 },
+  { id: "soap",     name: "세탁 세제",    emoji: "🧴", type: "consumable", price: 6,  round: 0 },
+  { id: "trash",    name: "쓰레기봉투",   emoji: "🗑️", type: "consumable", price: 3,  round: 0 },
+
+  { id: "organizer", name: "정리함",      emoji: "🗃️", type: "durable",    price: 10, round: 1 },
+  { id: "hanger",    name: "옷걸이",      emoji: "🪝", type: "durable",    price: 5,  round: 1 },
+  { id: "wipes",     name: "물티슈",      emoji: "🧽", type: "consumable", price: 3,  round: 1 },
+
+  { id: "lamp",      name: "무드등",      emoji: "💡", type: "durable",    price: 14, round: 2 },
+  { id: "bandage",   name: "밴드 세트",   emoji: "🩹", type: "consumable", price: 5,  round: 2 },
+  { id: "sleep",     name: "귀마개·안대", emoji: "😴", type: "consumable", price: 6,  round: 2 }
+];
+
+// 영업 일정: 2일 동안 손님 4명 → 5명 → 6명
+// patience: 손님이 기다려 주는 시간(초)
+const ROUNDS = [
+  { label: "1일차 · 아침", customers: 4, patience: 26 },
+  { label: "1일차 · 저녁", customers: 5, patience: 23 },
+  { label: "2일차",        customers: 6, patience: 20 }
+];
+
+// 손님 요청: needs에 적힌 물건을 정확히 건네면 성공
+// refill: true 인 손님은 소모품만 찾아요
+const REQUESTS = [
+  { text: "충전할 건 세 개인데, 콘센트는 딱 하나예요.", needs: ["strip"] },
+  { text: "빨래는 다 했는데요… 방에 널 데가 없어요.", needs: ["rack"] },
+  { text: "공용 샤워실 바닥, 맨발로 가긴 좀 그렇죠?", needs: ["slippers"] },
+  { text: "환절기라 코를 계속 훌쩍여요. 벌써 다 썼어요.", needs: ["tissue"], refill: true },
+  { text: "빨래 바구니는 넘치는데, 세탁기에 넣을 게 없어요.", needs: ["soap"], refill: true },
+  { text: "방에서 슬슬 냄새가 나요. 버릴 게 산더미예요.", needs: ["trash"], refill: true },
+  { text: "입사 첫날이에요! 씻으러 갈 때랑 빨래할 때 필요한 거 주세요.", needs: ["slippers", "soap"] },
+  { text: "노트북, 휴대폰, 전기포트 다 꽂고 싶어요. 방 정리하면서 나온 것도 버려야 하고요.", needs: ["strip", "trash"] },
+  { text: "다 떨어졌어요. 코 풀 것도, 빨래 돌릴 것도요.", needs: ["tissue", "soap"], refill: true },
+  { text: "수건이랑 양말을 빨아서 말려야 해요. 근데 빨래할 것부터 없네요.", needs: ["rack", "soap"] },
+
+  { text: "책상 위가 엉망이라 펜 하나 찾는 데 10분 걸려요.", needs: ["organizer"] },
+  { text: "내일 면접인데 셔츠가 구겨지면 큰일이에요.", needs: ["hanger"] },
+  { text: "야식 먹다가 책상이 끈적끈적해졌어요.", needs: ["wipes"], refill: true },
+  { text: "옷장은 있는데 옷이 다 바닥에 쌓여 있어요. 서랍 속도 뒤죽박죽이고요.", needs: ["hanger", "organizer"] },
+  { text: "룸메랑 같이 쓰는 책상이 금방 어질러지고, 금방 더러워져요.", needs: ["organizer", "wipes"] },
+  { text: "이번 주 청소 당번이에요. 닦을 것도, 버릴 것도 많아요.", needs: ["wipes", "trash"], refill: true },
+
+  { text: "늦게까지 공부하는데, 큰 불을 켜면 룸메가 깨요.", needs: ["lamp"] },
+  { text: "옆방이 밤마다 노래를 불러요. 복도 불빛도 문틈으로 들어오고요.", needs: ["sleep"], refill: true },
+  { text: "택배 상자 뜯다가 손가락을 살짝 베였어요.", needs: ["bandage"], refill: true },
+  { text: "불은 끄고 싶은데 깜깜하면 무서워요. 옆방 소리도 신경 쓰이고요.", needs: ["lamp", "sleep"] },
+  { text: "풋살하다 넘어졌어요. 오늘은 치료하고 그냥 푹 자고 싶어요.", needs: ["bandage", "sleep"], refill: true },
+  { text: "시험 기간이에요. 밤샘용 책상 분위기 좀 만들어 주세요. 충전도 해야 하고, 책상도 치워야 해요.", needs: ["lamp", "strip", "organizer"] },
+  { text: "구급상자가 텅 비었어요. 코 풀 것도 없고요.", needs: ["bandage", "tissue"], refill: true },
+  { text: "첫 자취 생존 세트요! 빨래 말릴 것, 옷 걸 것, 그리고 화장실에 둘 거요.", needs: ["rack", "hanger", "tissue"] }
+];
+
+// 엉뚱한 손님: 이 가게에 없는 걸 찾아요 → '이 가게 아니에요!'로 돌려보내기
+const STRANGE_REQUESTS = [
+  "C타입 충전 케이블 하나만 주세요. 제 건 끊어졌어요.",
+  "방이 너무 추워요. 전기장판 있죠?",
+  "샴푸랑 린스가 다 떨어졌어요.",
+  "모기향 있어요? 밤새 물렸어요.",
+  "밖에 비가 와요. 우산 하나만요.",
+  "자전거 바퀴에 바람이 빠졌어요. 여기서 넣을 수 있죠?",
+  "과제 열 장만 뽑아 주세요. 양면으로요.",
+  "라면 하나 끓여 주실 수 있어요? 계란 넣어서요.",
+  "택배 찾으러 왔어요. 302호 앞으로 온 거요.",
+  "룸메랑 싸웠는데… 화해하는 방법도 파나요?"
+];
+const STRANGE_CHANCE = 0.22;          // 손님이 엉뚱한 손님일 확률
+const MAX_STRANGE_PER_ROUND = 2;      // 한 번 영업에 엉뚱한 손님 최대 수
+
+const CUSTOMER_FACES = ["🧑‍🎓", "👩‍🎓", "👨‍🎓", "🧑", "👧", "👦", "👩", "🧔"];
+const STRANGE_FACES = ["🕵️", "🧙", "🤠", "🥸", "🧑‍🚀", "🦸"];
+const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예준", "수아", "시우", "유나", "건우", "채원", "지호"];
+
+// 점수
+const SCORE = {
+  tipMax: 10,            // 딱 맞게 건넸을 때 받는 최대 팁 (빨리 건넬수록 많이)
+  extraCost: 3,          // 필요 없는 물건 하나당 깎이는 동전
+  milePerfect: 10,       // 딱 맞게 건넸을 때 MILE
+  mileFastBonus: 2,      // 기다림이 절반 넘게 남았을 때 추가 MILE
+  milePerHit: 3,         // 일부만 맞았을 때 맞은 물건 하나당 MILE
+  milePerMiss: 2,        // 빠뜨린 물건 하나당 깎이는 MILE
+  milePerExtra: 1,       // 필요 없는 물건 하나당 깎이는 MILE
+  mileLeave: 3,          // 손님이 지쳐서 떠나면 깎이는 MILE
+  mileStrangeRight: 4,   // 엉뚱한 손님을 잘 돌려보냈을 때 MILE
+  mileStrangeWrong: 3,   // 엉뚱한 손님에게 물건을 건넸을 때 깎이는 MILE
+  mileWrongReject: 4     // 진짜 손님을 돌려보냈을 때 깎이는 MILE
+};
+
+// 자립의 별자리: 총 MILE이 이 값 이상이면 별이 하나씩 더 켜져요 (첫 별은 항상 켜져요)
+const STAR_THRESHOLDS = [60, 105, 145];
+const STAR_NAMES = ["첫 짐 풀기", "내 방 꾸리기", "생활 리듬 찾기", "자립의 별"];
+const MILE_LINK = "https://oksusususu.github.io/milehomepage03/";
+
+/* =========================================================
+   게임 로직
+   ========================================================= */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const itemById = Object.fromEntries(ITEMS.map(i => [i.id, i]));
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const shuffle = (arr) => arr.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(v => v[1]);
+
+  const state = {
+    round: 0, queue: [], index: 0, current: null,
+    box: [], coins: 0, mile: 0, roundCoins: 0, roundMile: 0, roundStats: null,
+    patience: 0, patienceMax: 1, running: false, picks: {}
+  };
+
+  // ── 별 배경 ──
+  const sky = $("sky");
+  for (let i = 0; i < 40; i++) {
+    const s = document.createElement("i");
+    s.style.cssText = `left:${Math.random() * 100}%;top:${Math.random() * 100}%;` +
+      `--s:${(Math.random() * 2 + 1).toFixed(1)}px;--t:${(Math.random() * 2 + 1.5).toFixed(1)}s;--d:${(-Math.random() * 3).toFixed(1)}s`;
+    sky.appendChild(s);
+  }
+
+  // ── 화면 그리기 ──
+  const unlocked = (id) => itemById[id].round <= state.round;
+
+  const renderShelf = () => {
+    $("shelf").innerHTML = ITEMS.map(i => {
+      const locked = !unlocked(i.id);
+      const isNew = !locked && i.round === state.round && state.round > 0;
+      return `<button class="item ${locked ? "locked" : ""} ${state.box.includes(i.id) ? "in" : ""} ${isNew ? "new" : ""}" data-id="${i.id}">
+        <span class="emoji">${locked ? "🔒" : i.emoji}</span>${locked ? "입고 예정" : i.name}
+        <span class="kind">${i.type === "durable" ? "오래 쓰는 물건" : "소모품"}</span>
+      </button>`;
+    }).join("");
+  };
+
+  const renderBox = () => {
+    $("kitItems").innerHTML = state.box.length
+      ? state.box.map(id => `<button class="kit-chip" data-id="${id}">${itemById[id].emoji} ${itemById[id].name}<span class="x">✕</span></button>`).join("")
+      : `<span class="kit-empty">아직 비어 있어요. 진열대에서 물건을 골라 주세요.</span>`;
+    renderShelf();
+  };
+
+  const renderHud = () => {
+    $("coins").textContent = state.coins;
+    $("mile").textContent = state.mile;
+    $("dayLabel").textContent = ROUNDS[state.round].label;
+    const total = state.queue.length;
+    $("queueInfo").textContent = total ? `손님 ${Math.min(state.index + 1, total)} / ${total}` : "";
+  };
+
+  const bump = (id) => {
+    const el = $(id);
+    el.classList.remove("bump");
+    void el.offsetWidth;
+    el.classList.add("bump");
+  };
+
+  let toastTimer;
+  const toast = (msg, gain) => {
+    const t = $("toast");
+    t.innerHTML = msg + (gain ? `<span class="gain">${gain}</span>` : "");
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 1700);
+  };
+
+  const floatText = (text) => {
+    const f = document.createElement("div");
+    f.className = "float";
+    f.textContent = text;
+    f.style.left = "60%";
+    f.style.top = "70px";
+    $("app").appendChild(f);
+    setTimeout(() => f.remove(), 1000);
+  };
+
+  const setButtons = (on) => {
+    ["clearBtn", "wrongBtn", "serveBtn"].forEach(id => $(id).disabled = !on);
+  };
+
+  // ── 손님 만들기 ──
+  const makeQueue = (roundIndex) => {
+    const round = ROUNDS[roundIndex];
+    const usable = REQUESTS.filter(r => r.needs.every(id => itemById[id].round <= roundIndex));
+    // 새로 들어온 물건을 쓰는 요청이 더 자주 나오도록
+    const weighted = usable.flatMap(r => r.needs.some(id => itemById[id].round === roundIndex && roundIndex > 0) ? [r, r] : [r]);
+    const queue = [];
+    const used = new Set();
+    let strange = 0;
+    const strangePool = shuffle(STRANGE_REQUESTS);
+
+    for (let n = 0; n < round.customers; n++) {
+      const canStrange = !(roundIndex === 0 && n === 0) && strange < MAX_STRANGE_PER_ROUND;
+      if (canStrange && Math.random() < STRANGE_CHANCE) {
+        strange++;
+        queue.push({ strange: true, text: strangePool.pop() || pick(STRANGE_REQUESTS), face: pick(STRANGE_FACES), name: "처음 보는 손님" });
+        continue;
+      }
+      let req;
+      for (let tries = 0; tries < 20; tries++) {
+        req = pick(weighted);
+        if (!used.has(req)) break;
+      }
+      used.add(req);
+      queue.push({
+        ...req,
+        face: pick(CUSTOMER_FACES),
+        name: `${200 + Math.floor(Math.random() * 3) * 100 + Math.floor(Math.random() * 12) + 1}호 ${pick(CUSTOMER_NAMES)}`
+      });
+    }
+    return queue;
+  };
+
+  // ── 진행 ──
+  const showBubble = (text, tag, react) => {
+    const b = $("bubble");
+    $("requestText").textContent = text;
+    $("tag").textContent = tag || "";
+    b.classList.toggle("react", !!react);
+    b.classList.remove("hide");
+  };
+
+  const nextCustomer = () => {
+    if (state.index >= state.queue.length) return endRound();
+    const c = state.current = state.queue[state.index];
+    state.box = [];
+    state.patienceMax = state.patience = ROUNDS[state.round].patience + (c.needs ? (c.needs.length - 1) * 3 : 0);
+    $("face").textContent = c.face;
+    $("mood").textContent = "";
+    $("custName").textContent = c.name;
+    $("customer").classList.remove("out");
+    showBubble(c.text, c.refill ? "리필 손님 · 소모품만 찾아요" : "");
+    renderBox();
+    renderHud();
+    updatePatience();
+    setButtons(true);
+    state.running = true;
+  };
+
+  const updatePatience = () => {
+    const r = Math.max(state.patience / state.patienceMax, 0);
+    const fill = $("patienceFill");
+    fill.style.width = `${r * 100}%`;
+    fill.classList.toggle("warn", r < .55 && r >= .28);
+    fill.classList.toggle("danger", r < .28);
+    if (state.running) $("mood").textContent = r < .28 ? "💢" : r < .55 ? "💦" : "";
+  };
+
+  const finish = (reaction, coins, mile, gainText, stat) => {
+    state.running = false;
+    setButtons(false);
+    state.coins = Math.max(0, state.coins + coins);
+    state.mile = Math.max(0, state.mile + mile);
+    state.roundCoins += coins;
+    state.roundMile += mile;
+    state.roundStats[stat]++;
+    showBubble(reaction, "", true);
+    toast(gainText.title, gainText.detail);
+    if (coins) bump("coinStat");
+    if (mile) bump("mileStat");
+    if (mile > 0) floatText(`+${mile} ✦`);
+    renderHud();
+
+    setTimeout(() => {
+      $("customer").classList.add("out");
+      $("bubble").classList.add("hide");
+      setTimeout(() => {
+        state.index++;
+        nextCustomer();
+      }, 450);
+    }, 1500);
+  };
+
+  const sign = (n) => (n >= 0 ? `+${n}` : `${n}`);
+
+  const serve = () => {
+    if (!state.running) return;
+    const c = state.current;
+    if (!state.box.length) {
+      $("kitItems").classList.add("shake");
+      setTimeout(() => $("kitItems").classList.remove("shake"), 300);
+      return toast("키트 상자가 비어 있어요!");
+    }
+    state.box.forEach(id => state.picks[id] = (state.picks[id] || 0) + 1);
+
+    if (c.strange) {
+      return finish("어… 제가 찾던 건 이게 아닌데요?", 0, -SCORE.mileStrangeWrong,
+        { title: "이 손님은 다른 가게를 찾고 있었어요.", detail: `✦ ${sign(-SCORE.mileStrangeWrong)} MILE` }, "wrong");
+    }
+
+    const hits = c.needs.filter(id => state.box.includes(id));
+    const miss = c.needs.length - hits.length;
+    const extra = state.box.filter(id => !c.needs.includes(id)).length;
+    const ratio = state.patience / state.patienceMax;
+
+    if (!miss && !extra) {
+      const coins = hits.reduce((a, id) => a + itemById[id].price, 0) + Math.round(SCORE.tipMax * ratio);
+      const mile = SCORE.milePerfect + (ratio > .5 ? SCORE.mileFastBonus : 0);
+      return finish(pick(["와, 딱 이거예요! 고마워요!", "어떻게 아셨어요? 완벽해요!", "덕분에 오늘 밤은 편하게 지낼 수 있겠어요!"]),
+        coins, mile, { title: "딱 맞았어요! ✦", detail: `🪙 +${coins} · ✦ +${mile} MILE` }, "perfect");
+    }
+
+    const coins = Math.max(0, hits.reduce((a, id) => a + itemById[id].price, 0) - extra * SCORE.extraCost);
+    const mile = Math.max(0, hits.length * SCORE.milePerHit - miss * SCORE.milePerMiss - extra * SCORE.milePerExtra);
+    const reaction = !hits.length ? "음… 제가 말한 거랑은 좀 다른 것 같아요."
+      : miss && extra ? "하나는 빠졌고, 이건 필요 없는데… 그래도 고마워요."
+      : miss ? "고마워요! 근데 하나가 빠진 것 같아요…"
+      : "필요 없는 것까지 들어 있네요. 그래도 고마워요.";
+    const parts = [miss && `빠진 물건 ${miss}개`, extra && `필요 없는 물건 ${extra}개`].filter(Boolean).join(" · ");
+    finish(reaction, coins, mile, { title: parts || "조금 아쉬워요.", detail: `🪙 +${coins} · ✦ +${mile} MILE` }, "partial");
+  };
+
+  const rejectCustomer = () => {
+    if (!state.running) return;
+    const c = state.current;
+    if (c.strange) {
+      return finish(pick(["앗, 잘못 찾아왔나 봐요! 알려 줘서 고마워요.", "여기가 아니었군요… 다른 데 가 볼게요!"]),
+        0, SCORE.mileStrangeRight, { title: "잘 알아봤어요! 여긴 그런 걸 안 팔아요.", detail: `✦ +${SCORE.mileStrangeRight} MILE` }, "strange");
+    }
+    finish("네? 분명 여기서 파는 걸로 아는데요…", 0, -SCORE.mileWrongReject,
+      { title: "이 손님은 우리 가게 손님이었어요!", detail: `✦ ${sign(-SCORE.mileWrongReject)} MILE` }, "wrong");
+  };
+
+  const timeout = () => {
+    const c = state.current;
+    if (c.strange) {
+      return finish("흠, 여기 아닌가 보네요. 그냥 갈게요.", 0, 0, { title: "엉뚱한 손님이 스스로 떠났어요." }, "strange");
+    }
+    finish("너무 오래 걸려서… 다음에 올게요.", 0, -SCORE.mileLeave,
+      { title: "손님이 지쳐서 떠났어요.", detail: `✦ ${sign(-SCORE.mileLeave)} MILE` }, "left");
+  };
+
+  // ── 영업 시작 / 마감 ──
+  const showCard = (html) => {
+    $("card").innerHTML = html;
+    $("overlay").hidden = false;
+  };
+
+  const hideCard = () => { $("overlay").hidden = true; };
+
+  const startRound = (n) => {
+    state.round = n;
+    state.queue = makeQueue(n);
+    state.index = 0;
+    state.roundCoins = 0;
+    state.roundMile = 0;
+    state.roundStats = { perfect: 0, partial: 0, left: 0, strange: 0, wrong: 0 };
+    state.box = [];
+    renderBox();
+    renderHud();
+
+    const fresh = ITEMS.filter(i => i.round === n);
+    showCard(`
+      <div class="eyebrow">${ROUNDS[n].label.toUpperCase()}</div>
+      <div class="big-emoji">${n === 0 ? "🏪" : n === 1 ? "🌙" : "🌟"}</div>
+      <h2>${n === 0 ? "가게 문을 열어요!" : n === 1 ? "저녁 손님이 몰려와요" : "마지막 날이에요!"}</h2>
+      <p class="sub">오늘은 손님 ${ROUNDS[n].customers}명이 찾아와요.<br>${n === 0 ? "진열대에 물건이 들어왔어요." : "새 물건이 입고됐어요."}</p>
+      <div class="new-items">${fresh.map(i => `<span>${i.emoji} ${i.name}</span>`).join("")}</div>
+      <button class="btn btn-serve" data-act="open">가게 열기 ✦</button>`);
+  };
+
+  const endRound = () => {
+    state.running = false;
+    renderHud();
+    const s = state.roundStats;
+    const last = state.round === ROUNDS.length - 1;
+    showCard(`
+      <div class="eyebrow">${ROUNDS[state.round].label.toUpperCase()} 마감</div>
+      <div class="big-emoji">${s.perfect >= ROUNDS[state.round].customers - 1 ? "🌟" : "🌙"}</div>
+      <h2>${s.left ? "오늘도 수고 많았어요" : "오늘 장사 아주 잘했어요!"}</h2>
+      <div class="summary">
+        <div><b>${s.perfect}</b>딱 맞게</div>
+        <div><b>${s.partial}</b>조금 아쉽게</div>
+        <div><b>${s.left}</b>떠난 손님</div>
+      </div>
+      <p class="sub">이번 영업으로 🪙 ${state.roundCoins >= 0 ? "+" : ""}${state.roundCoins} · ✦ ${state.roundMile >= 0 ? "+" : ""}${state.roundMile} MILE을 모았어요.${s.strange ? `<br>엉뚱한 손님 ${s.strange}명도 잘 돌려보냈어요.` : ""}</p>
+      <button class="btn btn-serve" data-act="${last ? "final" : "next"}">${last ? "자립의 별자리 보기 ✦" : "다음 영업 준비하기"}</button>`);
+  };
+
+  const constellationSVG = (lit) => {
+    const pts = [[48, 150], [118, 98], [196, 128], [262, 46]];
+    const lines = pts.slice(1).map((p, i) => {
+      const a = pts[i];
+      const on = i + 1 < lit;
+      return `<line x1="${a[0]}" y1="${a[1]}" x2="${p[0]}" y2="${p[1]}" stroke="${on ? "#ffd86b" : "#ffffff"}" stroke-opacity="${on ? .8 : .18}" stroke-width="2" ${on ? "" : 'stroke-dasharray="4 5"'}/>`;
+    }).join("");
+    const stars = pts.map((p, i) => {
+      const on = i < lit;
+      return `<g>
+        ${on ? `<circle cx="${p[0]}" cy="${p[1]}" r="22" fill="#ffd86b" opacity=".25" style="animation: glow ${1.4 + i * .3}s ease-in-out infinite alternate"/>` : ""}
+        <text x="${p[0]}" y="${p[1] + 8}" text-anchor="middle" font-size="${on ? 26 : 20}" fill="${on ? "#ffd86b" : "#5d6496"}">★</text>
+        <text x="${p[0]}" y="${p[1] + 34}" text-anchor="middle" font-size="11" fill="${on ? "#fff3c4" : "#7d84b8"}">${STAR_NAMES[i]}</text>
+      </g>`;
+    }).join("");
+    const dust = Array.from({ length: 30 }, () =>
+      `<circle cx="${(Math.random() * 310).toFixed(0)}" cy="${(Math.random() * 200).toFixed(0)}" r="${(Math.random() * 1.1 + .3).toFixed(1)}" fill="#fff" opacity="${(Math.random() * .5 + .2).toFixed(2)}"/>`).join("");
+    return `<svg viewBox="0 0 310 200" role="img" aria-label="별 ${lit}개가 켜진 자립의 별자리">${dust}${lines}${stars}</svg>`;
+  };
+
+  const showFinal = () => {
+    const lit = 1 + STAR_THRESHOLDS.filter(t => state.mile >= t).length;
+    const top = Object.entries(state.picks).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const messages = [
+      "첫 별이 켜졌어요. 시작이 반이에요!",
+      "별 두 개가 이어졌어요. 생활이 조금씩 자리를 잡고 있어요.",
+      "별 세 개! 이제 스스로 꾸려 가는 하루가 익숙해졌어요.",
+      "별자리가 완성됐어요! 자립을 향한 첫걸음, 정말 멋졌어요."
+    ];
+    showCard(`
+      <div class="eyebrow">2일 영업 끝</div>
+      <h2>자립으로 가는 별자리</h2>
+      <div class="constellation">${constellationSVG(lit)}</div>
+      <p class="sub"><b>${messages[lit - 1]}</b></p>
+      <div class="summary">
+        <div><b>${state.mile}</b>총 MILE</div>
+        <div><b>${state.coins}</b>모은 동전</div>
+        <div><b>${lit}/4</b>켜진 별</div>
+      </div>
+      <p class="sub" style="margin-top:14px"><b>가장 많이 담은 물건</b></p>
+      <ol class="rank">${top.length
+        ? top.map(([id, n], i) => `<li><span>${i + 1}. ${itemById[id].emoji} ${itemById[id].name}</span><small>${n}번</small></li>`).join("")
+        : `<li><span>아직 담은 물건이 없어요</span></li>`}</ol>
+      <a class="btn btn-serve" href="${MILE_LINK}" target="_blank" rel="noopener noreferrer">MILE 더 알아보기 ↗</a>
+      <button class="btn btn-ghost" data-act="restart">처음부터 다시 하기</button>`);
+  };
+
+  const showTitle = () => {
+    showCard(`
+      <div class="eyebrow">MILE FIRST STEP SHOP</div>
+      <div class="big-emoji">🏪✨</div>
+      <h1>MILE 첫걸음 상점</h1>
+      <p class="sub">기숙사 학생들이 필요한 걸 찾아와요.<br>말 속에 숨은 힌트를 듣고 딱 맞는 키트를 꾸려 주세요.</p>
+      <ul class="how">
+        <li>진열대의 물건을 눌러 키트 상자에 담아요.</li>
+        <li>다 담았으면 <b>건네기</b>를 눌러요. 딱 맞을수록 동전과 MILE을 많이 받아요.</li>
+        <li>너무 늦으면 손님이 떠나요. 기다리는 마음 막대를 잘 봐 주세요.</li>
+        <li><b>리필 손님</b>은 소모품만 찾아요.</li>
+        <li>가게에 없는 걸 찾는 손님은 <b>이 가게 아니에요!</b>로 돌려보내요.</li>
+      </ul>
+      <button class="btn btn-serve" data-act="start">시작하기 ✦</button>`);
+  };
+
+  // ── 입력 (탭만 사용) ──
+  $("shelf").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-id]");
+    if (!b || !state.running) return;
+    const id = b.dataset.id;
+    if (!unlocked(id)) return toast("아직 입고 전이에요. 조금만 기다려 주세요!");
+    const at = state.box.indexOf(id);
+    if (at >= 0) state.box.splice(at, 1);
+    else state.box.push(id);
+    renderBox();
+  });
+
+  $("kitItems").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-id]");
+    if (!b || !state.running) return;
+    state.box.splice(state.box.indexOf(b.dataset.id), 1);
+    renderBox();
+  });
+
+  $("clearBtn").addEventListener("click", () => { if (state.running) { state.box = []; renderBox(); } });
+  $("serveBtn").addEventListener("click", serve);
+  $("wrongBtn").addEventListener("click", rejectCustomer);
+
+  $("overlay").addEventListener("click", (e) => {
+    const act = e.target.closest("[data-act]")?.dataset.act;
+    if (!act) return;
+    if (act === "start") startRound(0);
+    else if (act === "open") { hideCard(); setTimeout(nextCustomer, 250); }
+    else if (act === "next") startRound(state.round + 1);
+    else if (act === "final") showFinal();
+    else if (act === "restart") {
+      Object.assign(state, { coins: 0, mile: 0, picks: {} });
+      startRound(0);
+    }
+  });
+
+  // ── 기다림 타이머 ──
+  let last = performance.now();
+  const loop = (now) => {
+    const dt = Math.min((now - last) / 1000, .1);
+    last = now;
+    if (state.running) {
+      state.patience -= dt;
+      updatePatience();
+      if (state.patience <= 0) timeout();
+    }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+
+  setButtons(false);
+  renderShelf();
+  renderBox();
+  renderHud();
+  showTitle();
+})();
+</script>
+</body>
+</html>
