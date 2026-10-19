@@ -60,7 +60,7 @@ button { font: inherit; }
   will-change: transform;
 }
 
-/* 이미지 비율(3:2)을 유지하며 화면을 덮는 프레임: 반짝임 효과가 그림 위치에 정확히 맞춰짐 */
+/* 이미지 비율(3:2)을 유지하며 화면을 덮는 프레임 */
 .cosmos-frame {
   --fw: max(104vw, 156vh);
   --fh: max(104vh, 69.34vw);
@@ -71,7 +71,7 @@ button { font: inherit; }
   height: var(--fh);
   margin: calc(var(--fh) / -2) 0 0 calc(var(--fw) / -2);
   transform-origin: 50% 40%;
-  animation: cosmosDrift 30s ease-in-out infinite alternate;
+  animation: cosmosDrift 46s ease-in-out infinite alternate;
 }
 
 .cosmos-frame > img {
@@ -80,217 +80,21 @@ button { font: inherit; }
   height: 100%;
   object-fit: cover;
   user-select: none;
-  animation: cosmosGlow 7s ease-in-out infinite alternate;
+  animation: cosmosGlow 11s ease-in-out infinite alternate;
 }
 
-/* 별 반짝임 */
-.glint {
-  position: absolute;
-  left: var(--x);
-  top: var(--y);
-  width: var(--s, 34px);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  mix-blend-mode: screen;
-  background:
-    radial-gradient(circle, #fff 0 4%, #e3e6ffcc 8%, #a9b4ff40 22%, transparent 48%),
-    linear-gradient(90deg, transparent 0%, #dfe4ff00 20%, #f4f5ffd9 50%, #dfe4ff00 80%, transparent 100%) center / 100% 2px no-repeat,
-    linear-gradient(0deg, transparent 0%, #dfe4ff00 20%, #f4f5ffd9 50%, #dfe4ff00 80%, transparent 100%) center / 2px 100% no-repeat;
-  opacity: 0;
-  animation: twinkle calc(var(--t, 4.5s) * .6) ease-in-out var(--d, 0s) infinite;
-}
-
-/* 중앙의 큰 별과 수평선의 빛 */
-.flare {
-  position: absolute;
-  left: var(--x);
-  top: var(--y);
-  width: var(--s);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  border-radius: 50%;
-  mix-blend-mode: screen;
-  background: radial-gradient(circle, #ffffffd0 0%, #dcd8ff80 6%, #a99cff38 20%, #7f78ff12 42%, transparent 66%);
-  animation: flarePulse 3s ease-in-out infinite alternate;
-}
-
-.flare::before,
-.flare::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 260%;
-  height: 2px;
-  translate: -50% -50%;
-  background: linear-gradient(90deg, transparent, #c9d2ff26 25%, #ffffffe6 50%, #c9d2ff26 75%, transparent);
-  filter: blur(.6px);
-  animation: flareStreak 2.4s ease-in-out infinite alternate;
-}
-
-.flare::after {
-  rotate: 90deg;
-  width: 200%;
-  animation-delay: -3s;
-}
-
-.flare.horizon {
-  border-radius: 50%;
-  aspect-ratio: 2.6 / 1;
-  animation-duration: 8s;
-  animation-delay: -2s;
-}
-
-.flare.horizon::before { width: 210%; }
-.flare.horizon::after { width: 110%; opacity: .6; }
-
-/* 수면의 물결 반사광 */
-.water {
-  position: absolute;
-  left: 22%;
-  right: 22%;
-  top: 80%;
-  bottom: 0;
-  mix-blend-mode: screen;
-  opacity: .85;
-  background: repeating-linear-gradient(180deg, transparent 0 7px, #c9cfff1c 7px 8px, transparent 8px 15px);
-  background-size: 100% 30px;
-  -webkit-mask-image: radial-gradient(ellipse 50% 85% at 50% 15%, #000 15%, transparent 72%);
-  mask-image: radial-gradient(ellipse 50% 85% at 50% 15%, #000 15%, transparent 72%);
-  animation: waterFlow 2.4s linear infinite;
-}
-
-.water::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 9%;
-  translate: -50% 0;
-  background: linear-gradient(180deg, #ffffff70, #cbd2ff38 45%, transparent);
-  filter: blur(6px);
-  animation: reflectionShimmer 3.2s ease-in-out infinite alternate;
-}
-
-/* 중앙 별에서 회전하는 빛줄기 */
-.rays {
-  position: absolute;
-  left: 50.2%;
-  top: 18.2%;
-  width: 95%;
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  mix-blend-mode: screen;
-  pointer-events: none;
-}
-
-.rays::before,
-.rays::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: repeating-conic-gradient(from 0deg, #e9e6ff2e 0deg 1.6deg, transparent 1.6deg 9deg);
-  -webkit-mask-image: radial-gradient(circle, #000 0%, #0009 14%, transparent 52%);
-  mask-image: radial-gradient(circle, #000 0%, #0009 14%, transparent 52%);
-  animation: raysSpin 60s linear infinite, raysBreath 4s ease-in-out infinite alternate;
-}
-
-.rays::after {
-  background: repeating-conic-gradient(from 4deg, #b7c3ff26 0deg 3deg, transparent 3deg 17deg);
-  animation: raysSpin 38s linear infinite reverse, raysBreath 5.5s ease-in-out -2s infinite alternate;
-}
-
-/* 별에서 퍼져 나가는 빛의 파동 */
-.ripple {
-  position: absolute;
-  left: 50.2%;
-  top: 18.2%;
-  width: 120%;
-  aspect-ratio: 1;
-  margin: -60% 0 0 -60%;
-  border-radius: 50%;
-  border: 2px solid #dcdcff;
-  box-shadow: 0 0 30px #a7b0ff80, inset 0 0 30px #a7b0ff60;
-  mix-blend-mode: screen;
-  opacity: 0;
-  animation: ripple 7.5s cubic-bezier(.15,.6,.3,1) var(--d, 0s) infinite;
-}
-
-/* 색이 바뀌며 흐르는 오로라 */
-.aurora {
-  position: absolute;
-  width: 70%;
-  height: 60%;
-  border-radius: 50%;
-  mix-blend-mode: screen;
-  opacity: .42;
-  pointer-events: none;
-}
-
-.aurora.a {
-  left: -5%;
-  top: 20%;
-  background: radial-gradient(ellipse, #a46bff 0%, #6b55ff66 35%, transparent 70%);
-  animation: auroraA 16s ease-in-out infinite alternate;
-}
-
-.aurora.b {
-  right: -8%;
-  top: 30%;
-  background: radial-gradient(ellipse, #4f9dff 0%, #6a7dff55 35%, transparent 70%);
-  animation: auroraB 19s ease-in-out infinite alternate;
-}
-
-/* 궤도를 도는 혜성 */
-.orbits {
+/* 그림 속 요소(물결·구름·행성·은하·나비·별)를 직접 움직이는 WebGL 캔버스 */
+#cosmosGL {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  overflow: visible;
-  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+  animation: cosmosGlow 11s ease-in-out infinite alternate;
 }
 
-.orbits .track {
-  fill: none;
-  stroke: #c9cfff;
-  stroke-opacity: .12;
-  stroke-width: 1;
-}
-
-.orbits .comet {
-  fill: none;
-  stroke: url(#cometGlow);
-  stroke-width: 3;
-  stroke-linecap: round;
-  filter: url(#cometBlur);
-  stroke-dasharray: 140 1860;
-  animation: orbitRun var(--t, 9s) linear var(--d, 0s) infinite;
-}
-
-/* 빛 무리 (나비 / 행성 테두리) */
-.halo {
-  position: absolute;
-  left: var(--x);
-  top: var(--y);
-  width: var(--s);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  border-radius: 50%;
-  mix-blend-mode: screen;
-  background: radial-gradient(circle, #d7d2ff55, #9e9bff1c 45%, transparent 70%);
-  animation: haloBreath var(--t, 7s) ease-in-out var(--d, 0s) infinite alternate;
-}
-
-#dust {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  mix-blend-mode: screen;
-}
+#cosmosGL.ready { opacity: 1; }
 
 /* 스크롤하면 배경을 은은하게 어둡게 해 본문 가독성 확보 */
 .cosmos-veil {
@@ -830,70 +634,13 @@ footer img { width: 70px; height: auto; }
 }
 
 @keyframes cosmosDrift {
-  0% { transform: scale(1) translate3d(0, 0, 0) rotate(0deg); }
-  33% { transform: scale(1.09) translate3d(-1.6%, -1%, 0) rotate(-.7deg); }
-  66% { transform: scale(1.14) translate3d(1.3%, -1.8%, 0) rotate(.6deg); }
-  100% { transform: scale(1.06) translate3d(.6%, .9%, 0) rotate(-.2deg); }
+  from { transform: scale(1) translate3d(0, 0, 0); }
+  to { transform: scale(1.06) translate3d(-.6%, -.4%, 0); }
 }
 
 @keyframes cosmosGlow {
-  0% { filter: saturate(1) brightness(1) hue-rotate(0deg); }
-  50% { filter: saturate(1.25) brightness(1.14) hue-rotate(-10deg); }
-  100% { filter: saturate(1.15) brightness(1.06) hue-rotate(12deg); }
-}
-
-@keyframes raysSpin { to { rotate: 360deg; } }
-
-@keyframes raysBreath {
-  from { opacity: .45; scale: .92; }
-  to { opacity: 1; scale: 1.1; }
-}
-
-@keyframes ripple {
-  0% { opacity: .9; transform: scale(.05); border-width: 3px; }
-  70% { opacity: .25; }
-  100% { opacity: 0; transform: scale(1); border-width: 1px; }
-}
-
-@keyframes auroraA {
-  0% { transform: translate3d(-12%, -6%, 0) scale(1) rotate(0deg); filter: blur(40px) hue-rotate(0deg); }
-  50% { transform: translate3d(10%, 4%, 0) scale(1.25) rotate(14deg); filter: blur(46px) hue-rotate(40deg); }
-  100% { transform: translate3d(-4%, 10%, 0) scale(.95) rotate(-8deg); filter: blur(40px) hue-rotate(-30deg); }
-}
-
-@keyframes auroraB {
-  0% { transform: translate3d(10%, 8%, 0) scale(1.1) rotate(0deg); filter: blur(50px) hue-rotate(0deg); }
-  50% { transform: translate3d(-8%, -6%, 0) scale(.9) rotate(-18deg); filter: blur(44px) hue-rotate(-45deg); }
-  100% { transform: translate3d(4%, -10%, 0) scale(1.2) rotate(10deg); filter: blur(52px) hue-rotate(30deg); }
-}
-
-@keyframes orbitRun { to { stroke-dashoffset: -2000; } }
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); }
-  45%, 55% { opacity: 1; transform: scale(1) rotate(45deg); }
-}
-
-@keyframes flarePulse {
-  from { opacity: .55; transform: scale(.9); }
-  to { opacity: 1; transform: scale(1.12); }
-}
-
-@keyframes flareStreak {
-  from { opacity: .35; scale: .7 1; }
-  to { opacity: .95; scale: 1.15 1; }
-}
-
-@keyframes waterFlow { to { background-position: 0 30px; } }
-
-@keyframes reflectionShimmer {
-  from { opacity: .35; scale: .8 1; }
-  to { opacity: .85; scale: 1.25 1; }
-}
-
-@keyframes haloBreath {
-  from { opacity: .25; transform: scale(.85); }
-  to { opacity: .9; transform: scale(1.1); }
+  from { filter: saturate(1) brightness(1); }
+  to { filter: saturate(1.1) brightness(1.06); }
 }
 
 @keyframes buttonShine {
@@ -965,64 +712,10 @@ footer img { width: 70px; height: auto; }
   <div class="cosmos-parallax">
     <div class="cosmos-frame">
       <img src="assets/mile-cosmos.webp" alt="" fetchpriority="high" decoding="async">
-
-      <div class="aurora a"></div>
-      <div class="aurora b"></div>
-      <div class="rays"></div>
-
-      <div class="flare" style="--x:50.2%;--y:18.2%;--s:22%"></div>
-      <div class="flare horizon" style="--x:50.3%;--y:75.5%;--s:26%"></div>
-      <div class="water"></div>
-
-      <span class="glint" style="--x:67%;--y:48.3%;--s:3.6%;--d:-.4s;--t:4.2s"></span>
-      <span class="glint" style="--x:60.8%;--y:63.5%;--s:3%;--d:-2.1s;--t:5.1s"></span>
-      <span class="glint" style="--x:87%;--y:23.6%;--s:3.2%;--d:-1.3s;--t:3.8s"></span>
-      <span class="glint" style="--x:26.3%;--y:48%;--s:2.6%;--d:-3s;--t:4.8s"></span>
-      <span class="glint" style="--x:32%;--y:20.5%;--s:2.4%;--d:-.9s;--t:5.6s"></span>
-      <span class="glint" style="--x:59%;--y:21%;--s:2.6%;--d:-2.6s;--t:4.4s"></span>
-      <span class="glint" style="--x:17.3%;--y:70.5%;--s:2.4%;--d:-1.7s;--t:5.3s"></span>
-      <span class="glint" style="--x:76%;--y:84%;--s:2.2%;--d:-3.4s;--t:4.6s"></span>
-      <span class="glint" style="--x:41%;--y:12%;--s:1.8%;--d:-.2s;--t:3.6s"></span>
-      <span class="glint" style="--x:79%;--y:37%;--s:2%;--d:-2.4s;--t:4.9s"></span>
-
-      <span class="halo" style="--x:92.5%;--y:28.5%;--s:7%;--t:5s"></span>
-      <span class="halo" style="--x:91%;--y:43.5%;--s:5%;--t:6s;--d:-2s"></span>
-      <span class="halo" style="--x:16.5%;--y:17.5%;--s:9%;--t:8s;--d:-3s"></span>
-
-
-      <span class="ripple"></span>
-      <span class="ripple" style="--d:-2.5s"></span>
-      <span class="ripple" style="--d:-5s"></span>
-
-      <svg class="orbits" viewBox="0 0 1536 1024" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="cometGlow" x1="0" x2="1">
-            <stop offset="0" stop-color="#ffffff"/>
-            <stop offset="1" stop-color="#9fb0ff"/>
-          </linearGradient>
-          <filter id="cometBlur" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="2.2" result="b"/>
-            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-        <g transform="rotate(-11 768 430)">
-          <ellipse class="track" cx="768" cy="430" rx="540" ry="175" pathLength="2000"/>
-          <ellipse class="comet" cx="768" cy="430" rx="540" ry="175" pathLength="2000" style="--t:8s"/>
-          <ellipse class="comet" cx="768" cy="430" rx="540" ry="175" pathLength="2000" style="--t:8s;--d:-4s"/>
-        </g>
-        <g transform="rotate(14 768 440)">
-          <ellipse class="track" cx="768" cy="440" rx="690" ry="250" pathLength="2000"/>
-          <ellipse class="comet" cx="768" cy="440" rx="690" ry="250" pathLength="2000" style="--t:12s;--d:-3s"/>
-        </g>
-        <g transform="rotate(-4 768 200)">
-          <ellipse class="track" cx="768" cy="190" rx="250" ry="48" pathLength="2000"/>
-          <ellipse class="comet" cx="768" cy="190" rx="250" ry="48" pathLength="2000" style="--t:5s;--d:-1s"/>
-        </g>
-      </svg>
+      <canvas id="cosmosGL"></canvas>
     </div>
   </div>
   <div class="cosmos-veil"></div>
-  <canvas id="dust"></canvas>
 </div>
 <div class="noise" aria-hidden="true"></div>
 
@@ -1275,7 +968,7 @@ footer img { width: 70px; height: auto; }
     if (reducedMotion) return;
     const lift = Math.min(scrollY / window.innerHeight, 1.5) * -2.2;
     parallax.style.transform =
-      `translate3d(${pointerX * -32}px, calc(${pointerY * -24}px + ${lift}vh), 0)`;
+      `translate3d(${pointerX * -14}px, calc(${pointerY * -10}px + ${lift}vh), 0)`;
   };
 
   // 첫 화면을 지나면 배경을 어둡게 해 본문을 읽기 쉽게
@@ -1297,201 +990,230 @@ footer img { width: 70px; height: auto; }
     }, { passive: true });
   }
 
-  // 그림 곳곳에 무작위 반짝임 추가 (중앙 문구 영역은 피함)
-  const frame = document.querySelector(".cosmos-frame");
-  if (frame && !reducedMotion) {
-    for (let i = 0; i < 34; i++) {
-      let x, y;
-      do {
-        x = Math.random() * 96 + 2;
-        y = Math.random() * 92 + 3;
-      } while (x > 36 && x < 64 && y > 30 && y < 64);
-      const glint = document.createElement("span");
-      glint.className = "glint";
-      glint.style.cssText =
-        `--x:${x}%;--y:${y}%;--s:${(Math.random() * 2.4 + 1.2).toFixed(2)}%;` +
-        `--d:${(-Math.random() * 6).toFixed(2)}s;--t:${(Math.random() * 4 + 3).toFixed(2)}s`;
-      frame.appendChild(glint);
+  // 그림 자체를 움직임: 영역별로 그림을 일렁이게 하고 그림 속 밝은 별·빛만 반짝이게 함
+  const glCanvas = document.getElementById("cosmosGL");
+  const picture = document.querySelector(".cosmos-frame > img");
+
+  const fragmentShader = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uImg;
+    uniform float uTime;
+    const float A = 1.5; // 그림 가로세로 비율
+
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p) {
+      vec2 i = floor(p), f = fract(p);
+      f = f * f * (3. - 2. * f);
+      return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+                 mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
     }
-  }
+    float fbm(vec2 p) {
+      float v = 0., a = .5;
+      for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.03; a *= .5; }
+      return v;
+    }
+    float box(vec2 uv, vec4 b, float f) {
+      vec2 lo = smoothstep(b.xy - f, b.xy + f, uv);
+      vec2 hi = 1. - smoothstep(b.zw - f, b.zw + f, uv);
+      return lo.x * lo.y * hi.x * hi.y;
+    }
+    vec2 toY(vec2 d) { return vec2(d.x * A, d.y); }
+    vec2 toUv(vec2 d) { return vec2(d.x / A, d.y); }
+    vec2 rot(vec2 p, float a) { float c = cos(a), s = sin(a); return vec2(c * p.x - s * p.y, s * p.x + c * p.y); }
 
-  // 별가루 · 중앙 별에서 쏟아지는 빛 · 별똥별 · 마우스 반짝임
-  const canvas = document.getElementById("dust");
-  if (canvas && !reducedMotion) {
-    const ctx = canvas.getContext("2d");
-    const colors = ["255,255,255", "214,212,255", "180,196,255", "236,222,255"];
-    let width, height, particles = [];
+    // 둥근 물체(행성)를 천천히 띄움
+    vec2 drift(vec2 uv, vec2 c, float r, vec2 amp, float sp, float ph) {
+      float m = 1. - smoothstep(r * 1.05, r * 1.45, length(toY(uv - c)));
+      return toUv(vec2(sin(uTime * sp + ph) * amp.x, cos(uTime * sp * .8 + ph) * amp.y)) * m;
+    }
 
-    const spawn = (anywhere) => ({
-      x: Math.random() * width,
-      y: anywhere ? Math.random() * height : height + 10,
-      r: Math.random() * 1.3 + .3,
-      vy: Math.random() * .22 + .05,
-      vx: (Math.random() - .5) * .12,
-      phase: Math.random() * Math.PI * 2,
-      speed: Math.random() * .025 + .008,
-      color: colors[Math.floor(Math.random() * colors.length)]
-    });
+    // 나비 날갯짓
+    vec2 flap(vec2 uv, vec2 c, float ph) {
+      vec2 p = toY(uv - c);
+      float m = 1. - smoothstep(.02, .042, length(p));
+      float sx = mix(1., .45 + .55 * abs(cos(uTime * 3.2 + ph)), m);
+      vec2 q = vec2(p.x / sx, p.y + sin(uTime * 1.3 + ph) * .005 * m);
+      return toUv(q - p);
+    }
 
-    let warp = [], meteors = [], sparks = [];
-    let nextMeteor = 0, tick = 0;
+    void main() {
+      vec2 uv = vUv;
+      float t = uTime;
 
-    // 중앙 별의 현재 화면 위치 (그림이 움직여도 따라감)
-    const starOrigin = () => {
-      const r = frame.getBoundingClientRect();
-      return { x: r.left + r.width * .502, y: r.top + r.height * .182 };
-    };
+      // 로고와 문구는 움직이지 않도록 보호
+      float txt = max(max(box(uv, vec4(.415, .335, .585, .415), .01), box(uv, vec4(.405, .455, .595, .535), .01)),
+                  max(box(uv, vec4(.415, .555, .585, .61), .01),
+                  max(max(box(uv, vec4(.02, .03, .15, .075), .008), box(uv, vec4(.86, .03, .98, .075), .008)),
+                      max(box(uv, vec4(.02, .905, .13, .96), .008), box(uv, vec4(.88, .905, .98, .96), .008)))));
+      float P = 1. - txt;
+      vec2 d = vec2(0.);
 
-    const spawnWarp = (o) => {
-      const angle = Math.random() * Math.PI * 2;
-      return {
-        x: o.x, y: o.y,
-        dx: Math.cos(angle), dy: Math.sin(angle),
-        dist: Math.random() * 30,
-        speed: Math.random() * 1.2 + .4,
-        color: colors[Math.floor(Math.random() * colors.length)]
-      };
-    };
+      // 성운이 숨 쉬듯 일렁임
+      d += (vec2(fbm(uv * 3. + vec2(t * .02, 0.)), fbm(uv * 3. + vec2(5.2, t * .025))) - .5) * .004;
 
-    const spawnMeteor = () => {
-      const fromTop = Math.random() < .7;
-      const angle = Math.PI * (.72 + Math.random() * .12);
-      const speed = Math.random() * 10 + 13;
-      return {
-        x: fromTop ? Math.random() * width * 1.1 : width + 20,
-        y: fromTop ? -20 : Math.random() * height * .5,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        len: Math.random() * 220 + 160,
-        life: 1
-      };
-    };
+      // 구름이 피어오르며 흐름
+      float clouds = max(max(box(uv, vec4(-.1, .43, .46, .80), .05), box(uv, vec4(.55, .38, 1.1, .77), .05)),
+                         box(uv, vec4(.3, .62, .72, .79), .04));
+      vec2 cq = uv * vec2(3., 5.) + vec2(t * .045, t * .018);
+      d += ((vec2(fbm(cq), fbm(cq + 7.3)) - .5) * vec2(.02, .014) + vec2(sin(t * .07) * .005, 0.)) * clouds;
 
-    const burst = (x, y, n, power) => {
-      for (let i = 0; i < n; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const v = Math.random() * power;
-        sparks.push({
-          x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - .4,
-          r: Math.random() * 1.8 + .6, life: 1,
-          decay: Math.random() * .02 + .015,
-          color: colors[Math.floor(Math.random() * colors.length)]
-        });
+      // 수면의 물결
+      float water = smoothstep(.785, .815, uv.y) * box(uv, vec4(.16, .7, .84, 1.1), .05);
+      float depth = clamp((uv.y - .79) / .21, 0., 1.);
+      d.x += sin(uv.y * 260. - t * 2.4 + sin(uv.x * 18. + t * .9) * 2.) * .003 * (.3 + depth) * water;
+      d.y += sin(uv.x * 45. + t * 1.4 + uv.y * 30.) * .0018 * depth * water;
+
+      // 행성이 떠다님
+      d -= drift(uv, vec2(.705, .105), .074, vec2(.007, .01), .35, 0.);
+      d -= drift(uv, vec2(.088, .405), .078, vec2(.008, .011), .28, 2.);
+      d -= drift(uv, vec2(.865, .667), .032, vec2(.006, .008), .45, 4.);
+
+      // 은하가 기울어진 원반 그대로 회전
+      {
+        vec2 c = vec2(.166, .174);
+        vec2 p = toY(uv - c);
+        float tilt = -.38;
+        vec2 q = rot(p, -tilt); q.y /= .42;
+        float r = length(q);
+        float m = 1. - smoothstep(.05, .1, r);
+        float ang = (sin(t * .12) * .9 + sin(t * .05) * .4) * m * (1.2 - r * 6.);
+        q = rot(q, ang); q.y *= .42;
+        d += toUv(rot(q, tilt) - p);
       }
-    };
 
-    if (!touchDevice) {
-      window.addEventListener("pointermove", (e) => burst(e.clientX, e.clientY, 2, 1.4), { passive: true });
+      // 중앙의 큰 별이 숨 쉬며 살짝 회전
+      {
+        vec2 p = toY(uv - vec2(.502, .182));
+        float m = 1. - smoothstep(.05, .13, length(p));
+        vec2 q = rot(p, sin(t * .45) * .06 * m) / (1. + sin(t * 1.3) * .06 * m);
+        d += toUv(q - p);
+      }
+
+      // 나비
+      d += flap(uv, vec2(.918, .283), 0.);
+      d += flap(uv, vec2(.908, .43), 1.7);
+
+      vec2 s = uv + d * P;
+      vec3 col = texture2D(uImg, s).rgb;
+      float L = dot(col, vec3(.299, .587, .114));
+      float bright = smoothstep(.5, .92, L);
+
+      // 그림 속 별들이 제각각 반짝임 (주변보다 도드라지게 밝은 점만)
+      vec2 px = vec2(3. / 1536., 3. / 1024.);
+      float around = dot(texture2D(uImg, s + vec2(px.x, 0.)).rgb + texture2D(uImg, s - vec2(px.x, 0.)).rgb +
+                         texture2D(uImg, s + vec2(0., px.y)).rgb + texture2D(uImg, s - vec2(0., px.y)).rgb,
+                         vec3(.299, .587, .114)) * .25;
+      float star = smoothstep(.06, .25, L - around) * smoothstep(.3, .6, L);
+      float ph = noise(s * vec2(150., 100.));
+      float tw = sin(t * (1.8 + ph * 3.) + ph * 30.);
+      col *= 1. + star * (tw * .5 + .2) * (1. - water) * P;
+
+      // 궤도선과 빛의 띠를 따라 흐르는 빛
+      float flow = pow(.5 + .5 * sin(dot(uv, vec2(7., -3.)) * 5. - t * 1.6), 8.);
+      float ring = pow(.5 + .5 * sin(length(toY(uv - vec2(.47, .4))) * 14. - t * 1.2), 10.);
+      col += col * bright * (flow * .9 + ring * .6) * (1. - water) * P;
+
+      // 큰 별과 수평선 빛의 맥동
+      float ds = length(toY(uv - vec2(.502, .182)));
+      col += col * smoothstep(.25, .9, L) * (1. - smoothstep(0., .13, ds)) * (.35 + .35 * sin(t * 1.6)) * P;
+      float dh = length(toY(uv - vec2(.503, .755)) * vec2(.5, 1.));
+      col += col * smoothstep(.3, .9, L) * (1. - smoothstep(0., .08, dh)) * (.3 + .3 * sin(t * 1.1 + 1.));
+
+      // 빛기둥을 타고 내려오는 빛
+      float beam = (1. - smoothstep(.002, .01, abs(uv.x - .5025))) * box(uv, vec4(.4, .2, .6, .78), .02);
+      col += col * bright * beam * pow(.5 + .5 * sin(uv.y * 25. - t * 3.), 4.) * 1.2 * P;
+
+      // 수면 위 반짝이는 반사광
+      col += col * smoothstep(.35, .85, L) * water * pow(.5 + .5 * sin(uv.y * 400. - t * 3. + sin(uv.x * 60. + t) * 3.), 6.) * .5;
+
+      // 수정 결정을 스치는 빛
+      float crystal = max(box(uv, vec4(.11, .7, .21, .86), .02), box(uv, vec4(.89, .71, .96, .79), .02));
+      col += col * smoothstep(.3, .8, L) * crystal * pow(.5 + .5 * sin((uv.x + uv.y) * 70. - t * 2.2), 14.) * 1.5;
+
+      gl_FragColor = vec4(col, 1.);
     }
-    window.addEventListener("pointerdown", (e) => burst(e.clientX, e.clientY, 40, 6), { passive: true });
+  `;
 
-    const drawGlow = (x, y, r, color, alpha) => {
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 6);
-      glow.addColorStop(0, `rgba(${color},${alpha})`);
-      glow.addColorStop(.25, `rgba(${color},${alpha * .35})`);
-      glow.addColorStop(1, `rgba(${color},0)`);
-      ctx.fillStyle = glow;
-      ctx.fillRect(x - r * 6, y - r * 6, r * 12, r * 12);
+  const vertexShader = `
+    attribute vec2 aPos;
+    varying vec2 vUv;
+    void main() {
+      vUv = vec2(aPos.x * .5 + .5, .5 - aPos.y * .5);
+      gl_Position = vec4(aPos, 0., 1.);
+    }
+  `;
+
+  const startCosmos = () => {
+    const gl = glCanvas.getContext("webgl", { antialias: false, alpha: false });
+    if (!gl) return;
+
+    const compile = (type, source) => {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      return shader;
     };
+
+    const program = gl.createProgram();
+    gl.attachShader(program, compile(gl.VERTEX_SHADER, vertexShader));
+    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragmentShader));
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return;
+    gl.useProgram(program);
+
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const aPos = gl.getAttribLocation(program, "aPos");
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    try {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, picture);
+    } catch (error) {
+      return; // 이미지를 쓸 수 없으면 정지된 그림을 그대로 보여줌
+    }
+
+    const uTime = gl.getUniformLocation(program, "uTime");
 
     const resize = () => {
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width * ratio;
-      canvas.height = height * ratio;
-      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-      const count = Math.round(Math.min(170, width * height / 8000));
-      particles = Array.from({ length: count }, () => spawn(true));
-      const o = starOrigin();
-      warp = Array.from({ length: Math.round(Math.min(110, width / 12)) }, () => {
-        const w = spawnWarp(o);
-        w.dist = Math.random() * Math.max(width, height) * .7;
-        return w;
-      });
+      const scale = Math.min(1, 2048 / (glCanvas.clientWidth * ratio));
+      glCanvas.width = Math.round(glCanvas.clientWidth * ratio * scale);
+      glCanvas.height = Math.round(glCanvas.clientHeight * ratio * scale);
+      gl.viewport(0, 0, glCanvas.width, glCanvas.height);
     };
 
-    const draw = () => {
-      ctx.clearRect(0, 0, width, height);
-      tick++;
-      // 본문 영역에서는 효과를 조금 낮춤
-      const calm = 1 - (parseFloat(root.style.getPropertyValue("--veil")) || 0) * .55;
-      const o = starOrigin();
-
-      for (const p of particles) {
-        p.y -= p.vy;
-        p.x += p.vx + Math.sin(p.phase * .5) * .15;
-        p.phase += p.speed;
-        if (p.y < -10) Object.assign(p, spawn(false));
-        const alpha = ((Math.sin(p.phase) + 1) / 2 * .85 + .1) * calm;
-        drawGlow(p.x, p.y, p.r, p.color, alpha);
-      }
-
-      // 중앙 별에서 사방으로 쏟아지는 빛줄기
-      ctx.lineCap = "round";
-      for (const w of warp) {
-        w.speed *= 1.018;
-        w.dist += w.speed;
-        const x = o.x + w.dx * w.dist;
-        const y = o.y + w.dy * w.dist;
-        if (x < -50 || x > width + 50 || y < -50 || y > height + 50) {
-          Object.assign(w, spawnWarp(o));
-          continue;
-        }
-        const tail = Math.min(w.speed * 9, 90);
-        const fade = Math.min(w.dist / 120, 1);
-        ctx.strokeStyle = `rgba(${w.color},${.75 * fade * calm})`;
-        ctx.lineWidth = Math.min(.4 + w.dist / 500, 2.2);
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x - w.dx * tail, y - w.dy * tail);
-        ctx.stroke();
-      }
-
-      // 별똥별
-      if (tick >= nextMeteor) {
-        meteors.push(spawnMeteor());
-        if (Math.random() < .3) meteors.push(spawnMeteor());
-        nextMeteor = tick + 30 + Math.random() * 80;
-      }
-      meteors = meteors.filter(m => m.life > 0 && m.y < height + 300 && m.x > -400);
-      for (const m of meteors) {
-        m.x += m.vx;
-        m.y += m.vy;
-        m.life -= .006;
-        const speed = Math.hypot(m.vx, m.vy);
-        const tx = m.x - m.vx / speed * m.len;
-        const ty = m.y - m.vy / speed * m.len;
-        const trail = ctx.createLinearGradient(m.x, m.y, tx, ty);
-        trail.addColorStop(0, `rgba(255,255,255,${m.life * calm})`);
-        trail.addColorStop(.2, `rgba(200,208,255,${.55 * m.life * calm})`);
-        trail.addColorStop(1, "rgba(160,170,255,0)");
-        ctx.strokeStyle = trail;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(m.x, m.y);
-        ctx.lineTo(tx, ty);
-        ctx.stroke();
-        drawGlow(m.x, m.y, 2.2, "255,255,255", m.life * calm);
-      }
-
-      // 마우스 반짝임
-      sparks = sparks.filter(s => s.life > 0);
-      for (const s of sparks) {
-        s.x += s.vx;
-        s.y += s.vy;
-        s.vx *= .96;
-        s.vy = s.vy * .96 + .03;
-        s.life -= s.decay;
-        drawGlow(s.x, s.y, s.r, s.color, Math.max(s.life, 0));
-      }
-
-      requestAnimationFrame(draw);
+    const render = (now) => {
+      gl.uniform1f(uTime, now / 1000);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
 
     resize();
     window.addEventListener("resize", resize);
-    requestAnimationFrame(draw);
+    render(0);
+    glCanvas.classList.add("ready");
+
+    let frameCount = 0;
+    const loop = (now) => {
+      // 본문을 보는 동안에는 프레임을 절반으로 줄여 부담을 덜어 줌
+      const veil = parseFloat(root.style.getPropertyValue("--veil")) || 0;
+      if (veil < .5 || frameCount++ % 2 === 0) render(now);
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  };
+
+  if (glCanvas && picture && !reducedMotion) {
+    if (picture.complete && picture.naturalWidth) startCosmos();
+    else picture.addEventListener("load", startCosmos, { once: true });
   }
 })();
 </script>
