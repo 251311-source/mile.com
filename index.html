@@ -211,6 +211,77 @@ button { font: inherit; }
   background: linear-gradient(180deg, transparent 72%, rgba(6,8,24,.55));
 }
 
+/* 배경 위에 올린 로고와 문구 */
+.hero-content {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: -9vh;
+}
+
+/* 문구 뒤의 은은한 어둠으로 가독성 확보 */
+.hero-content::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 55%;
+  width: 150%;
+  height: 120%;
+  translate: -50% -50%;
+  background: radial-gradient(ellipse closest-side, rgba(8,10,34,.55), rgba(8,10,34,.25) 55%, transparent);
+  pointer-events: none;
+}
+
+.hero-logo {
+  position: relative;
+  width: clamp(200px, 22vw, 330px);
+  margin-bottom: clamp(26px, 4vh, 42px);
+  filter: drop-shadow(0 0 16px rgba(196,190,255,.6)) drop-shadow(0 0 48px rgba(140,128,255,.45));
+  animation: logoArrive 1.8s cubic-bezier(.2,.75,.25,1) .3s both, logoFloat 7s ease-in-out 2.1s infinite alternate;
+}
+
+.hero-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 로고 모양을 따라 스쳐 지나가는 빛 */
+.hero-logo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 38%, rgba(255,255,255,.95) 50%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: 120% 0;
+  -webkit-mask: url("assets/mile-logo-light.png") center / contain no-repeat;
+  mask: url("assets/mile-logo-light.png") center / contain no-repeat;
+  animation: logoShine 6s ease-in-out 2.4s infinite;
+}
+
+.hero-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(24px, 2.6vw, 38px);
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: -.035em;
+  word-break: keep-all;
+  color: transparent;
+  background: linear-gradient(100deg, #f6f3ff 0%, #f6f3ff 40%, #ffffff 48%, #c9c4ff 52%, #f6f3ff 60%, #e2deff 100%);
+  background-size: 250% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 0 14px rgba(176,170,255,.55)) drop-shadow(0 2px 12px rgba(5,8,35,.85));
+  animation: titleArrive 1.8s cubic-bezier(.2,.75,.25,1) .8s both, titleShimmer 7s ease-in-out 2.6s infinite;
+}
+
+.hero-title span { display: block; }
+
 .scroll-cue {
   position: absolute;
   z-index: 5;
@@ -657,6 +728,31 @@ footer img { width: 70px; height: auto; }
   100% { translate: 120% 0; }
 }
 
+@keyframes logoArrive {
+  from { opacity: 0; transform: translateY(18px) scale(.94); filter: blur(10px) brightness(2); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes logoFloat {
+  from { translate: 0 0; }
+  to { translate: 0 -8px; }
+}
+
+@keyframes logoShine {
+  0%, 55% { background-position: 120% 0; }
+  100% { background-position: -20% 0; }
+}
+
+@keyframes titleArrive {
+  from { opacity: 0; transform: translateY(16px); letter-spacing: .04em; }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes titleShimmer {
+  0%, 50% { background-position: 100% 0; }
+  100% { background-position: 0% 0; }
+}
+
 @keyframes heroArrive {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -691,8 +787,7 @@ footer img { width: 70px; height: auto; }
   .nav-links { font-size: 11px; gap: 10px; }
   .nav-external { padding: 8px 10px; font-size: 10px; }
   .hero { padding: 125px 22px 90px; }
-  .hero h1 { font-size: clamp(39px, 11vw, 60px); }
-  .hero-description { font-size: 13px; }
+  .hero-title { font-size: clamp(22px, 6.4vw, 28px); }
   .section { width: calc(100% - 36px); padding: 78px 0; }
   .section-heading { margin-bottom: 32px; }
   .problem-grid, .services-grid, .audience-grid, .vision-pillars { grid-template-columns: 1fr; }
@@ -749,8 +844,15 @@ footer img { width: 70px; height: auto; }
 <main>
   <!-- 첫 화면 -->
   <section class="hero" id="home">
-    <!-- 로고와 문구는 배경 이미지에 담겨 있어 화면 낭독기용으로만 제공 -->
-    <h1 class="sr-only">MILE — 한 걸음씩 쌓아, 자립의 별자리를 잇다. 새로운 시작을 위한 생활용품과 정보, MILE이 함께합니다.</h1>
+    <div class="hero-content">
+      <div class="hero-logo">
+        <img src="assets/mile-logo-light.png" alt="MILE" width="998" height="430">
+      </div>
+      <h1 class="hero-title">
+        <span>한 걸음씩 쌓아,</span>
+        <span>자립의 별자리를 잇다.</span>
+      </h1>
+    </div>
 
     <div class="scroll-cue">SCROLL TO EXPLORE</div>
   </section>
@@ -1051,11 +1153,9 @@ footer img { width: 70px; height: auto; }
       vec2 uv = vUv;
       float t = uTime;
 
-      // 로고와 문구는 움직이지 않도록 보호
-      float txt = max(max(box(uv, vec4(.415, .335, .585, .415), .01), box(uv, vec4(.405, .455, .595, .535), .01)),
-                  max(box(uv, vec4(.415, .555, .585, .61), .01),
-                  max(max(box(uv, vec4(.02, .03, .15, .075), .008), box(uv, vec4(.86, .03, .98, .075), .008)),
-                      max(box(uv, vec4(.02, .905, .13, .96), .008), box(uv, vec4(.88, .905, .98, .96), .008)))));
+      // 네 귀퉁이의 문구는 움직이지 않도록 보호
+      float txt = max(max(box(uv, vec4(.02, .03, .15, .075), .008), box(uv, vec4(.86, .03, .98, .075), .008)),
+                      max(box(uv, vec4(.02, .905, .13, .96), .008), box(uv, vec4(.88, .905, .98, .96), .008)));
       float P = 1. - txt;
       vec2 d = vec2(0.);
 
