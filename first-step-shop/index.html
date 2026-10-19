@@ -485,24 +485,6 @@ svg { display: block; }
   color: var(--gold);
 }
 
-.item.locked { opacity: .45; animation: none; }
-.item.locked .orb { color: var(--dim); background: none; }
-.item.locked .orb svg { filter: none; }
-
-.item.new::before {
-  content: "새로 입고";
-  position: absolute;
-  top: -7px;
-  left: 50%;
-  translate: -50% 0;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--gold);
-  color: #1a1640;
-  font-size: 8.5px;
-  font-weight: 700;
-  white-space: nowrap;
-}
 
 /* 알림 */
 .toast {
@@ -693,15 +675,163 @@ svg { display: block; }
 
 .shake { animation: shake .3s; }
 
-@media (max-height: 690px) {
-  .counter { height: 192px; }
-  .bubble { min-height: 100px; font-size: 13.5px; }
-  .avatar { width: 84px; height: 94px; }
+@media (max-height: 760px) {
+  .hud { padding-top: max(8px, env(safe-area-inset-top)); padding-bottom: 4px; }
+  .counter { height: 168px; margin-top: 4px; }
+  .bubble { min-height: 88px; padding: 10px 13px; font-size: 13.5px; line-height: 1.5; }
+  .avatar { width: 76px; height: 86px; }
+  .customer { width: 84px; }
+  .bubble { right: 90px; }
+  .kit { padding: 8px 12px 9px; }
+  .kit-title { margin-bottom: 6px; }
+  .kit-items { min-height: 32px; }
+  .actions { margin-top: 8px; }
+  .btn { padding: 10px 6px; }
+  .shelf-wrap { margin-top: 8px; padding-top: 8px; }
+  .tabs { margin-bottom: 7px; }
+  .tab { padding: 6px; }
+  .shelf { gap: 6px; }
+  .item { padding: 6px 3px 5px; gap: 2px; }
+  .item .orb { width: 34px; height: 34px; }
+  .item .orb svg { width: 24px; height: 24px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
 }
+
+/* 마음 별빛 (내 마음 상태) */
+.subhud {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 14px 0;
+}
+
+.subhud .queue { padding: 0; }
+
+.calm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.calm-bar {
+  width: 64px;
+  height: 6px;
+  border-radius: 999px;
+  background: #ffffff12;
+  overflow: hidden;
+}
+
+.calm-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cyan), var(--lavender));
+  box-shadow: 0 0 8px var(--cyan);
+  transition: width .5s;
+}
+
+.calm-fill.tired { background: linear-gradient(90deg, #ff8fb0, var(--bad)); box-shadow: 0 0 8px #ff8fb0; }
+
+.breath {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid #9fe0ff55;
+  background: #9fe0ff12;
+  color: var(--cyan);
+  font-size: 11px;
+}
+
+.breath b { font-weight: 600; }
+.breath:disabled { opacity: .35; }
+.breath:active:not(:disabled) { transform: scale(.95); }
+
+.tag.hard { border-color: #ffb3c166; background: #ffb3c114; color: var(--bad); }
+
+/* 진열대 탭 */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.tab {
+  flex: 1;
+  padding: 8px 6px;
+  border-radius: 999px;
+  border: 1px solid #ffffff18;
+  background: #ffffff06;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.tab.on {
+  color: var(--white);
+  border-color: color-mix(in srgb, var(--c) 70%, transparent);
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--c) 30%, transparent);
+}
+
+.tab small { color: var(--gold); margin-left: 3px; }
+
+.item .price { font-size: 9.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+/* 응대 카드 */
+.cope-line {
+  margin: 10px 0 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid #ffb3c140;
+  background: #ffb3c10d;
+  font-family: var(--serif);
+  font-size: 15.5px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+.choices { display: grid; gap: 8px; margin-top: 14px; }
+
+.choice {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid #dfe3ff2e;
+  background: #ffffff0a;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+  word-break: keep-all;
+}
+
+.choice:active { transform: scale(.98); background: #ffffff16; }
+
+.cope-result { margin-top: 14px; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.cope-result b { display: block; margin-bottom: 4px; font-size: 15px; font-weight: 500; }
+.cope-result.good b { color: var(--good); }
+.cope-result.bad b { color: var(--bad); }
+
+.cope-tips {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid #9fe0ff30;
+  background: #9fe0ff0a;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+  list-style: none;
+  word-break: keep-all;
+}
+
+.cope-tips li::before { content: "✦ "; color: var(--cyan); }
 </style>
 </head>
 <body>
@@ -719,7 +849,14 @@ svg { display: block; }
       <div class="stat" id="mileStat"><span id="mileIcon"></span><b id="mile">0</b></div>
     </div>
   </header>
-  <div class="queue" id="queueInfo" aria-label="남은 손님"></div>
+  <div class="subhud">
+    <div class="queue" id="queueInfo" aria-label="남은 손님"></div>
+    <div class="calm">
+      마음 별빛
+      <div class="calm-bar"><div class="calm-fill" id="calmFill"></div></div>
+      <button class="breath" id="breathBtn">숨 고르기 <b id="breaths">3</b></button>
+    </div>
+  </div>
 
   <section class="counter">
     <div class="bubble glass hide" id="bubble">
@@ -746,9 +883,7 @@ svg { display: block; }
   </div>
 
   <section class="shelf-wrap">
-    <div class="shelf-label">은하수 진열대
-      <span class="legend"><b style="--c:var(--blue)">오래 쓰는 물건</b><b style="--c:var(--pink)">소모품</b></span>
-    </div>
+    <div class="tabs" id="tabs"></div>
     <div class="shelf" id="shelf"></div>
   </section>
 
@@ -761,65 +896,90 @@ svg { display: block; }
    수정하기 쉬운 설정값 — 물건, 손님, 점수는 모두 여기서 바꿔요
    ========================================================= */
 
-// 물건 12종: durable(오래 쓰는 물건) / consumable(소모품)
-// icon: 아래 ICONS의 이름, round: 몇 번째 영업부터 진열대에 나오는지 (0부터 시작)
+// 진열대 물건: basic(기본 품목) / refill(리필 품목) — 처음부터 모두 진열돼 있어요
+// icon: 아래 ICONS의 이름, price: 원 단위 가격, shelf: 진열대 칸 (아래 SHELVES)
 const ITEMS = [
-  { id: "strip",    name: "멀티탭",       icon: "strip",    type: "durable",    price: 12, round: 0 },
-  { id: "rack",     name: "빨래 건조대",  icon: "rack",     type: "durable",    price: 15, round: 0 },
-  { id: "slippers", name: "슬리퍼",       icon: "slippers", type: "durable",    price: 8,  round: 0 },
-  { id: "tissue",   name: "휴지",         icon: "tissue",   type: "consumable", price: 4,  round: 0 },
-  { id: "soap",     name: "세탁 세제",    icon: "soap",     type: "consumable", price: 6,  round: 0 },
-  { id: "trash",    name: "쓰레기봉투",   icon: "trash",    type: "consumable", price: 3,  round: 0 },
+  { id: "laundry",    name: "빨래 세제",        icon: "laundry",  type: "basic", price: 6500, shelf: "life" },
+  { id: "basket",     name: "빨래 바구니",      icon: "basket",   type: "basic", price: 7500, shelf: "life" },
+  { id: "hangers",    name: "옷걸이 10개 세트", icon: "hanger",   type: "basic", price: 5000, shelf: "life" },
+  { id: "roller",     name: "돌돌이",           icon: "roller",   type: "basic", price: 3500, shelf: "life" },
+  { id: "dehum",      name: "제습제",           icon: "dehum",    type: "basic", price: 3000, shelf: "clean" },
+  { id: "deodor",     name: "탈취제",           icon: "spray",    type: "basic", price: 5000, shelf: "clean" },
+  { id: "bug",        name: "벌레 퇴치제",      icon: "bug",      type: "basic", price: 5500, shelf: "clean" },
+  { id: "mold",       name: "곰팡이 제거제",    icon: "mold",     type: "basic", price: 6000, shelf: "clean" },
+  { id: "dish",       name: "주방세제",         icon: "dish",     type: "basic", price: 4500, shelf: "clean" },
+  { id: "block",      name: "매직블럭",         icon: "block",    type: "basic", price: 3000, shelf: "clean" },
+  { id: "handwash",   name: "핸드워시",         icon: "pump",     type: "basic", price: 4000, shelf: "clean" },
+  { id: "showerball", name: "샤워볼",           icon: "puff",     type: "basic", price: 3000, shelf: "clean" },
+  { id: "slippers",   name: "욕실 슬리퍼",      icon: "slippers", type: "basic", price: 4500, shelf: "life" },
+  { id: "sleep",      name: "수면 안대·귀마개", icon: "sleep",    type: "basic", price: 6000, shelf: "life" },
+  { id: "firstaid",   name: "상비약 미니 키트", icon: "firstaid", type: "basic", price: 7500, shelf: "life" },
+  { id: "hooks",      name: "무타공 후크 4개",  icon: "hook",     type: "basic", price: 3500, shelf: "life" },
 
-  { id: "organizer", name: "정리함",      icon: "organizer", type: "durable",    price: 10, round: 1 },
-  { id: "hanger",    name: "옷걸이",      icon: "hanger",    type: "durable",    price: 5,  round: 1 },
-  { id: "wipes",     name: "물티슈",      icon: "wipes",     type: "consumable", price: 3,  round: 1 },
-
-  { id: "lamp",      name: "무드등",      icon: "lamp",      type: "durable",    price: 14, round: 2 },
-  { id: "bandage",   name: "밴드 세트",   icon: "bandage",   type: "consumable", price: 5,  round: 2 },
-  { id: "sleep",     name: "귀마개·안대", icon: "sleep",     type: "consumable", price: 6,  round: 2 }
+  { id: "r_laundry",  name: "빨래 세제 리필",     icon: "laundry", type: "refill", price: 5500, shelf: "refill" },
+  { id: "r_dish",     name: "주방세제 리필",      icon: "dish",    type: "refill", price: 3800, shelf: "refill" },
+  { id: "r_hand",     name: "핸드워시 리필",      icon: "pump",    type: "refill", price: 3200, shelf: "refill" },
+  { id: "r_dehum",    name: "제습제 리필 2입",    icon: "dehum",   type: "refill", price: 4800, shelf: "refill" },
+  { id: "r_roller",   name: "돌돌이 리필 2롤",    icon: "roller",  type: "refill", price: 3800, shelf: "refill" },
+  { id: "r_block",    name: "매직블럭 4입",       icon: "block",   type: "refill", price: 2600, shelf: "refill" },
+  { id: "r_deodor",   name: "탈취제 리필",        icon: "spray",   type: "refill", price: 4300, shelf: "refill" },
+  { id: "r_mold",     name: "곰팡이 제거제 리필", icon: "mold",    type: "refill", price: 5200, shelf: "refill" }
 ];
 
-// 물건 종류별 빛깔
-const TYPE_COLORS = { durable: "#9baeff", consumable: "#f0c4ff" };
+// 진열대 칸 (탭)
+const SHELVES = {
+  life:   { name: "생활·세탁", color: "#9baeff" },
+  clean:  { name: "청소·욕실", color: "#9fe0ff" },
+  refill: { name: "리필",      color: "#f0c4ff" }
+};
 
-// 영업 일정: 2일 동안 손님 4명 → 5명 → 6명
-// patience: 손님이 기다려 주는 시간(초)
+// 품목 종류별 이름과 빛깔
+const TYPES = {
+  basic:  { name: "기본 품목", color: "#9baeff" },
+  refill: { name: "리필",      color: "#f0c4ff" }
+};
+
+// 영업 일정: 2일
+// customers: 손님 수, patience: 손님이 기다려 주는 시간(초), difficult: 그날 올 수 있는 진상 손님 최대 수
 const ROUNDS = [
-  { label: "1일차 · 아침", customers: 4, patience: 26 },
-  { label: "1일차 · 저녁", customers: 5, patience: 23 },
-  { label: "2일차",        customers: 6, patience: 20 }
+  { label: "1일차", customers: 7, patience: 30, difficult: 2 },
+  { label: "2일차", customers: 8, patience: 26, difficult: 3 }
 ];
 
 // 손님 요청: needs에 적힌 물건을 정확히 건네면 성공
-// refill: true 인 손님은 소모품만 찾아요
+// refill: true 인 손님은 리필 품목만 찾아요
 const REQUESTS = [
-  { text: "충전할 건 세 개인데, 콘센트는 딱 하나예요.", needs: ["strip"] },
-  { text: "빨래는 다 했는데요… 방에 널 데가 없어요.", needs: ["rack"] },
+  { text: "빨래가 산더미인데 세탁기에 넣을 게 없어요. 방에 모아 둘 데도 없고요.", needs: ["laundry", "basket"] },
+  { text: "셔츠를 빨아서 의자에 걸쳐 놨더니 다 구겨졌어요.", needs: ["hangers"] },
+  { text: "검은 니트에 먼지랑 머리카락이 잔뜩 붙었어요.", needs: ["roller"] },
+  { text: "장마라 방이 눅눅해요. 옷장 문을 열면 꿉꿉한 냄새도 나고요.", needs: ["dehum", "deodor"] },
+  { text: "운동화 냄새가 방 안에 꽉 찼어요. 룸메 눈치가 보여요.", needs: ["deodor"] },
+  { text: "어젯밤에 귓가에서 계속 윙윙거려서 한숨도 못 잤어요.", needs: ["bug"] },
+  { text: "화장실 타일 틈이 까맣게 변했어요. 문질러도 안 지워져요.", needs: ["mold"] },
+  { text: "공용 주방에서 컵이랑 그릇을 씻어야 하는데, 물로만 헹구니 미끌거려요.", needs: ["dish"] },
+  { text: "책상에 볼펜 자국이 잔뜩 묻었어요. 물티슈로도 안 지워져요.", needs: ["block"] },
+  { text: "세면대에 둔 비누가 자꾸 물러져서 흐물흐물해요.", needs: ["handwash"] },
+  { text: "바디워시는 있는데 손으로 하니까 거품이 잘 안 나요.", needs: ["showerball"] },
   { text: "공용 샤워실 바닥, 맨발로 가긴 좀 그렇죠?", needs: ["slippers"] },
-  { text: "환절기라 코를 계속 훌쩍여요. 벌써 다 썼어요.", needs: ["tissue"], refill: true },
-  { text: "빨래 바구니는 넘치는데, 세탁기에 넣을 게 없어요.", needs: ["soap"], refill: true },
-  { text: "방에서 슬슬 냄새가 나요. 버릴 게 산더미예요.", needs: ["trash"], refill: true },
-  { text: "입사 첫날이에요! 씻으러 갈 때랑 빨래할 때 필요한 거 주세요.", needs: ["slippers", "soap"] },
-  { text: "노트북, 휴대폰, 전기포트 다 꽂고 싶어요. 방 정리하면서 나온 것도 버려야 하고요.", needs: ["strip", "trash"] },
-  { text: "다 떨어졌어요. 코 풀 것도, 빨래 돌릴 것도요.", needs: ["tissue", "soap"], refill: true },
-  { text: "수건이랑 양말을 빨아서 말려야 해요. 근데 빨래할 것부터 없네요.", needs: ["rack", "soap"] },
+  { text: "룸메가 새벽까지 스탠드를 켜 놓고, 잘 때는 코까지 골아요.", needs: ["sleep"] },
+  { text: "감기 기운이 있는데 약국은 벌써 문을 닫았어요.", needs: ["firstaid"] },
+  { text: "벽에 못을 박으면 안 된대요. 수건이랑 가방 걸 데가 필요해요.", needs: ["hooks"] },
+  { text: "입사 첫날이에요! 씻으러 갈 때 신을 거랑, 몸 닦을 때 쓸 거요.", needs: ["slippers", "showerball"] },
+  { text: "여름 기숙사 생존 준비요. 습기도, 밤마다 오는 손님도 너무 싫어요.", needs: ["dehum", "bug"] },
+  { text: "옷장 정리 중이에요. 옷은 가지런히 걸고, 니트에 붙은 먼지도 떼고 싶어요.", needs: ["hangers", "roller"] },
+  { text: "욕실 청소 당번이에요. 타일 틈 까만 얼룩이랑 세면대 물때가 고민이에요.", needs: ["mold", "block"] },
+  { text: "자취 첫 주예요. 설거지할 것도 없고, 손 씻을 것도 없어요.", needs: ["dish", "handwash"] },
 
-  { text: "책상 위가 엉망이라 펜 하나 찾는 데 10분 걸려요.", needs: ["organizer"] },
-  { text: "내일 면접인데 셔츠가 구겨지면 큰일이에요.", needs: ["hanger"] },
-  { text: "야식 먹다가 책상이 끈적끈적해졌어요.", needs: ["wipes"], refill: true },
-  { text: "옷장은 있는데 옷이 다 바닥에 쌓여 있어요. 서랍 속도 뒤죽박죽이고요.", needs: ["hanger", "organizer"] },
-  { text: "룸메랑 같이 쓰는 책상이 금방 어질러지고, 금방 더러워져요.", needs: ["organizer", "wipes"] },
-  { text: "이번 주 청소 당번이에요. 닦을 것도, 버릴 것도 많아요.", needs: ["wipes", "trash"], refill: true },
-
-  { text: "늦게까지 공부하는데, 큰 불을 켜면 룸메가 깨요.", needs: ["lamp"] },
-  { text: "옆방이 밤마다 노래를 불러요. 복도 불빛도 문틈으로 들어오고요.", needs: ["sleep"], refill: true },
-  { text: "택배 상자 뜯다가 손가락을 살짝 베였어요.", needs: ["bandage"], refill: true },
-  { text: "불은 끄고 싶은데 깜깜하면 무서워요. 옆방 소리도 신경 쓰이고요.", needs: ["lamp", "sleep"] },
-  { text: "풋살하다 넘어졌어요. 오늘은 치료하고 그냥 푹 자고 싶어요.", needs: ["bandage", "sleep"], refill: true },
-  { text: "시험 기간이에요. 밤샘용 책상 분위기 좀 만들어 주세요. 충전도 해야 하고, 책상도 치워야 해요.", needs: ["lamp", "strip", "organizer"] },
-  { text: "구급상자가 텅 비었어요. 코 풀 것도 없고요.", needs: ["bandage", "tissue"], refill: true },
-  { text: "첫 자취 생존 세트요! 빨래 말릴 것, 옷 걸 것, 그리고 화장실에 둘 거요.", needs: ["rack", "hanger", "tissue"] }
+  { text: "세제 통이 텅 비었어요. 통은 멀쩡하니까 그대로 쓸 거예요.", needs: ["r_laundry"], refill: true },
+  { text: "설거지하려는데 펌프에서 바람 소리만 나요. 용기는 그대로 쓸래요.", needs: ["r_dish"], refill: true },
+  { text: "세면대 옆 손 씻는 거, 내용물만 다 썼어요.", needs: ["r_hand"], refill: true },
+  { text: "옷장에 넣어 둔 통에 물이 가득 찼어요. 갈아 끼울 것만 주세요.", needs: ["r_dehum"], refill: true },
+  { text: "먼지 떼는 거 손잡이는 있는데, 끈끈한 종이가 다 떨어졌어요.", needs: ["r_roller"], refill: true },
+  { text: "지우개처럼 쓰는 스펀지가 다 닳아서 조각만 남았어요.", needs: ["r_block"], refill: true },
+  { text: "냄새 잡는 스프레이, 병은 있는데 속이 비었어요.", needs: ["r_deodor"], refill: true },
+  { text: "욕실 스프레이가 칙칙 소리만 나요. 까만 얼룩은 아직 남았는데요.", needs: ["r_mold"], refill: true },
+  { text: "다 떨어졌어요! 빨래할 것도, 설거지할 것도요. 통은 다 있어요.", needs: ["r_laundry", "r_dish"], refill: true },
+  { text: "이번 달 채우는 날이에요. 옷장 습기 잡는 거랑 냄새 잡는 거요.", needs: ["r_dehum", "r_deodor"], refill: true }
 ];
 
 // 엉뚱한 손님: 이 가게에 없는 걸 찾아요 → '이 가게 아니에요!'로 돌려보내기
@@ -828,26 +988,84 @@ const STRANGE_REQUESTS = [
   "C타입 충전 케이블 하나만 주세요. 제 건 끊어졌어요.",
   "방이 너무 추워요. 전기장판 있죠?",
   "샴푸랑 린스가 다 떨어졌어요.",
-  "모기향 있어요? 밤새 물렸어요.",
   "밖에 비가 와요. 우산 하나만요.",
   "자전거 바퀴에 바람이 빠졌어요. 여기서 넣을 수 있죠?",
   "과제 열 장만 뽑아 주세요. 양면으로요.",
   "라면 하나 끓여 주실 수 있어요? 계란 넣어서요.",
   "택배 찾으러 왔어요. 302호 앞으로 온 거요.",
+  "멀티탭 있어요? 콘센트가 하나뿐이라서요.",
   "룸메랑 싸웠는데… 화해하는 방법도 파나요?"
 ];
-const STRANGE_CHANCE = 0.22;          // 손님이 엉뚱한 손님일 확률
-const MAX_STRANGE_PER_ROUND = 2;      // 한 번 영업에 엉뚱한 손님 최대 수
+const STRANGE_CHANCE = 0.18;          // 손님이 엉뚱한 손님일 확률
+const MAX_STRANGE_PER_ROUND = 2;      // 하루에 엉뚱한 손님 최대 수
 
-// 손님 모습: 옷 빛깔과 머리 모양을 섞어서 만들어요
-const CUSTOMER_COLORS = ["#9baeff", "#c5b8ff", "#f0c4ff", "#9fe0ff", "#b6a4ff", "#ffd6ec"];
-const HAIR_COLORS = ["#2b2563", "#3a2f7a", "#1f2a5c", "#4a3a86"];
-const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예준", "수아", "시우", "유나", "건우", "채원", "지호"];
+// 진상 손님: 정해진 때(start 처음 / mid 기다리는 중 / serve 건넬 때)에 곤란한 말을 해요
+// 응대 카드에서 good: true 인 대답을 고르면 침착하게 넘길 수 있어요
+// calm: 내 마음 별빛 변화, patience: 손님 기다림에 곱하는 값, coin/mile: 이번 손님 보상에 곱하는 값
+const DIFFICULT = [
+  {
+    id: "rush", label: "재촉하는 손님", timing: "start", drain: 1.8,
+    line: "저기요, 빨리요! 5분 뒤에 수업이라고요!",
+    choices: [
+      { text: "네, 바로 챙겨 드릴게요. 필요한 것만 말씀해 주세요!", good: true, calm: -4, reply: "…네, 빨리만 부탁해요." },
+      { text: "저도 지금 최대한 빨리 하고 있어요!", calm: -18, patience: .8, reply: "아니, 왜 저한테 화를 내요?" },
+      { text: "(못 들은 척하고 하던 일을 한다)", calm: -10, patience: .8, reply: "지금 무시하는 거예요?" }
+    ]
+  },
+  {
+    id: "rude", label: "반말하는 손님", timing: "start",
+    line: "야, 여기 알바지? 내가 말하는 거 빨리 찾아 와.",
+    choices: [
+      { text: "손님, 필요하신 걸 말씀해 주시면 바로 찾아 드릴게요.", good: true, calm: -6, reply: "…아, 네. 그럼 이거 주세요." },
+      { text: "반말하지 마세요!", calm: -15, patience: .8, reply: "뭐? 손님한테 말버릇 봐라." },
+      { text: "(울컥해서 아무 말도 못 한다)", calm: -20, reply: "왜 대답이 없어? 됐고, 이거나 줘." }
+    ]
+  },
+  {
+    id: "change", label: "말 바꾸는 손님", timing: "mid",
+    line: "아, 잠깐만요! 생각해 보니까 그거 말고 다른 게 필요했어요.",
+    choices: [
+      { text: "괜찮아요. 천천히 다시 말씀해 주세요.", good: true, calm: -4, refresh: true, reply: "고마워요! 그러니까 제가 필요한 건요…" },
+      { text: "아까 분명 그거라고 하셨잖아요.", calm: -14, patience: .85, reply: "제가 언제요? 아무튼 바꿔 주세요." },
+      { text: "이미 다 담았으니까 그냥 가져가세요.", calm: -12, patience: .7, reply: "필요 없는 걸 왜 사요? 바꿔 주세요." }
+    ]
+  },
+  {
+    id: "haggle", label: "깎아 달라는 손님", timing: "serve",
+    line: "학생인데 좀 깎아 주시면 안 돼요? 천 원만요~",
+    choices: [
+      { text: "정해진 가격이라 어려워요. 대신 다음엔 리필 품목으로 더 아껴 보세요!", good: true, calm: -3, reply: "아, 리필이 더 싸구나! 다음엔 통 들고 올게요." },
+      { text: "그럼… 이번만 반값에 드릴게요.", calm: -8, coin: .5, reply: "와, 진짜요? 다음에도 깎아 주세요!" },
+      { text: "안 된다고요. 그냥 사 가세요.", calm: -15, mile: .5, reply: "말을 왜 그렇게 해요? 기분 나빠요." }
+    ]
+  },
+  {
+    id: "complain", label: "트집 잡는 손님", timing: "serve",
+    line: "저번에 여기서 산 거 불량이었거든요?! 이번 것도 이상하면 어떡해요?",
+    choices: [
+      { text: "불편하셨겠어요. 영수증 가져오시면 바로 교환해 드릴게요.", good: true, calm: -4, reply: "…그렇게 말해 주니까 좀 낫네요." },
+      { text: "그럴 리가 없는데요?", calm: -15, mile: .5, reply: "지금 제가 거짓말한다는 거예요?" },
+      { text: "그건 제 잘못이 아니에요.", calm: -18, mile: .5, reply: "그럼 누구 잘못인데요!" }
+    ]
+  }
+];
+const DIFFICULT_CHANCE = 0.3;          // 손님이 진상 손님일 확률
 
-// 점수
+// 마음 별빛: 진상 손님을 만나면 줄고, 숨 고르기로 채워요
+const CALM = {
+  max: 100,
+  tiredAt: 30,          // 이보다 낮으면 지친 상태 → 건네기 MILE이 절반
+  breathe: 35,          // 숨 고르기 한 번에 채워지는 양
+  breathsPerDay: 3,     // 하루에 숨 고르기 할 수 있는 횟수
+  breatheCost: 2,       // 숨 고르는 동안 손님이 기다리는 시간(초)
+  leaveLoss: 8,         // 손님이 지쳐서 떠나면 줄어드는 양
+  wrongLoss: 4          // 엉뚱한 물건을 건네 손님이 실망하면 줄어드는 양
+};
+
+// 점수 (매출은 원, MILE은 점)
 const SCORE = {
-  tipMax: 10,            // 딱 맞게 건넸을 때 받는 최대 팁 (빨리 건넬수록 많이)
-  extraCost: 3,          // 필요 없는 물건 하나당 깎이는 동전
+  tipMax: 2000,          // 딱 맞게 건넸을 때 받는 최대 팁 (빨리 건넬수록 많이)
+  extraCost: 1000,       // 필요 없는 물건 하나당 깎이는 매출
   milePerfect: 10,       // 딱 맞게 건넸을 때 MILE
   mileFastBonus: 2,      // 기다림이 절반 넘게 남았을 때 추가 MILE
   milePerHit: 3,         // 일부만 맞았을 때 맞은 물건 하나당 MILE
@@ -856,11 +1074,12 @@ const SCORE = {
   mileLeave: 3,          // 손님이 지쳐서 떠나면 깎이는 MILE
   mileStrangeRight: 4,   // 엉뚱한 손님을 잘 돌려보냈을 때 MILE
   mileStrangeWrong: 3,   // 엉뚱한 손님에게 물건을 건넸을 때 깎이는 MILE
-  mileWrongReject: 4     // 진짜 손님을 돌려보냈을 때 깎이는 MILE
+  mileWrongReject: 4,    // 진짜 손님을 돌려보냈을 때 깎이는 MILE
+  mileCopeGood: 4        // 진상 손님을 침착하게 응대했을 때 MILE
 };
 
 // 자립의 별자리: 총 MILE이 이 값 이상이면 별이 하나씩 더 켜져요 (첫 별은 항상 켜져요)
-const STAR_THRESHOLDS = [60, 105, 145];
+const STAR_THRESHOLDS = [60, 110, 150];
 const STAR_NAMES = ["첫 짐 풀기", "내 방 꾸리기", "생활 리듬 찾기", "자립의 별"];
 const MILE_LINK = "https://oksusususu.github.io/milehomepage03/";
 
@@ -868,27 +1087,38 @@ const MILE_LINK = "https://oksusususu.github.io/milehomepage03/";
    빛나는 선 아이콘 (이모지 대신 직접 그린 그림)
    ========================================================= */
 const ICONS = {
-  strip: '<rect x="3" y="14" width="21" height="9" rx="3"/><circle cx="8.5" cy="18.5" r="1.3"/><circle cx="13.5" cy="18.5" r="1.3"/><circle cx="18.5" cy="18.5" r="1.3"/><path d="M24 18.5h2.5a2.5 2.5 0 0 0 2.5-2.5V8"/><path d="M27 8h4M27.5 5v3M30.5 5v3"/>',
-  rack: '<path d="M7 28 13 5M25 28 19 5M13 5h6M9.5 19h13M11.5 12h9"/><path d="M14 19v4M18 19v3M15 12v3"/>',
-  slippers: '<path d="M10 4.5c3 0 4.5 3 4.5 8v9c0 3.5-2 6-4.5 6s-4.5-2.5-4.5-6v-9c0-5 1.5-8 4.5-8z"/><path d="M5.5 13.5c3 1.6 6 1.6 9 0"/><path d="M22 7.5c2.6 0 4 2.6 4 6.8v7.4c0 3-1.7 5.3-4 5.3s-4-2.3-4-5.3v-7.4c0-4.2 1.4-6.8 4-6.8z"/><path d="M18 15.5c2.6 1.4 5.4 1.4 8 0"/>',
-  tissue: '<ellipse cx="13" cy="10" rx="8" ry="4.2"/><ellipse cx="13" cy="10" rx="2.4" ry="1.3"/><path d="M5 10v13c0 2.3 3.6 4.2 8 4.2s8-1.9 8-4.2V10"/><path d="M21 20h5.5a1.5 1.5 0 0 0 1.5-1.5V14"/>',
-  soap: '<path d="M12.5 3.5h6v4h-6z"/><path d="M10 7.5h11l2 4.5v13.5a2.5 2.5 0 0 1-2.5 2.5h-10A2.5 2.5 0 0 1 8 25.5V12z"/><path d="M11 17.5c2.5-1.7 6.5-1.7 9 0"/><circle cx="26.5" cy="7" r="2"/><circle cx="28" cy="13" r="1.2"/>',
-  trash: '<path d="M10.5 11c-3.5 4.5-4.5 9.5-3.5 13.5.8 3 4 4.5 9 4.5s8.2-1.5 9-4.5c1-4-0-9-3.5-13.5z"/><path d="M11 11h10M13 11l3-5 3 5"/><path d="M12 19c2.5 1.4 5.5 1.4 8 0"/>',
-  organizer: '<rect x="5" y="6" width="22" height="21" rx="2.5"/><path d="M5 13h22M5 20h22"/><path d="M14 9.5h4M14 16.5h4M14 23.5h4"/>',
+  laundry: '<path d="M12.5 3.5h6v4h-6z"/><path d="M10 7.5h11l2 4.5v13.5a2.5 2.5 0 0 1-2.5 2.5h-10A2.5 2.5 0 0 1 8 25.5V12z"/><path d="M11 17.5c2.5-1.7 6.5-1.7 9 0"/><circle cx="26.5" cy="7" r="2"/><circle cx="28" cy="13" r="1.2"/>',
+  basket: '<path d="M4.5 13h23l-2.6 12.6a2.2 2.2 0 0 1-2.2 1.8H9.3a2.2 2.2 0 0 1-2.2-1.8z"/><path d="M10 13c0-4.2 2.7-7.5 6-7.5s6 3.3 6 7.5"/><path d="M11 17.5v6M16 17.5v6M21 17.5v6"/>',
   hanger: '<path d="M13 8.5a3 3 0 1 1 3 3v3"/><path d="M16 14.5 3.5 23.5c-.8.6-.4 1.5.6 1.5h23.8c1 0 1.4-.9.6-1.5z"/>',
-  wipes: '<rect x="4" y="11" width="24" height="15" rx="5"/><path d="M11.5 11c0-3.2 2-5.5 4.5-5.5s4.5 2.3 4.5 5.5"/><path d="M10 18.5h12"/><path d="M8 4l1 1.5M24 4l-1 1.5"/>',
-  lamp: '<path d="M10.5 5h11l3.5 10h-18z"/><path d="M16 15v8M11 27h10M13.5 23h5"/><path d="M4 12h2M26 12h2M5.5 6.5 7 8M26.5 6.5 25 8"/>',
-  bandage: '<rect x="3" y="11.5" width="26" height="10" rx="5" transform="rotate(-35 16 16.5)"/><rect x="11.5" y="12.5" width="9" height="8" rx="2" transform="rotate(-35 16 16.5)"/><circle cx="14.6" cy="16" r=".6"/><circle cx="17.4" cy="17" r=".6"/>',
+  roller: '<rect x="5" y="5" width="22" height="9" rx="4.5"/><path d="M8.5 9.5h15"/><path d="M16 14v4"/><rect x="13.5" y="18" width="5" height="10" rx="2.5"/>',
+  dehum: '<path d="M8 10h16v16a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 8 26z"/><path d="M6.5 10h19"/><path d="M16 13.5c1.7 2.3 2.5 3.6 2.5 4.7a2.5 2.5 0 0 1-5 0c0-1.1.8-2.4 2.5-4.7z"/><path d="M10 24.5c2-1.3 4-1.3 6 0s4 1.3 6 0"/><path d="M12 6.5h8"/>',
+  spray: '<path d="M10.5 12.5h10v13.5a2.5 2.5 0 0 1-2.5 2.5h-5a2.5 2.5 0 0 1-2.5-2.5z"/><path d="M12 12.5V8.5h6l2.5 2"/><path d="M18 8.5v-3h-4.5"/><path d="M24.5 8h.01M27 6h.01M27 10.5h.01M25 4h.01" stroke-width="2.4"/>',
+  bug: '<rect x="6" y="11" width="11" height="17" rx="2.5"/><path d="M8 11V8h7v3M11.5 8V5h3.5"/><path d="M8.5 18h6"/><ellipse cx="24.5" cy="16" rx="2.3" ry="3.4" transform="rotate(25 24.5 16)"/><path d="M22.5 12.5l-2.5-2.5M26.5 12.3l2-2.6M21.5 19l6.5-6.5"/>',
+  mold: '<path d="M9.5 14h9.5l1 12a2.5 2.5 0 0 1-2.5 2.5h-6.5A2.5 2.5 0 0 1 8.5 26z"/><path d="M10.5 14l1-4.5h7l4.5 2-1 2.5"/><path d="M17 9.5V6h-5"/><circle cx="12.5" cy="20" r="1.2"/><circle cx="16" cy="23.5" r="1"/><path d="M25 18l2-2M25 22h3M25 14l2.5-1"/>',
+  dish: '<path d="M12 3.5h5v3.5h-5z"/><path d="M10.5 7h8l1.5 4v15.5a2 2 0 0 1-2 2h-7.5a2 2 0 0 1-2-2V11z"/><path d="M11 16h7"/><path d="M25.5 14c1.7 2.3 2.5 3.6 2.5 4.7a2.5 2.5 0 0 1-5 0c0-1.1.8-2.4 2.5-4.7z"/>',
+  block: '<path d="M5 13l11-5.5 11 5.5v9.5l-11 5.5-11-5.5z"/><path d="M5 13l11 5.5L27 13M16 18.5V28"/><path d="M26 3v4M24 5h4"/>',
+  pump: '<path d="M12.5 9h7v3.5h-7z"/><path d="M16 9V5h5.5v2"/><path d="M10.5 12.5h11l1 13.5a2.5 2.5 0 0 1-2.5 2.5h-8a2.5 2.5 0 0 1-2.5-2.5z"/><path d="M13 19.5h6"/>',
+  puff: '<circle cx="16" cy="19" r="9"/><path d="M8.5 15.5c3.5 2 11.5 2 15 0M7.5 20c4 2.6 13 2.6 17 0M9.5 25c3 1.6 10 1.6 13 0"/><path d="M16 10V6.5"/><path d="M13.5 6.5a2.5 2.5 0 1 1 5 0"/>',
+  slippers: '<path d="M10 4.5c3 0 4.5 3 4.5 8v9c0 3.5-2 6-4.5 6s-4.5-2.5-4.5-6v-9c0-5 1.5-8 4.5-8z"/><path d="M5.5 13.5c3 1.6 6 1.6 9 0"/><path d="M22 7.5c2.6 0 4 2.6 4 6.8v7.4c0 3-1.7 5.3-4 5.3s-4-2.3-4-5.3v-7.4c0-4.2 1.4-6.8 4-6.8z"/><path d="M18 15.5c2.6 1.4 5.4 1.4 8 0"/>',
   sleep: '<path d="M3.5 14c0-2 1.8-3.5 4-3.5h17c2.2 0 4 1.5 4 3.5v3.5c0 3-2.7 5-6 5-2.6 0-4-2.2-6.5-2.2s-3.9 2.2-6.5 2.2c-3.3 0-6-2-6-5z"/><path d="M9 16.5c1.3 1 3 1 4.2 0M18.8 16.5c1.3 1 3 1 4.2 0"/><path d="M22 4.5h4l-4 4h4"/>',
-  lock: '<rect x="8" y="14" width="16" height="13" rx="3"/><path d="M11 14v-3.5a5 5 0 0 1 10 0V14"/><circle cx="16" cy="20.5" r="1.5"/>'
+  firstaid: '<rect x="4" y="10" width="24" height="17" rx="3"/><path d="M12 10V7.5A1.5 1.5 0 0 1 13.5 6h5A1.5 1.5 0 0 1 20 7.5V10"/><path d="M16 14v9M11.5 18.5h9"/>',
+  hook: '<rect x="9.5" y="4" width="13" height="10" rx="2.5"/><path d="M16 14v7a4.5 4.5 0 0 1-9 0v-1.5"/><circle cx="16" cy="9" r="1.2"/>'
 };
 
-const icon = (name, extra = "") =>
-  `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${ICONS[name]}</svg>`;
+// 리필 표시: 아이콘 오른쪽 아래의 작은 순환 화살표
+const REFILL_BADGE = '<g transform="translate(19.5 19.5)"><circle cx="6" cy="6" r="6.5" fill="#0d1030" stroke="none"/><path d="M9.6 4.6A3.9 3.9 0 0 0 2.6 4M2.4 7.4a3.9 3.9 0 0 0 7 .6" stroke-width="1.4"/><path d="M2.3 1.8V4h2.2M9.7 10.2V8H7.5" stroke-width="1.4"/></g>';
 
-// 별 동전 · MILE 별 아이콘
+const icon = (name, refill) =>
+  `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}${refill ? REFILL_BADGE : ""}</svg>`;
+
+// 매출 · MILE 아이콘
 const COIN_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="#ffe6a633" stroke="#ffe6a6" stroke-width="1.3"/><path d="M10 5.2l1.3 3 3.2.3-2.4 2.1.7 3.2-2.8-1.7-2.8 1.7.7-3.2-2.4-2.1 3.2-.3z" fill="#ffe6a6"/></svg>`;
 const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.6 4.6 3.9 7.9 8.5 8.5-4.6.6-7.9 3.9-8.5 8.5-.6-4.6-3.9-7.9-8.5-8.5 4.6-.6 7.9-3.9 8.5-8.5z" fill="#c5c6ff" style="filter:drop-shadow(0 0 3px #c5c6ff)"/></svg>`;
+
+// 손님 모습: 옷 빛깔과 머리 모양을 섞어서 만들어요
+const CUSTOMER_COLORS = ["#9baeff", "#c5b8ff", "#f0c4ff", "#9fe0ff", "#b6a4ff", "#ffd6ec"];
+const HAIR_COLORS = ["#2b2563", "#3a2f7a", "#1f2a5c", "#4a3a86"];
+const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예준", "수아", "시우", "유나", "건우", "채원", "지호"];
 
 /* =========================================================
    게임 로직
@@ -896,14 +1126,18 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
 (() => {
   const $ = (id) => document.getElementById(id);
   const itemById = Object.fromEntries(ITEMS.map(i => [i.id, i]));
-  const colorOf = (id) => TYPE_COLORS[itemById[id].type];
+  const colorOf = (id) => TYPES[itemById[id].type].color;
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const shuffle = (arr) => arr.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(v => v[1]);
+  const won = (n) => `₩${Math.round(n).toLocaleString("ko-KR")}`;
+  const sign = (n) => (n >= 0 ? `+${n}` : `${n}`);
 
   const state = {
-    round: 0, queue: [], index: 0, current: null,
+    round: 0, queue: [], index: 0, current: null, tab: "life",
     box: [], coins: 0, mile: 0, roundCoins: 0, roundMile: 0, roundStats: null,
-    patience: 0, patienceMax: 1, running: false, picks: {}, mood: ""
+    patience: 0, patienceMax: 1, running: false, paused: false, picks: {}, mood: "",
+    calm: CALM.max, breaths: CALM.breathsPerDay, tiredWarned: false,
+    copeGood: 0, copeTotal: 0, onChoice: null
   };
 
   $("coinIcon").innerHTML = COIN_SVG;
@@ -957,21 +1191,25 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
   };
 
   // ── 화면 그리기 ──
-  const unlocked = (id) => itemById[id].round <= state.round;
-
-  const renderShelf = () => {
-    $("shelf").innerHTML = ITEMS.map((i, n) => {
-      const locked = !unlocked(i.id);
-      const isNew = !locked && i.round === state.round && state.round > 0;
-      return `<button class="item ${locked ? "locked" : ""} ${state.box.includes(i.id) ? "in" : ""} ${isNew ? "new" : ""}"
-                data-id="${i.id}" style="--c:${TYPE_COLORS[i.type]};--d:${(-n * .33).toFixed(2)}s">
-        <span class="orb">${icon(locked ? "lock" : i.icon)}</span>${locked ? "입고 예정" : i.name}
-      </button>`;
+  const renderTabs = () => {
+    $("tabs").innerHTML = Object.entries(SHELVES).map(([key, t]) => {
+      const n = state.box.filter(id => itemById[id].shelf === key).length;
+      return `<button class="tab ${state.tab === key ? "on" : ""}" data-tab="${key}" style="--c:${t.color}">${t.name}${n ? `<small>✦${n}</small>` : ""}</button>`;
     }).join("");
   };
 
+  const renderShelf = () => {
+    renderTabs();
+    $("shelf").innerHTML = ITEMS.filter(i => i.shelf === state.tab).map((i, n) => `
+      <button class="item ${state.box.includes(i.id) ? "in" : ""}" data-id="${i.id}"
+              style="--c:${TYPES[i.type].color};--d:${(-n * .33).toFixed(2)}s">
+        <span class="orb">${icon(i.icon, i.type === "refill")}</span>${i.name}
+        <span class="price">${won(i.price)}</span>
+      </button>`).join("");
+  };
+
   const chip = (id, removable) =>
-    `<button class="kit-chip" data-id="${id}" style="--c:${colorOf(id)}">${icon(itemById[id].icon)}${itemById[id].name}${removable ? '<span class="x">✕</span>' : ""}</button>`;
+    `<button class="kit-chip" data-id="${id}" style="--c:${colorOf(id)}">${icon(itemById[id].icon, itemById[id].type === "refill")}${itemById[id].name}${removable ? '<span class="x">✕</span>' : ""}</button>`;
 
   const renderBox = () => {
     $("kitItems").innerHTML = state.box.length
@@ -980,12 +1218,23 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
     renderShelf();
   };
 
+  const tired = () => state.calm < CALM.tiredAt;
+
+  const renderCalm = () => {
+    const fill = $("calmFill");
+    fill.style.width = `${(state.calm / CALM.max) * 100}%`;
+    fill.classList.toggle("tired", tired());
+    $("breaths").textContent = state.breaths;
+    $("breathBtn").disabled = !state.running || state.paused || !state.breaths || state.calm >= CALM.max;
+  };
+
   const renderHud = () => {
-    $("coins").textContent = state.coins;
+    $("coins").textContent = won(state.coins);
     $("mile").textContent = state.mile;
     $("dayLabel").textContent = ROUNDS[state.round].label;
     $("queueInfo").innerHTML = state.queue.map((_, i) =>
       `<span class="${i < state.index ? "done" : i === state.index && state.running ? "now" : ""}"></span>`).join("");
+    renderCalm();
   };
 
   const bump = (id) => {
@@ -1001,7 +1250,7 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
     t.innerHTML = msg + (gain ? `<span class="gain">${gain}</span>` : "");
     t.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove("show"), 1700);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
   };
 
   const sparkle = (el, color) => {
@@ -1020,6 +1269,17 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
 
   const setButtons = (on) => {
     ["clearBtn", "wrongBtn", "serveBtn"].forEach(id => $(id).disabled = !on);
+    renderCalm();
+  };
+
+  const changeCalm = (delta) => {
+    const wasTired = tired();
+    state.calm = Math.max(0, Math.min(CALM.max, state.calm + delta));
+    renderCalm();
+    if (!wasTired && tired() && !state.tiredWarned) {
+      state.tiredWarned = true;
+      setTimeout(() => toast("마음이 많이 지쳤어요.", "숨 고르기를 눌러 잠깐 쉬어 가요."), 1900);
+    }
   };
 
   // ── 손님 만들기 ──
@@ -1028,40 +1288,45 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
 
   const makeQueue = (roundIndex) => {
     const round = ROUNDS[roundIndex];
-    const usable = REQUESTS.filter(r => r.needs.every(id => itemById[id].round <= roundIndex));
-    // 새로 들어온 물건을 쓰는 요청이 더 자주 나오도록
-    const weighted = usable.flatMap(r => r.needs.some(id => itemById[id].round === roundIndex && roundIndex > 0) ? [r, r] : [r]);
     const queue = [];
     const used = new Set();
-    let strange = 0;
+    let strange = 0, hard = 0;
     const strangePool = shuffle(STRANGE_REQUESTS);
 
     for (let n = 0; n < round.customers; n++) {
-      const canStrange = !(roundIndex === 0 && n === 0) && strange < MAX_STRANGE_PER_ROUND;
-      if (canStrange && Math.random() < STRANGE_CHANCE) {
+      const first = roundIndex === 0 && n === 0;
+      if (!first && strange < MAX_STRANGE_PER_ROUND && Math.random() < STRANGE_CHANCE) {
         strange++;
-        queue.push({ strange: true, text: strangePool.pop() || pick(STRANGE_REQUESTS), look: makeLook(), name: makeName() });
+        queue.push({ strange: true, text: strangePool.pop() || pick(STRANGE_REQUESTS), look: makeLook(), name: makeName(), drain: 1 });
         continue;
       }
       let req;
-      for (let tries = 0; tries < 20; tries++) {
-        req = pick(weighted);
+      for (let tries = 0; tries < 30; tries++) {
+        req = pick(REQUESTS);
         if (!used.has(req)) break;
       }
       used.add(req);
-      queue.push({ ...req, look: makeLook(), name: makeName() });
+      const event = !first && hard < round.difficult && Math.random() < DIFFICULT_CHANCE ? pick(DIFFICULT) : null;
+      if (event) hard++;
+      queue.push({ ...req, look: makeLook(), name: makeName(), event, eventDone: false, drain: event?.drain || 1 });
     }
     return queue;
   };
 
   // ── 진행 ──
-  const showBubble = (text, tag, react) => {
+  const showBubble = (text, tag, opts = {}) => {
     const b = $("bubble");
     $("requestText").textContent = text;
     $("tag").textContent = tag || "";
-    b.classList.toggle("react", !!react);
+    $("tag").classList.toggle("hard", !!opts.hard);
+    b.classList.toggle("react", !!opts.react);
     b.classList.remove("hide");
   };
+
+  const requestTag = (c) =>
+    c.event && c.eventDone ? `✦ ${c.event.label}` : c.refill ? "✦ 리필 손님 · 리필 품목만 찾아요" : "";
+
+  const showRequest = (c) => showBubble(c.text, requestTag(c), { hard: c.event && c.eventDone });
 
   const setMood = (mood) => {
     if (state.mood === mood) return;
@@ -1074,12 +1339,20 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
     const c = state.current = state.queue[state.index];
     state.box = [];
     state.mood = "";
-    state.patienceMax = state.patience = ROUNDS[state.round].patience + (c.needs ? (c.needs.length - 1) * 3 : 0);
-    setMood("happy");
+    state.patienceMax = state.patience = ROUNDS[state.round].patience + (c.needs ? (c.needs.length - 1) * 4 : 0);
+    setMood(c.event?.timing === "start" ? "upset" : "happy");
     $("custName").textContent = c.name;
     $("customer").classList.remove("out");
-    showBubble(c.text, c.refill ? "✦ 리필 손님 · 소모품만 찾아요" : "");
     state.running = true;
+    state.paused = false;
+
+    if (c.event?.timing === "start") {
+      showBubble(c.event.line, "", { react: true });
+      state.paused = true;
+      setTimeout(() => openCoping(c, () => showRequest(c)), 1100);
+    } else {
+      showRequest(c);
+    }
     renderBox();
     renderHud();
     updatePatience();
@@ -1092,11 +1365,72 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
     fill.style.width = `${r * 100}%`;
     fill.classList.toggle("warn", r < .55 && r >= .28);
     fill.classList.toggle("danger", r < .28);
-    if (state.running) setMood(r < .28 ? "upset" : r < .55 ? "worry" : "happy");
+    if (state.running && !state.paused) setMood(r < .28 ? "upset" : r < .55 ? "worry" : "happy");
+  };
+
+  // ── 진상 손님 응대 카드 ──
+  const openCoping = (c, after) => {
+    const ev = c.event;
+    c.eventDone = true;
+    state.paused = true;
+    renderCalm();
+    const choices = shuffle(ev.choices);
+    state.onChoice = (index) => {
+      const ch = choices[index];
+      state.onChoice = null;
+      state.copeTotal++;
+      changeCalm(ch.calm || 0);
+      if (ch.patience) state.patience *= ch.patience;
+      let result;
+      if (ch.good) {
+        state.copeGood++;
+        state.mile += SCORE.mileCopeGood;
+        state.roundMile += SCORE.mileCopeGood;
+        c.drain = 1;
+        if (ch.refresh || ev.timing === "start") state.patience = Math.max(state.patience, state.patienceMax * .85);
+        result = `<div class="cope-result good"><b>침착하게 잘 응대했어요!</b>MILE +${SCORE.mileCopeGood} · 마음 별빛 ${sign(ch.calm || 0)}</div>`;
+        bump("mileStat");
+      } else {
+        result = `<div class="cope-result bad"><b>마음이 조금 다쳤어요.</b>마음 별빛 ${sign(ch.calm || 0)}${ch.patience ? " · 손님 기다림이 줄었어요" : ""}${ch.coin ? " · 매출이 줄어요" : ""}${ch.mile ? " · MILE이 줄어요" : ""}</div>`;
+      }
+      $("card").innerHTML = `
+        <div class="eyebrow">${ev.label}</div>
+        <div class="cope-line">“${ch.reply}”</div>
+        ${result}`;
+      renderHud();
+      setTimeout(() => {
+        hideCard();
+        state.paused = false;
+        renderCalm();
+        after(ch);
+      }, 1700);
+    };
+    showCard(`
+      <div class="eyebrow">진상 손님 · 응대 카드</div>
+      <h2>${ev.label}</h2>
+      <div class="cope-line">“${ev.line}”</div>
+      <p class="sub">어떻게 대답할까요? 기다림은 잠시 멈춰 있어요.</p>
+      <div class="choices">${choices.map((ch, i) => `<button class="choice" data-choice="${i}">${ch.text}</button>`).join("")}</div>`);
+  };
+
+  const triggerMidEvent = (c) => {
+    showBubble(c.event.line, "", { react: true });
+    setMood("worry");
+    openCoping(c, () => {
+      const options = REQUESTS.filter(r => r.text !== c.text && !!r.refill === !!c.refill);
+      const next = pick(options);
+      c.text = next.text;
+      c.needs = next.needs;
+      state.box = [];
+      renderBox();
+      showRequest(c);
+      toast("손님이 찾는 물건이 바뀌었어요.", "키트 상자를 비웠어요. 새 요청을 들어 보세요.");
+    });
   };
 
   const finish = (reaction, coins, mile, gainText, stat, mood) => {
     state.running = false;
+    state.paused = false;
     setButtons(false);
     state.coins = Math.max(0, state.coins + coins);
     state.mile = Math.max(0, state.mile + mile);
@@ -1104,7 +1438,7 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
     state.roundMile += mile;
     state.roundStats[stat]++;
     setMood(mood);
-    showBubble(reaction, "", true);
+    showBubble(reaction, "", { react: true });
     toast(gainText.title, gainText.detail);
     if (coins) bump("coinStat");
     if (mile) bump("mileStat");
@@ -1121,52 +1455,67 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
     }, 1500);
   };
 
-  const sign = (n) => (n >= 0 ? `+${n}` : `${n}`);
+  // 건넨 키트 평가 (진상 응대 결과 mod를 반영)
+  const settle = (mod = {}) => {
+    const c = state.current;
+    state.box.forEach(id => state.picks[id] = (state.picks[id] || 0) + 1);
+    const hits = c.needs.filter(id => state.box.includes(id));
+    const miss = c.needs.length - hits.length;
+    const extra = state.box.filter(id => !c.needs.includes(id)).length;
+    const ratio = Math.max(state.patience / state.patienceMax, 0);
+    const mileMul = (mod.mile || 1) * (tired() ? .5 : 1);
+    const tiredNote = tired() ? " · 지쳐서 MILE 절반" : "";
+
+    if (!miss && !extra) {
+      const coins = Math.round((hits.reduce((a, id) => a + itemById[id].price, 0) + SCORE.tipMax * ratio) * (mod.coin || 1) / 100) * 100;
+      const mile = Math.round((SCORE.milePerfect + (ratio > .5 ? SCORE.mileFastBonus : 0)) * mileMul);
+      return finish(pick(["와, 딱 이거예요! 고마워요!", "어떻게 아셨어요? 완벽해요!", "덕분에 오늘 밤은 편하게 지낼 수 있겠어요!"]),
+        coins, mile, { title: "딱 맞았어요! ✦", detail: `매출 +${won(coins)} · MILE +${mile}${tiredNote}` }, "perfect", "happy");
+    }
+
+    const coins = Math.max(0, Math.round((hits.reduce((a, id) => a + itemById[id].price, 0) - extra * SCORE.extraCost) * (mod.coin || 1)));
+    const mile = Math.max(0, Math.round((hits.length * SCORE.milePerHit - miss * SCORE.milePerMiss - extra * SCORE.milePerExtra) * mileMul));
+    const reaction = !hits.length ? "음… 제가 말한 거랑은 좀 다른 것 같아요."
+      : miss && extra ? "하나는 빠졌고, 이건 필요 없는데… 그래도 고마워요."
+      : miss ? "고마워요! 근데 하나가 빠진 것 같아요…"
+      : "필요 없는 것까지 들어 있네요. 그래도 고마워요.";
+    if (!hits.length) changeCalm(-CALM.wrongLoss);
+    const parts = [miss && `빠진 물건 ${miss}개`, extra && `필요 없는 물건 ${extra}개`].filter(Boolean).join(" · ");
+    finish(reaction, coins, mile, { title: parts || "조금 아쉬워요.", detail: `매출 +${won(coins)} · MILE +${mile}${tiredNote}` }, "partial", hits.length ? "worry" : "upset");
+  };
 
   const serve = () => {
-    if (!state.running) return;
+    if (!state.running || state.paused) return;
     const c = state.current;
     if (!state.box.length) {
       $("kitItems").classList.add("shake");
       setTimeout(() => $("kitItems").classList.remove("shake"), 300);
       return toast("키트 상자가 비어 있어요!");
     }
-    state.box.forEach(id => state.picks[id] = (state.picks[id] || 0) + 1);
 
     if (c.strange) {
+      state.box.forEach(id => state.picks[id] = (state.picks[id] || 0) + 1);
+      changeCalm(-CALM.wrongLoss);
       return finish("어… 제가 찾던 건 이게 아닌데요?", 0, -SCORE.mileStrangeWrong,
-        { title: "이 손님은 다른 가게를 찾고 있었어요.", detail: `✦ ${sign(-SCORE.mileStrangeWrong)} MILE` }, "wrong", "worry");
+        { title: "이 손님은 다른 가게를 찾고 있었어요.", detail: `MILE ${sign(-SCORE.mileStrangeWrong)}` }, "wrong", "worry");
     }
 
-    const hits = c.needs.filter(id => state.box.includes(id));
-    const miss = c.needs.length - hits.length;
-    const extra = state.box.filter(id => !c.needs.includes(id)).length;
-    const ratio = state.patience / state.patienceMax;
-
-    if (!miss && !extra) {
-      const coins = hits.reduce((a, id) => a + itemById[id].price, 0) + Math.round(SCORE.tipMax * ratio);
-      const mile = SCORE.milePerfect + (ratio > .5 ? SCORE.mileFastBonus : 0);
-      return finish(pick(["와, 딱 이거예요! 고마워요!", "어떻게 아셨어요? 완벽해요!", "덕분에 오늘 밤은 편하게 지낼 수 있겠어요!"]),
-        coins, mile, { title: "딱 맞았어요! ✦", detail: `동전 +${coins} · MILE +${mile}` }, "perfect", "happy");
+    if (c.event?.timing === "serve" && !c.eventDone) {
+      showBubble(c.event.line, "", { react: true });
+      setMood("worry");
+      return openCoping(c, (ch) => settle({ coin: ch.coin, mile: ch.mile }));
     }
-
-    const coins = Math.max(0, hits.reduce((a, id) => a + itemById[id].price, 0) - extra * SCORE.extraCost);
-    const mile = Math.max(0, hits.length * SCORE.milePerHit - miss * SCORE.milePerMiss - extra * SCORE.milePerExtra);
-    const reaction = !hits.length ? "음… 제가 말한 거랑은 좀 다른 것 같아요."
-      : miss && extra ? "하나는 빠졌고, 이건 필요 없는데… 그래도 고마워요."
-      : miss ? "고마워요! 근데 하나가 빠진 것 같아요…"
-      : "필요 없는 것까지 들어 있네요. 그래도 고마워요.";
-    const parts = [miss && `빠진 물건 ${miss}개`, extra && `필요 없는 물건 ${extra}개`].filter(Boolean).join(" · ");
-    finish(reaction, coins, mile, { title: parts || "조금 아쉬워요.", detail: `동전 +${coins} · MILE +${mile}` }, "partial", hits.length ? "worry" : "upset");
+    settle();
   };
 
   const rejectCustomer = () => {
-    if (!state.running) return;
+    if (!state.running || state.paused) return;
     const c = state.current;
     if (c.strange) {
       return finish(pick(["앗, 잘못 찾아왔나 봐요! 알려 줘서 고마워요.", "여기가 아니었군요… 다른 데 가 볼게요!"]),
         0, SCORE.mileStrangeRight, { title: "잘 알아봤어요! 여긴 그런 걸 안 팔아요.", detail: `MILE +${SCORE.mileStrangeRight}` }, "strange", "happy");
     }
+    changeCalm(-CALM.wrongLoss);
     finish("네? 분명 여기서 파는 걸로 아는데요…", 0, -SCORE.mileWrongReject,
       { title: "이 손님은 우리 가게 손님이었어요!", detail: `MILE ${sign(-SCORE.mileWrongReject)}` }, "wrong", "upset");
   };
@@ -1176,8 +1525,19 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
     if (c.strange) {
       return finish("흠, 여기 아닌가 보네요. 그냥 갈게요.", 0, 0, { title: "엉뚱한 손님이 스스로 떠났어요." }, "strange", "worry");
     }
+    changeCalm(-CALM.leaveLoss);
     finish("너무 오래 걸려서… 다음에 올게요.", 0, -SCORE.mileLeave,
       { title: "손님이 지쳐서 떠났어요.", detail: `MILE ${sign(-SCORE.mileLeave)}` }, "left", "upset");
+  };
+
+  const breathe = () => {
+    if (!state.running || state.paused || !state.breaths) return;
+    state.breaths--;
+    state.patience -= CALM.breatheCost;
+    changeCalm(CALM.breathe);
+    if (!tired()) state.tiredWarned = false;
+    sparkle($("breathBtn"), "#9fe0ff");
+    toast("후— 깊게 숨을 골랐어요.", `마음 별빛 +${CALM.breathe} · 남은 숨 고르기 ${state.breaths}번`);
   };
 
   // ── 안내창 그림 ──
@@ -1221,16 +1581,24 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
     state.roundMile = 0;
     state.roundStats = { perfect: 0, partial: 0, left: 0, strange: 0, wrong: 0 };
     state.box = [];
+    state.calm = CALM.max;
+    state.breaths = CALM.breathsPerDay;
+    state.tiredWarned = false;
+    state.tab = "life";
     renderBox();
     renderHud();
 
-    const fresh = ITEMS.filter(i => i.round === n);
     showCard(`
       <div class="eyebrow">${ROUNDS[n].label}</div>
-      ${n === 0 ? planetSVG() : moonSVG(n === 2)}
-      <h2>${n === 0 ? "별빛 상점의 문을 열어요" : n === 1 ? "저녁 별이 뜨고, 손님이 몰려와요" : "마지막 날 밤이에요"}</h2>
-      <p class="sub">오늘은 손님 <b>${ROUNDS[n].customers}명</b>이 찾아와요.<br>${n === 0 ? "은하수 진열대에 첫 물건들이 들어왔어요." : "새로운 별이 진열대에 들어왔어요."}</p>
-      <div class="new-items">${fresh.map(i => chip(i.id, false)).join("")}</div>
+      ${n === 0 ? planetSVG() : moonSVG(true)}
+      <h2>${n === 0 ? "별빛 상점의 문을 열어요" : "마지막 날 밤이에요"}</h2>
+      <p class="sub">오늘은 손님 <b>${ROUNDS[n].customers}명</b>이 찾아와요.<br>${n === 0
+        ? `진열대에 기본 품목 ${ITEMS.filter(i => i.type === "basic").length}가지와 리필 ${ITEMS.filter(i => i.type === "refill").length}가지가 모두 준비돼 있어요.`
+        : "손님이 더 많아지고, 기다려 주는 시간은 짧아져요."}</p>
+      <ul class="cope-tips">
+        <li>곤란한 말을 하는 <b>진상 손님</b>이 올 수 있어요. 응대 카드에서 차분한 대답을 골라 보세요.</li>
+        <li>마음 별빛이 줄어 지치면 MILE을 절반만 받아요. <b>숨 고르기</b>는 하루 ${CALM.breathsPerDay}번이에요.</li>
+      </ul>
       <button class="btn btn-serve" data-act="open">가게 열기 ✦</button>`);
   };
 
@@ -1239,7 +1607,7 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
     renderHud();
     const s = state.roundStats;
     const last = state.round === ROUNDS.length - 1;
-    const great = s.perfect >= ROUNDS[state.round].customers - 1;
+    const great = s.perfect >= ROUNDS[state.round].customers - 2;
     showCard(`
       <div class="eyebrow">${ROUNDS[state.round].label} · 마감</div>
       ${moonSVG(great)}
@@ -1249,8 +1617,12 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
         <div><b>${s.partial}</b>조금 아쉽게</div>
         <div><b>${s.left}</b>떠난 손님</div>
       </div>
-      <p class="sub">이번 영업으로 동전 <b>${sign(state.roundCoins)}</b>, MILE <b>${sign(state.roundMile)}</b>을 모았어요.${s.strange ? `<br>엉뚱한 손님 ${s.strange}명도 잘 돌려보냈어요.` : ""}</p>
-      <button class="btn btn-serve" data-act="${last ? "final" : "next"}">${last ? "자립의 별자리 보기 ✦" : "다음 영업 준비하기"}</button>`);
+      <p class="sub">오늘 매출 <b>${won(state.roundCoins)}</b>, MILE <b>${sign(state.roundMile)}</b>을 모았어요.${s.strange ? `<br>엉뚱한 손님 ${s.strange}명도 잘 돌려보냈어요.` : ""}</p>
+      <ul class="cope-tips">
+        <li>${state.calm >= 60 ? "오늘은 마음 별빛을 잘 지켰어요." : "오늘은 마음이 많이 지쳤어요. 내일은 숨 고르기를 아끼지 말아요."}</li>
+        <li>힘든 손님의 말은 나를 향한 게 아니라 상황을 향한 거예요. 한 번 숨을 고르고 차분하게 대답해요.</li>
+      </ul>
+      <button class="btn btn-serve" data-act="${last ? "final" : "next"}">${last ? "자립의 별자리 보기 ✦" : "다음 날 준비하기"}</button>`);
   };
 
   const constellationSVG = (lit) => {
@@ -1291,12 +1663,15 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
       <p class="sub"><b>${messages[lit - 1]}</b></p>
       <div class="summary">
         <div><b>${state.mile}</b>총 MILE</div>
-        <div><b>${state.coins}</b>모은 동전</div>
+        <div><b style="font-size:16px">${won(state.coins)}</b>총 매출</div>
         <div><b>${lit}/4</b>켜진 별</div>
       </div>
+      <p class="sub">${state.copeTotal
+        ? `진상 손님 ${state.copeTotal}명 중 <b>${state.copeGood}명</b>을 침착하게 응대했어요.`
+        : "이번엔 진상 손님이 오지 않았어요. 운이 좋았네요!"}</p>
       <p class="sub" style="margin-top:14px">가장 많이 담은 물건</p>
       <ol class="rank">${top.length
-        ? top.map(([id, n], i) => `<li style="--c:${colorOf(id)}"><span>${icon(itemById[id].icon)}${i + 1}. ${itemById[id].name}</span><small>${n}번</small></li>`).join("")
+        ? top.map(([id, n], i) => `<li style="--c:${colorOf(id)}"><span>${icon(itemById[id].icon, itemById[id].type === "refill")}${i + 1}. ${itemById[id].name}</span><small>${n}번</small></li>`).join("")
         : `<li><span>아직 담은 물건이 없어요</span></li>`}</ol>
       <a class="btn btn-serve" href="${MILE_LINK}" target="_blank" rel="noopener noreferrer">MILE 더 알아보기 ↗</a>
       <button class="btn btn-ghost" data-act="restart">처음부터 다시 하기</button>`);
@@ -1309,21 +1684,27 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
       <h1>MILE 첫걸음 상점</h1>
       <p class="sub">은하수 기숙사의 학생들이 필요한 걸 찾아와요.<br>말 속에 숨은 힌트를 듣고, 딱 맞는 별빛 키트를 꾸려 주세요.</p>
       <ul class="how">
-        <li>진열대의 물건을 눌러 키트 상자에 담아요.</li>
-        <li>다 담았으면 <b>건네기</b>를 눌러요. 딱 맞을수록 동전과 MILE을 많이 받아요.</li>
+        <li>진열대의 물건을 눌러 키트 상자에 담고, <b>건네기</b>를 눌러요.</li>
+        <li><b>생활·세탁</b>, <b>청소·욕실</b>, <b>리필</b> 칸을 오가며 골라요. <b>리필 손님</b>은 리필 품목만 찾아요.</li>
         <li>너무 늦으면 손님이 떠나요. <b>기다리는 별빛</b>을 잘 봐 주세요.</li>
-        <li><b>리필 손님</b>은 소모품만 찾아요.</li>
         <li>가게에 없는 걸 찾는 손님은 <b>이 가게 아니에요!</b>로 돌려보내요.</li>
+        <li><b>진상 손님</b>에게는 응대 카드로 차분하게 대답하고, 지치면 <b>숨 고르기</b>로 마음을 돌봐요.</li>
       </ul>
       <button class="btn btn-serve" data-act="start">시작하기 ✦</button>`);
   };
 
   // ── 입력 (탭만 사용) ──
+  $("tabs").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-tab]");
+    if (!b) return;
+    state.tab = b.dataset.tab;
+    renderShelf();
+  });
+
   $("shelf").addEventListener("click", (e) => {
     const b = e.target.closest("[data-id]");
-    if (!b || !state.running) return;
+    if (!b || !state.running || state.paused) return;
     const id = b.dataset.id;
-    if (!unlocked(id)) return toast("아직 입고 전이에요. 조금만 기다려 주세요!");
     const at = state.box.indexOf(id);
     if (at >= 0) state.box.splice(at, 1);
     else {
@@ -1335,16 +1716,19 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
 
   $("kitItems").addEventListener("click", (e) => {
     const b = e.target.closest("[data-id]");
-    if (!b || !state.running) return;
+    if (!b || !state.running || state.paused) return;
     state.box.splice(state.box.indexOf(b.dataset.id), 1);
     renderBox();
   });
 
-  $("clearBtn").addEventListener("click", () => { if (state.running) { state.box = []; renderBox(); } });
+  $("clearBtn").addEventListener("click", () => { if (state.running && !state.paused) { state.box = []; renderBox(); } });
   $("serveBtn").addEventListener("click", serve);
   $("wrongBtn").addEventListener("click", rejectCustomer);
+  $("breathBtn").addEventListener("click", breathe);
 
   $("overlay").addEventListener("click", (e) => {
+    const choice = e.target.closest("[data-choice]");
+    if (choice && state.onChoice) return state.onChoice(Number(choice.dataset.choice));
     const act = e.target.closest("[data-act]")?.dataset.act;
     if (!act) return;
     if (act === "start") startRound(0);
@@ -1352,7 +1736,7 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
     else if (act === "next") startRound(state.round + 1);
     else if (act === "final") showFinal();
     else if (act === "restart") {
-      Object.assign(state, { coins: 0, mile: 0, picks: {} });
+      Object.assign(state, { coins: 0, mile: 0, picks: {}, copeGood: 0, copeTotal: 0 });
       startRound(0);
     }
   });
@@ -1362,10 +1746,12 @@ const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.
   const loop = (now) => {
     const dt = Math.min((now - last) / 1000, .1);
     last = now;
-    if (state.running) {
-      state.patience -= dt;
+    const c = state.current;
+    if (state.running && !state.paused) {
+      state.patience -= dt * (c.drain || 1);
       updatePatience();
-      if (state.patience <= 0) timeout();
+      if (c.event?.timing === "mid" && !c.eventDone && state.patience / state.patienceMax < .62) triggerMidEvent(c);
+      else if (state.patience <= 0) timeout();
     }
     requestAnimationFrame(loop);
   };
