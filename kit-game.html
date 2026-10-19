@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080a1b">
+<title>MILE — 나만의 별자리 키트 만들기</title>
+<meta name="description" content="생활용품 별을 모아 나만의 첫걸음 키트를 디자인해 보세요.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Noto+Sans+KR:wght@300;400;500;600;700&family=Noto+Serif+KR:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #080a1b;
+  --panel-border: rgba(220,225,255,.16);
+  --white: #f5f4ff;
+  --muted: #b7bbd5;
+  --lavender: #c5c6ff;
+  --serif: "Noto Serif KR", serif;
+  --sans: "Noto Sans KR", sans-serif;
+
+  /* 카테고리 색 (메인 페이지 팔레트에서 파생) */
+  --laundry: #9baeff;
+  --cleaning: #b9a6ff;
+  --hygiene: #f0c4ff;
+  --kitchen: #9fe0ff;
+  --guide: #ffe6a6;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--bg);
+  color: var(--white);
+  font-family: var(--sans);
+  font-weight: 300;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+::selection { background: #aaaaff55; color: white; }
+
+/* 우주 배경 + 은하수 */
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.sky img {
+  position: absolute;
+  inset: -4%;
+  width: 108%;
+  height: 108%;
+  object-fit: cover;
+  opacity: .5;
+  filter: blur(2px) saturate(1.1);
+  animation: skyDrift 50s ease-in-out infinite alternate;
+}
+
+.sky::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, rgba(10,12,40,.35), rgba(6,8,24,.85) 80%);
+}
+
+.milky-way {
+  position: absolute;
+  left: -30%;
+  top: 30%;
+  width: 160%;
+  height: 34%;
+  rotate: -18deg;
+  background:
+    radial-gradient(ellipse 50% 45% at 50% 50%, rgba(214,206,255,.22), transparent 70%),
+    radial-gradient(ellipse 30% 30% at 30% 55%, rgba(155,174,255,.18), transparent 70%),
+    radial-gradient(ellipse 25% 30% at 72% 45%, rgba(240,196,255,.16), transparent 70%);
+  filter: blur(20px);
+  mix-blend-mode: screen;
+  animation: milkyFlow 18s ease-in-out infinite alternate;
+}
+
+#twinkle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 상단 바 */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(1180px, calc(100% - 24px));
+  margin: 12px auto 0;
+  padding: 10px 18px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 20px;
+  background: rgba(9,11,30,.62);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+
+.topbar img { display: block; width: 78px; height: auto; }
+
+.steps {
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  color: #9da2c4;
+}
+
+.steps span {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: all .4s;
+}
+
+.steps span.on {
+  color: white;
+  border-color: #d9ddff40;
+  background: #ffffff10;
+  box-shadow: 0 0 16px #a9b4ff30;
+}
+
+.home-link {
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid #d9ddff42;
+  background: #ffffff08;
+  white-space: nowrap;
+}
+
+main {
+  width: min(1180px, calc(100% - 24px));
+  margin: 0 auto;
+  padding: 34px 0 60px;
+}
+
+.screen { display: none; animation: screenIn .7s cubic-bezier(.2,.75,.25,1) both; }
+.screen.active { display: block; }
+
+.eyebrow {
+  color: #b9c1ff;
+  font-size: 11px;
+  letter-spacing: .16em;
+  margin-bottom: 10px;
+}
+
+h1, h2 {
+  font-family: var(--serif);
+  font-weight: 300;
+  letter-spacing: -.04em;
+  line-height: 1.5;
+  margin: 0;
+  word-break: keep-all;
+}
+
+h1 { font-size: clamp(28px, 4.6vw, 50px); }
+h2 { font-size: clamp(22px, 3vw, 32px); }
+
+.lead {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 14px 0 0;
+  word-break: keep-all;
+}
+
+.glass {
+  background: linear-gradient(135deg, #ffffff14, #ffffff05), rgba(10,12,36,.5);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  box-shadow: inset 0 1px 0 #ffffff12, 0 18px 60px #02030e30;
+}
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 24px;
+  border-radius: 999px;
+  border: 1px solid #dfe3ff55;
+  background: linear-gradient(135deg, #8f8cff45, #6b84ff22);
+  box-shadow: 0 0 26px #9a9cff40, inset 0 1px 0 #ffffff30;
+  font-size: 14px;
+  overflow: hidden;
+  transition: transform .3s, box-shadow .3s, opacity .3s;
+}
+
+.btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 40px #a9abff70, inset 0 1px 0 #ffffff40; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, #ffffff45 50%, transparent 70%);
+  translate: -120% 0;
+  animation: btnShine 4s ease-in-out 1s infinite;
+}
+
+.btn.ghost { background: #ffffff08; box-shadow: none; }
+.btn.ghost::after { display: none; }
+
+/* 1단계: 시작 선택 */
+.intro { text-align: center; padding-top: 4vh; }
+.intro .lead { max-width: 560px; margin-inline: auto; }
+
+.start-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 40px;
+  text-align: left;
+}
+
+.start-card {
+  position: relative;
+  padding: 28px 26px;
+  border-radius: 24px;
+  overflow: hidden;
+  text-align: left;
+  transition: transform .4s, border-color .4s;
+}
+
+.start-card:hover { transform: translateY(-6px); border-color: #d9ddff55; }
+
+.start-card .planet {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  margin-bottom: 20px;
+  background: radial-gradient(circle at 32% 30%, #fff 0%, var(--c) 30%, #2a2c6b 100%);
+  box-shadow: 0 0 30px var(--c);
+  animation: planetFloat 5s ease-in-out infinite alternate;
+}
+
+.start-card h3 { margin: 0 0 6px; font-size: 18px; font-weight: 500; }
+.start-card p { margin: 0; font-size: 13px; color: var(--muted); word-break: keep-all; }
+
+.start-card .needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.chip {
+  font-size: 10.5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 10%, transparent);
+  white-space: nowrap;
+}
+
+/* 2단계: 별 모으기 */
+.build {
+  display: grid;
+  grid-template-columns: 1.25fr .95fr;
+  gap: 20px;
+  margin-top: 26px;
+  align-items: start;
+}
+
+.galaxy {
+  padding: 22px;
+  border-radius: 26px;
+}
+
+.cluster + .cluster { margin-top: 18px; }
+
+.cluster-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--c);
+  letter-spacing: .06em;
+  margin-bottom: 10px;
+}
+
+.cluster-title::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 10px var(--c);
+}
+
+.stars-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.item-star {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px 10px;
+  border-radius: 18px;
+  border: 1px solid #ffffff14;
+  background: #ffffff06;
+  font-size: 12px;
+  text-align: center;
+  word-break: keep-all;
+  line-height: 1.35;
+  transition: transform .3s, border-color .3s, background .3s, box-shadow .3s;
+  animation: starBob 4s ease-in-out var(--d) infinite alternate;
+}
+
+.item-star .orb {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  font-size: 22px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--c) 40%, transparent), transparent 70%);
+  transition: box-shadow .3s, background .3s;
+}
+
+.item-star:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--c) 60%, transparent); }
+
+.item-star.picked {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--c) 45%, transparent);
+}
+
+.item-star.picked .orb {
+  background: radial-gradient(circle, color-mix(in srgb, var(--c) 80%, white) 0%, color-mix(in srgb, var(--c) 40%, transparent) 45%, transparent 72%);
+  box-shadow: 0 0 26px var(--c);
+}
+
+.item-star.picked::after {
+  content: "✦";
+  position: absolute;
+  top: 6px;
+  right: 9px;
+  font-size: 11px;
+  color: var(--c);
+}
+
+.item-star.shake { animation: shake .4s; }
+
+.kit-panel {
+  position: sticky;
+  top: 96px;
+  padding: 22px;
+  border-radius: 26px;
+}
+
+.kit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.kit-head h2 { font-size: 20px; }
+
+.count {
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  color: var(--lavender);
+}
+
+.sky-box {
+  position: relative;
+  margin: 14px 0;
+  border-radius: 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 40%, #2a2a6e, #0d0f2a 75%);
+  border: 1px solid #ffffff14;
+  aspect-ratio: 4 / 3;
+}
+
+.sky-box svg { display: block; width: 100%; height: 100%; }
+
+.meters { display: grid; gap: 8px; }
+
+.meter {
+  display: grid;
+  grid-template-columns: 52px 1fr 34px;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.meter .bar {
+  height: 6px;
+  border-radius: 999px;
+  background: #ffffff10;
+  overflow: hidden;
+}
+
+.meter .fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 50%, transparent), var(--c));
+  box-shadow: 0 0 12px var(--c);
+  transition: width .6s cubic-bezier(.2,.75,.25,1);
+}
+
+.meter .num { text-align: right; font-family: "DM Sans", sans-serif; color: var(--c); }
+
+.hint {
+  min-height: 42px;
+  margin: 14px 0 16px;
+  font-size: 12.5px;
+  color: #d4d6f0;
+  word-break: keep-all;
+}
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* 3단계: 포장 디자인 */
+.design {
+  display: grid;
+  grid-template-columns: 1.1fr .9fr;
+  gap: 20px;
+  margin-top: 26px;
+  align-items: start;
+}
+
+.box-stage {
+  padding: 26px;
+  border-radius: 26px;
+  display: grid;
+  place-items: center;
+}
+
+.box-stage svg { width: 100%; max-width: 520px; height: auto; animation: boxFloat 6s ease-in-out infinite alternate; }
+
+.options { padding: 24px; border-radius: 26px; }
+
+.opt + .opt { margin-top: 22px; }
+
+.opt label, .opt .label {
+  display: block;
+  font-size: 12px;
+  color: #b9c1ff;
+  letter-spacing: .08em;
+  margin-bottom: 10px;
+}
+
+.swatches, .patterns { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: linear-gradient(145deg, var(--a), var(--b));
+  box-shadow: 0 0 0 1px #ffffff25;
+  transition: transform .25s, box-shadow .25s;
+}
+
+.swatch.on { border-color: white; box-shadow: 0 0 20px var(--a); transform: scale(1.08); }
+
+.pattern-btn {
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid #d9ddff30;
+  background: #ffffff08;
+  font-size: 12.5px;
+  transition: all .25s;
+}
+
+.pattern-btn.on { border-color: #e9ebff; background: #ffffff1c; box-shadow: 0 0 16px #a9b4ff40; }
+
+.name-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid #d9ddff30;
+  background: #0b0d26aa;
+  color: white;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.name-input:focus { border-color: #d9ddff80; box-shadow: 0 0 18px #a9b4ff30; }
+
+/* 4단계: 결과 */
+.result {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 26px;
+  align-items: center;
+}
+
+.result-card { padding: 28px; border-radius: 26px; }
+
+.rating {
+  font-size: 28px;
+  letter-spacing: 4px;
+  margin: 10px 0 4px;
+}
+
+.rating .lit { color: #fff3c4; text-shadow: 0 0 14px #ffe6a6; }
+.rating .dim { color: #ffffff25; }
+
+.score {
+  font-family: "DM Sans", sans-serif;
+  color: var(--lavender);
+  font-size: 13px;
+}
+
+.feedback {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: #d4d6f0;
+  word-break: keep-all;
+}
+
+.feedback li { padding-left: 18px; position: relative; }
+.feedback li + li { margin-top: 8px; }
+.feedback li::before { content: "✦"; position: absolute; left: 0; color: var(--lavender); font-size: 10px; top: 4px; }
+
+.picked-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 18px;
+}
+
+.result .actions { margin-top: 24px; }
+
+/* 별 폭죽 */
+.burst {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  font-size: 14px;
+  color: var(--c, #fff);
+  text-shadow: 0 0 10px currentColor;
+  animation: burst .9s ease-out forwards;
+}
+
+@keyframes skyDrift { to { transform: scale(1.06) translate3d(-1%, -1%, 0); } }
+@keyframes milkyFlow { from { opacity: .6; translate: -3% 0; } to { opacity: 1; translate: 3% -2%; } }
+@keyframes screenIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes planetFloat { to { transform: translateY(-6px); } }
+@keyframes starBob { to { translate: 0 -3px; } }
+@keyframes boxFloat { to { transform: translateY(-8px); } }
+@keyframes btnShine { 0%, 60% { translate: -120% 0; } 100% { translate: 120% 0; } }
+@keyframes shake { 0%, 100% { translate: 0; } 25% { translate: -5px 0; } 75% { translate: 5px 0; } }
+@keyframes burst {
+  from { opacity: 1; transform: translate(0, 0) scale(1); }
+  to { opacity: 0; transform: translate(var(--x), var(--y)) scale(.4); }
+}
+@keyframes lineDraw { to { stroke-dashoffset: 0; } }
+@keyframes starPop { from { transform: scale(0); } 70% { transform: scale(1.3); } to { transform: scale(1); } }
+@keyframes glowPulse { from { opacity: .45; } to { opacity: 1; } }
+
+/* 휴대폰: 별을 고르는 동안 아래에 진행 막대 표시 */
+.mobile-bar {
+  position: fixed;
+  z-index: 20;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px 10px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.mobile-bar .mini-stars { letter-spacing: 2px; color: #ffe6a6; text-shadow: 0 0 8px #ffe6a6; }
+.mobile-bar .btn { padding: 10px 16px; font-size: 13px; }
+
+@media (max-width: 900px) {
+  .build, .design, .result { grid-template-columns: 1fr; }
+  body.building .mobile-bar { display: flex; }
+  body.building main { padding-bottom: 100px; }
+  .kit-panel { position: static; }
+  .start-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .steps { display: none; }
+  .stars-row { grid-template-columns: repeat(2, 1fr); }
+  .galaxy, .kit-panel, .options, .result-card, .box-stage { padding: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+
+<body>
+<div class="sky" aria-hidden="true">
+  <img src="assets/mile-cosmos.webp" alt="">
+  <div class="milky-way"></div>
+  <canvas id="twinkle"></canvas>
+</div>
+
+<header class="topbar">
+  <a href="index.html" aria-label="MILE 홈으로"><img src="assets/mile-logo-light.png" alt="MILE"></a>
+  <div class="steps" id="steps">
+    <span data-step="start">01 시작 고르기</span>
+    <span data-step="build">02 별 모으기</span>
+    <span data-step="design">03 포장 디자인</span>
+    <span data-step="result">04 나의 별자리</span>
+  </div>
+  <a class="home-link" href="index.html">MILE 홈 ↗</a>
+</header>
+
+<main>
+  <!-- 1. 시작 고르기 -->
+  <section class="screen intro" id="screen-start">
+    <div class="eyebrow">MILE · FIRST STEP KIT GAME</div>
+    <h1>생활의 별을 모아,<br>나만의 첫걸음 키트를 만들어 보세요.</h1>
+    <p class="lead">어떤 시작을 준비하고 있나요? 상황에 맞는 생활용품 별을 골라 키트에 담으면, 그 별들이 이어져 나만의 별자리가 됩니다.</p>
+    <div class="start-grid" id="startGrid"></div>
+  </section>
+
+  <!-- 2. 별 모으기 -->
+  <section class="screen" id="screen-build">
+    <div class="eyebrow" id="buildEyebrow"></div>
+    <h2>은하수에서 필요한 별을 골라 키트에 담아 보세요.</h2>
+    <p class="lead">최대 8개까지 담을 수 있어요. 다시 누르면 키트에서 뺄 수 있습니다.</p>
+
+    <div class="build">
+      <div class="galaxy glass" id="galaxy"></div>
+
+      <aside class="kit-panel glass">
+        <div class="kit-head">
+          <h2>나의 키트 별자리</h2>
+          <span class="count"><span id="count">0</span> / 8</span>
+        </div>
+        <div class="sky-box"><svg id="kitSky" viewBox="0 0 400 300" aria-label="선택한 물품으로 만든 별자리"></svg></div>
+        <div class="meters" id="meters"></div>
+        <p class="hint" id="hint"></p>
+        <div class="actions">
+          <button class="btn ghost" id="backToStart">← 시작 다시 고르기</button>
+          <button class="btn" id="toDesign" disabled>포장 디자인하기 ✦</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 3. 포장 디자인 -->
+  <section class="screen" id="screen-design">
+    <div class="eyebrow">03 · 포장 디자인</div>
+    <h2>밤하늘을 닮은 키트 상자를 꾸며 보세요.</h2>
+
+    <div class="design">
+      <div class="box-stage glass"><svg id="boxPreview" viewBox="0 0 520 400" aria-label="키트 상자 미리보기"></svg></div>
+
+      <div class="options glass">
+        <div class="opt">
+          <span class="label">상자 색</span>
+          <div class="swatches" id="swatches"></div>
+        </div>
+        <div class="opt">
+          <span class="label">무늬</span>
+          <div class="patterns" id="patterns"></div>
+        </div>
+        <div class="opt">
+          <label for="kitName">키트 이름</label>
+          <input class="name-input" id="kitName" maxlength="16" placeholder="예) 반짝이는 첫 자취">
+        </div>
+        <div class="opt actions">
+          <button class="btn ghost" id="backToBuild">← 별 다시 고르기</button>
+          <button class="btn" id="toResult">별자리 완성하기 ✦</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 결과 -->
+  <section class="screen" id="screen-result">
+    <div class="eyebrow">04 · 나의 별자리</div>
+    <div class="result">
+      <div class="box-stage glass"><svg id="boxFinal" viewBox="0 0 520 400" aria-label="완성된 키트 상자"></svg></div>
+      <div class="result-card glass">
+        <h2 id="constName"></h2>
+        <div class="rating" id="rating"></div>
+        <div class="score" id="score"></div>
+        <ul class="feedback" id="feedback"></ul>
+        <div class="picked-list" id="pickedList"></div>
+        <div class="actions">
+          <button class="btn" id="replay">새 키트 만들기 ✦</button>
+          <a class="btn ghost" href="index.html">MILE 홈으로</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="mobile-bar glass" aria-live="polite">
+  <span><span class="mini-stars" id="miniStars"></span> <span id="miniCount">0</span> / 8</span>
+  <button class="btn" id="toDesignMobile" disabled>포장 디자인 ✦</button>
+</div>
+
+<script>
+(() => {
+  // ───── 데이터 ─────
+  const CATEGORIES = {
+    laundry:  { name: "세탁", color: "var(--laundry)",  hex: "#9baeff" },
+    cleaning: { name: "청소", color: "var(--cleaning)", hex: "#b9a6ff" },
+    hygiene:  { name: "위생", color: "var(--hygiene)",  hex: "#f0c4ff" },
+    kitchen:  { name: "주방", color: "var(--kitchen)",  hex: "#9fe0ff" },
+    guide:    { name: "안내", color: "var(--guide)",    hex: "#ffe6a6" }
+  };
+
+  const ITEMS = [
+    { id: "detergent", name: "세탁 세제", icon: "🧴", cat: "laundry" },
+    { id: "softener", name: "섬유유연제", icon: "🌸", cat: "laundry" },
+    { id: "net", name: "빨래망", icon: "🧺", cat: "laundry" },
+    { id: "pegs", name: "빨래 집게", icon: "📎", cat: "laundry" },
+
+    { id: "cleaner", name: "다용도 세정제", icon: "🪣", cat: "cleaning" },
+    { id: "mop", name: "청소포", icon: "🧹", cat: "cleaning" },
+    { id: "gloves", name: "고무장갑", icon: "🧤", cat: "cleaning" },
+    { id: "bags", name: "쓰레기봉투", icon: "🗑️", cat: "cleaning" },
+
+    { id: "tooth", name: "칫솔·치약", icon: "🪥", cat: "hygiene" },
+    { id: "wash", name: "샴푸·바디워시", icon: "🧼", cat: "hygiene" },
+    { id: "tissue", name: "두루마리 휴지", icon: "🧻", cat: "hygiene" },
+    { id: "wipes", name: "물티슈", icon: "💧", cat: "hygiene" },
+
+    { id: "dish", name: "주방 세제", icon: "🫧", cat: "kitchen" },
+    { id: "sponge", name: "수세미", icon: "🧽", cat: "kitchen" },
+    { id: "towel", name: "행주", icon: "🍽️", cat: "kitchen" },
+    { id: "container", name: "밀폐 용기", icon: "🥡", cat: "kitchen" },
+
+    { id: "minibook", name: "사용법 미니북", icon: "📘", cat: "guide" },
+    { id: "qr", name: "QR 안내 카드", icon: "📱", cat: "guide" },
+    { id: "measure", name: "계량컵·스푼", icon: "🥄", cat: "guide" },
+    { id: "checklist", name: "생활 체크리스트", icon: "📝", cat: "guide" }
+  ];
+
+  const STARTS = [
+    {
+      id: "dorm", title: "기숙사 생활", color: "#9baeff",
+      desc: "좁은 공간, 공용 세탁실. 꼭 필요한 것만 가볍게 챙겨요.",
+      needs: { laundry: 2, hygiene: 2, guide: 1 }
+    },
+    {
+      id: "home", title: "첫 자취", color: "#b9a6ff",
+      desc: "요리와 청소까지 혼자서. 살림의 기본을 고루 갖춰요.",
+      needs: { laundry: 1, cleaning: 2, kitchen: 2, hygiene: 1, guide: 1 }
+    },
+    {
+      id: "indep", title: "자립 준비", color: "#ffe6a6",
+      desc: "스스로 살아갈 첫걸음. 물품과 생활 정보를 함께 준비해요.",
+      needs: { laundry: 1, cleaning: 1, hygiene: 1, kitchen: 1, guide: 2 }
+    }
+  ];
+
+  const BOX_COLORS = [
+    { id: "violet", name: "은하 보라", a: "#7d6bff", b: "#2b237a" },
+    { id: "dawn", name: "새벽 파랑", a: "#5f8cff", b: "#1b2a6e" },
+    { id: "lavender", name: "별빛 라벤더", a: "#c5b8ff", b: "#5b4fb8" },
+    { id: "night", name: "깊은 밤", a: "#3a3f8f", b: "#0c0e2a" }
+  ];
+
+  const PATTERNS = [
+    { id: "milky", name: "은하수" },
+    { id: "dots", name: "별 가루" },
+    { id: "moon", name: "초승달" }
+  ];
+
+  const MAX = 8;
+  // 키트 하늘 안 별자리 자리 (위치가 고정되어 매번 보기 좋은 모양이 됨)
+  const SPOTS = [[70, 210], [125, 120], [200, 160], [262, 78], [330, 132], [300, 225], [205, 250], [120, 260]];
+
+  const state = { start: null, picked: [], color: BOX_COLORS[0], pattern: PATTERNS[0], name: "" };
+
+  const $ = (id) => document.getElementById(id);
+
+  // ───── 화면 전환 ─────
+  const show = (step) => {
+    document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === `screen-${step}`));
+    document.querySelectorAll("#steps span").forEach(s => s.classList.toggle("on", s.dataset.step === step));
+    document.body.classList.toggle("building", step === "build");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // ───── 1. 시작 고르기 ─────
+  $("startGrid").innerHTML = STARTS.map(s => `
+    <button class="start-card glass" data-start="${s.id}" style="--c:${s.color}">
+      <div class="planet"></div>
+      <h3>${s.title}</h3>
+      <p>${s.desc}</p>
+      <div class="needs">
+        ${Object.entries(s.needs).map(([c, n]) =>
+          `<span class="chip" style="--c:${CATEGORIES[c].hex}">${CATEGORIES[c].name} ${n}</span>`).join("")}
+      </div>
+    </button>`).join("");
+
+  $("startGrid").addEventListener("click", (e) => {
+    const card = e.target.closest("[data-start]");
+    if (!card) return;
+    state.start = STARTS.find(s => s.id === card.dataset.start);
+    $("buildEyebrow").textContent = `02 · 별 모으기 — ${state.start.title}`;
+    renderBuild();
+    show("build");
+  });
+
+  // ───── 2. 별 모으기 ─────
+  const renderGalaxy = () => {
+    $("galaxy").innerHTML = Object.entries(CATEGORIES).map(([key, c]) => `
+      <div class="cluster" style="--c:${c.hex}">
+        <div class="cluster-title">${c.name} 성단</div>
+        <div class="stars-row">
+          ${ITEMS.filter(i => i.cat === key).map((i, n) => `
+            <button class="item-star ${state.picked.includes(i.id) ? "picked" : ""}"
+                    data-item="${i.id}" style="--c:${c.hex};--d:${(n * .37).toFixed(2)}s"
+                    aria-pressed="${state.picked.includes(i.id)}">
+              <span class="orb">${i.icon}</span>${i.name}
+            </button>`).join("")}
+        </div>
+      </div>`).join("");
+  };
+
+  const counts = () => {
+    const out = Object.fromEntries(Object.keys(CATEGORIES).map(k => [k, 0]));
+    state.picked.forEach(id => out[ITEMS.find(i => i.id === id).cat]++);
+    return out;
+  };
+
+  const renderMeters = () => {
+    const c = counts();
+    $("meters").innerHTML = Object.entries(CATEGORIES).map(([key, cat]) => {
+      const need = state.start.needs[key] || 0;
+      const pct = need ? Math.min(c[key] / need, 1) * 100 : Math.min(c[key] * 34, 100);
+      return `
+        <div class="meter" style="--c:${cat.hex}">
+          <span>${cat.name}</span>
+          <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
+          <span class="num">${c[key]}${need ? "/" + need : ""}</span>
+        </div>`;
+    }).join("");
+  };
+
+  const renderHint = () => {
+    const c = counts();
+    const missing = Object.entries(state.start.needs).filter(([k, n]) => c[k] < n);
+    let text;
+    if (!state.picked.length) text = "별을 하나 골라 첫 빛을 밝혀 보세요.";
+    else if (state.picked.length === MAX) text = "키트가 가득 찼어요! 이제 포장을 꾸며 볼까요?";
+    else if (missing.length) {
+      const [k, n] = missing[0];
+      text = `✦ ${state.start.title}에는 ${CATEGORIES[k].name} 별이 ${n - c[k]}개 더 있으면 좋아요.`;
+    } else text = "필요한 별을 모두 모았어요. 남은 자리는 자유롭게 채워도 좋아요.";
+    $("hint").textContent = text;
+  };
+
+  // 선택한 별들이 이어져 별자리가 되는 키트 하늘
+  const constellationSVG = (picked, opts = {}) => {
+    const scale = opts.scale || 1;
+    const ox = opts.x || 0, oy = opts.y || 0;
+    const pts = picked.map((id, n) => {
+      const [x, y] = SPOTS[n];
+      return { x: ox + x * scale, y: oy + y * scale, item: ITEMS.find(i => i.id === id) };
+    });
+    const lines = pts.slice(1).map((p, n) => {
+      const a = pts[n];
+      const len = Math.hypot(p.x - a.x, p.y - a.y);
+      return `<line x1="${a.x}" y1="${a.y}" x2="${p.x}" y2="${p.y}" stroke="#dfe3ff" stroke-opacity=".55"
+                stroke-width="${1.2 * scale}" stroke-dasharray="${len}" stroke-dashoffset="${opts.animate === n ? len : 0}"
+                style="${opts.animate === n ? "animation: lineDraw .7s ease-out forwards" : ""}"/>`;
+    }).join("");
+    const stars = pts.map((p, n) => {
+      const hex = CATEGORIES[p.item.cat].hex;
+      const pop = opts.animate === n - 1 || (n === 0 && opts.animate === -1);
+      return `
+        <g style="transform-origin:${p.x}px ${p.y}px;${pop ? "animation: starPop .6s ease-out both" : ""}">
+          <circle cx="${p.x}" cy="${p.y}" r="${16 * scale}" fill="${hex}" opacity=".22"
+                  style="animation: glowPulse ${2 + n * .3}s ease-in-out infinite alternate"/>
+          <circle cx="${p.x}" cy="${p.y}" r="${4.2 * scale}" fill="#fff"/>
+          <circle cx="${p.x}" cy="${p.y}" r="${7 * scale}" fill="none" stroke="${hex}" stroke-width="${1.2 * scale}"/>
+          ${opts.labels ? `<text x="${p.x}" y="${p.y - 13 * scale}" text-anchor="middle" font-size="${14 * scale}">${p.item.icon}</text>` : ""}
+        </g>`;
+    }).join("");
+    return lines + stars;
+  };
+
+  const backgroundStars = (w, h, n, seed) => {
+    let s = seed;
+    const rand = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+    return Array.from({ length: n }, () => {
+      const r = rand() * 1.1 + .3;
+      return `<circle cx="${(rand() * w).toFixed(1)}" cy="${(rand() * h).toFixed(1)}" r="${r.toFixed(2)}" fill="#fff"
+                opacity="${(rand() * .6 + .2).toFixed(2)}" style="animation: glowPulse ${(rand() * 3 + 1.5).toFixed(1)}s ease-in-out ${(-rand() * 3).toFixed(1)}s infinite alternate"/>`;
+    }).join("");
+  };
+
+  const renderKitSky = (animate) => {
+    const empty = !state.picked.length
+      ? `<text x="200" y="155" text-anchor="middle" fill="#b7bbd5" font-size="13">아직 비어 있는 밤하늘</text>`
+      : "";
+    $("kitSky").innerHTML = `
+      <defs>
+        <linearGradient id="mw" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stop-color="#9baeff" stop-opacity="0"/>
+          <stop offset=".5" stop-color="#d6ceff" stop-opacity=".22"/>
+          <stop offset="1" stop-color="#f0c4ff" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <rect x="-60" y="110" width="520" height="80" fill="url(#mw)" transform="rotate(-22 200 150)" style="filter: blur(6px)"/>
+      ${backgroundStars(400, 300, 60, 7)}
+      ${constellationSVG(state.picked, { animate, labels: true })}
+      ${empty}`;
+  };
+
+  const renderBuild = (animate) => {
+    renderGalaxy();
+    renderMeters();
+    renderHint();
+    renderKitSky(animate);
+    $("count").textContent = state.picked.length;
+    $("toDesign").disabled = $("toDesignMobile").disabled = state.picked.length < 3;
+    $("miniCount").textContent = state.picked.length;
+    $("miniStars").textContent = "✦".repeat(state.picked.length) + "·".repeat(MAX - state.picked.length);
+  };
+
+  const sparkle = (el, hex) => {
+    const r = el.getBoundingClientRect();
+    for (let i = 0; i < 10; i++) {
+      const s = document.createElement("span");
+      s.className = "burst";
+      s.textContent = i % 2 ? "✦" : "·";
+      const a = Math.random() * Math.PI * 2, d = 30 + Math.random() * 40;
+      s.style.cssText = `left:${r.left + r.width / 2}px;top:${r.top + r.height / 2}px;--c:${hex};--x:${Math.cos(a) * d}px;--y:${Math.sin(a) * d}px`;
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 950);
+    }
+  };
+
+  $("galaxy").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-item]");
+    if (!btn) return;
+    const id = btn.dataset.item;
+    const at = state.picked.indexOf(id);
+    if (at >= 0) {
+      state.picked.splice(at, 1);
+      renderBuild();
+      return;
+    }
+    if (state.picked.length >= MAX) {
+      btn.classList.add("shake");
+      setTimeout(() => btn.classList.remove("shake"), 400);
+      return;
+    }
+    state.picked.push(id);
+    sparkle(btn, CATEGORIES[ITEMS.find(i => i.id === id).cat].hex);
+    renderBuild(state.picked.length - 2);
+  });
+
+  $("backToStart").addEventListener("click", () => show("start"));
+  $("toDesign").addEventListener("click", () => { renderDesign(); show("design"); });
+  $("toDesignMobile").addEventListener("click", () => { renderDesign(); show("design"); });
+
+  // ───── 3. 포장 디자인 ─────
+  const patternDefs = (p) => {
+    if (p === "milky") return `
+      <path d="M-20 300 C 120 220, 260 260, 540 90" stroke="#ffffff" stroke-opacity=".16" stroke-width="60" fill="none" style="filter: blur(14px)"/>
+      <path d="M-20 300 C 120 220, 260 260, 540 90" stroke="#f0e9ff" stroke-opacity=".22" stroke-width="16" fill="none" style="filter: blur(5px)"/>`;
+    if (p === "dots") return backgroundStars(520, 400, 70, 21);
+    return Array.from({ length: 7 }, (_, n) => {
+      const x = 60 + (n * 73) % 420, y = 120 + (n * 97) % 220, r = 9 + (n % 3) * 4;
+      return `<path d="M${x} ${y - r} a${r} ${r} 0 1 0 ${r * .9} ${r * 1.6} a${r * .8} ${r * .8} 0 1 1 ${-r * .9} ${-r * 1.6}z" fill="#fff6d8" opacity=".55"/>`;
+    }).join("");
+  };
+
+  // 앞면 + 뚜껑이 있는 키트 상자
+  const boxSVG = (k) => {
+    const { a, b } = state.color;
+    const name = (state.name || defaultName()).replace(/[<>&"]/g, "");
+    return `
+      <defs>
+        <linearGradient id="${k}-face" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/>
+        </linearGradient>
+        <linearGradient id="${k}-lid" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="${a}" stop-opacity=".95"/><stop offset="1" stop-color="${b}" stop-opacity=".95"/>
+        </linearGradient>
+        <linearGradient id="${k}-sheen" x1="0" y1="0" x2="1" y2="0">
+          <stop offset=".35" stop-color="#fff" stop-opacity="0"/>
+          <stop offset=".5" stop-color="#fff" stop-opacity=".22"/>
+          <stop offset=".65" stop-color="#fff" stop-opacity="0"/>
+        </linearGradient>
+        <clipPath id="${k}-faceClip"><rect x="40" y="100" width="440" height="270" rx="22"/></clipPath>
+      </defs>
+      <ellipse cx="260" cy="382" rx="210" ry="14" fill="#000" opacity=".35" style="filter: blur(6px)"/>
+      <rect x="40" y="100" width="440" height="270" rx="22" fill="url(#${k}-face)"/>
+      <g clip-path="url(#${k}-faceClip)">
+        ${patternDefs(state.pattern.id)}
+        ${constellationSVG(state.picked, { scale: .8, x: 100, y: 98 })}
+        <rect x="-520" y="100" width="520" height="270" fill="url(#${k}-sheen)">
+          <animate attributeName="x" values="-520;520;520" dur="5s" repeatCount="indefinite"/>
+        </rect>
+      </g>
+      <rect x="40" y="100" width="440" height="270" rx="22" fill="none" stroke="#ffffff" stroke-opacity=".28"/>
+      <path d="M28 70 Q28 56 42 56 H478 Q492 56 492 70 V104 Q492 112 484 112 H36 Q28 112 28 104Z" fill="url(#${k}-lid)" stroke="#ffffff" stroke-opacity=".3"/>
+      <text x="260" y="92" text-anchor="middle" fill="#fff" font-family="DM Sans, sans-serif" font-size="22" letter-spacing="6" opacity=".95">mile ✦</text>
+      <rect x="150" y="318" width="220" height="34" rx="17" fill="#0b0d26" fill-opacity=".55" stroke="#ffffff" stroke-opacity=".3"/>
+      <text x="260" y="341" text-anchor="middle" fill="#fff" font-family="Noto Serif KR, serif" font-size="15">${name}</text>`;
+  };
+
+  const defaultName = () => `${state.start ? state.start.title : "첫걸음"} 키트`;
+
+  const renderDesign = () => {
+    $("swatches").innerHTML = BOX_COLORS.map(c =>
+      `<button class="swatch ${c.id === state.color.id ? "on" : ""}" data-color="${c.id}" style="--a:${c.a};--b:${c.b}" title="${c.name}" aria-label="${c.name}"></button>`).join("");
+    $("patterns").innerHTML = PATTERNS.map(p =>
+      `<button class="pattern-btn ${p.id === state.pattern.id ? "on" : ""}" data-pattern="${p.id}">${p.name}</button>`).join("");
+    $("kitName").placeholder = `예) ${defaultName()}`;
+    $("boxPreview").innerHTML = boxSVG("pv");
+  };
+
+  $("swatches").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-color]");
+    if (!b) return;
+    state.color = BOX_COLORS.find(c => c.id === b.dataset.color);
+    renderDesign();
+  });
+
+  $("patterns").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-pattern]");
+    if (!b) return;
+    state.pattern = PATTERNS.find(p => p.id === b.dataset.pattern);
+    renderDesign();
+  });
+
+  $("kitName").addEventListener("input", (e) => {
+    state.name = e.target.value.trim();
+    $("boxPreview").innerHTML = boxSVG("pv");
+  });
+
+  $("backToBuild").addEventListener("click", () => { renderBuild(); show("build"); });
+  $("toResult").addEventListener("click", () => { renderResult(); show("result"); });
+
+  // ───── 4. 결과 ─────
+  const CONST_NAMES = {
+    laundry: "포근한 빨래자리",
+    cleaning: "반짝이는 청소자리",
+    hygiene: "산뜻한 아침자리",
+    kitchen: "따뜻한 식탁자리",
+    guide: "길잡이 북극성자리"
+  };
+
+  const evaluate = () => {
+    const c = counts();
+    const needs = state.start.needs;
+    const needTotal = Object.values(needs).reduce((a, b) => a + b, 0);
+    const met = Object.entries(needs).reduce((a, [k, n]) => a + Math.min(c[k], n), 0);
+    const covered = Object.values(c).filter(v => v > 0).length;
+    // 필요 충족 70점 + 고른 구성 20점 + 키트 채움 10점
+    const score = Math.round(met / needTotal * 70 + covered / 5 * 20 + state.picked.length / MAX * 10);
+    const top = Object.entries(c).sort((a, b) => b[1] - a[1])[0][0];
+    return { c, score, top };
+  };
+
+  const renderResult = () => {
+    const { c, score, top } = evaluate();
+    const starsLit = score >= 90 ? 5 : score >= 75 ? 4 : score >= 60 ? 3 : score >= 40 ? 2 : 1;
+    $("boxFinal").innerHTML = boxSVG("fn");
+    $("constName").textContent = `${state.name || defaultName()} — ${CONST_NAMES[top]}`;
+    $("rating").innerHTML = Array.from({ length: 5 }, (_, n) =>
+      `<span class="${n < starsLit ? "lit" : "dim"}">★</span>`).join("");
+    $("score").textContent = `별빛 점수 ${score} / 100`;
+
+    const tips = [];
+    Object.entries(state.start.needs).forEach(([k, n]) => {
+      if (c[k] < n) tips.push(`${CATEGORIES[k].name} 별이 ${n - c[k]}개 더 있으면 ${state.start.title}이 한결 편해져요.`);
+    });
+    if (!c.guide) tips.push("사용법 미니북이나 QR 안내 카드를 더하면, 물품을 실제 생활에 바로 활용할 수 있어요.");
+    if (!tips.length) tips.push(`${state.start.title}에 필요한 별을 빠짐없이 모았어요. 첫걸음이 한결 가벼워질 거예요!`);
+    tips.push("작은 준비가 모여 스스로 살아가는 힘이 됩니다. — MILE");
+    $("feedback").innerHTML = tips.map(t => `<li>${t}</li>`).join("");
+
+    $("pickedList").innerHTML = state.picked.map(id => {
+      const i = ITEMS.find(x => x.id === id);
+      return `<span class="chip" style="--c:${CATEGORIES[i.cat].hex}">${i.icon} ${i.name}</span>`;
+    }).join("");
+
+    setTimeout(() => sparkle($("rating"), "#ffe6a6"), 400);
+  };
+
+  $("replay").addEventListener("click", () => {
+    state.picked = [];
+    state.name = "";
+    $("kitName").value = "";
+    show("start");
+  });
+
+  show("start");
+
+  // ───── 반짝이는 배경 별 ─────
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const canvas = $("twinkle");
+  const ctx = canvas.getContext("2d");
+  let stars = [], w, h, meteor = null, nextMeteor = 0;
+
+  const resize = () => {
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    w = window.innerWidth; h = window.innerHeight;
+    canvas.width = w * ratio; canvas.height = h * ratio;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    stars = Array.from({ length: Math.round(w * h / 9000) }, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      r: Math.random() * 1.2 + .3, p: Math.random() * 6.28, s: Math.random() * .03 + .01,
+      vy: Math.random() * .12 + .02
+    }));
+  };
+
+  const frame = (now) => {
+    ctx.clearRect(0, 0, w, h);
+    for (const s of stars) {
+      s.p += s.s;
+      s.y -= s.vy;
+      if (s.y < -5) { s.y = h + 5; s.x = Math.random() * w; }
+      ctx.globalAlpha = (Math.sin(s.p) + 1) / 2 * .8 + .15;
+      ctx.fillStyle = "#e6e4ff";
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (!meteor && now > nextMeteor) {
+      meteor = { x: w * (.3 + Math.random() * .7), y: -10, life: 1 };
+      nextMeteor = now + 3000 + Math.random() * 5000;
+    }
+    if (meteor) {
+      meteor.x -= 9; meteor.y += 5; meteor.life -= .014;
+      const g = ctx.createLinearGradient(meteor.x, meteor.y, meteor.x + 180, meteor.y - 100);
+      g.addColorStop(0, `rgba(255,255,255,${meteor.life})`);
+      g.addColorStop(1, "rgba(180,190,255,0)");
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(meteor.x, meteor.y);
+      ctx.lineTo(meteor.x + 180, meteor.y - 100);
+      ctx.stroke();
+      if (meteor.life <= 0) meteor = null;
+    }
+    requestAnimationFrame(frame);
+  };
+
+  resize();
+  window.addEventListener("resize", resize);
+  if (!reduced) requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
