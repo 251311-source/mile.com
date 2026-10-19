@@ -313,7 +313,7 @@ section { position: relative; }
   padding: 130px 0;
 }
 
-.section-heading { max-width: 690px; margin-bottom: 52px; }
+.section-heading { margin-bottom: 52px; }
 
 .section-label {
   color: #b9c1ff;
@@ -322,9 +322,12 @@ section { position: relative; }
   margin-bottom: 16px;
 }
 
-.section h2 {
+.section h2,
+.vision-inner h2 {
   font-family: var(--serif);
-  font-size: clamp(30px, 4.5vw, 51px);
+  /* 화면 폭에 맞춰 줄어들어 제목이 항상 두 줄에 맞도록 */
+  font-size: clamp(18px, 5.3vw, 51px);
+  word-break: keep-all;
   line-height: 1.5;
   letter-spacing: -.055em;
   font-weight: 300;
