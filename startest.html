@@ -93,6 +93,56 @@ a{color:inherit}
  .st-tally-grid{grid-template-columns:repeat(2,1fr)}
  .st-mate{flex-direction:column;align-items:flex-start}
 }
+
+/* ===== 은하수 · 반짝임 업그레이드 ===== */
+html{min-height:100%;background:radial-gradient(ellipse at 70% 0%,rgba(98,92,190,.22),transparent 55%),radial-gradient(ellipse at 10% 100%,rgba(176,120,190,.12),transparent 50%),linear-gradient(180deg,#05061c 0%,#0e0d27 55%,#16142e 100%) fixed}
+body{background:transparent}
+body:before{display:none}
+#galaxy{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.nav,main,.footer{position:relative;z-index:1}
+.nav{position:sticky;z-index:10}
+@property --spin{syntax:'<angle>';initial-value:0deg;inherits:false}
+@keyframes glowSpin{to{--spin:360deg}}
+.st-card,.st-result{position:relative;isolation:isolate;box-shadow:0 30px 80px rgba(0,0,0,.45),0 0 60px rgba(120,110,230,.12)}
+.st-card:before,.st-result:after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;z-index:3;
+ background:conic-gradient(from var(--spin),transparent 0 62%,rgba(170,163,255,.55) 74%,rgba(255,238,180,.95) 82%,rgba(170,163,255,.55) 90%,transparent 100%);
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:glowSpin 7s linear infinite}
+.st-card{background:radial-gradient(circle at 80% 0%,rgba(150,145,220,.2),transparent 42%),radial-gradient(circle at 0% 100%,rgba(244,223,147,.07),transparent 40%),linear-gradient(145deg,rgba(17,17,32,.92),rgba(28,27,48,.92) 60%,rgba(36,33,59,.92));backdrop-filter:blur(6px)}
+.st-intro h2,.st-sky h2{background:linear-gradient(100deg,#f4f1ea 30%,#fff6cf 45%,#f4df93 50%,#fff6cf 55%,#f4f1ea 70%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:titleShine 6s ease-in-out infinite}
+@keyframes titleShine{0%,100%{background-position:100% 0}50%{background-position:0 0}}
+.st-intro .label,.st-sky .label{text-shadow:0 0 14px rgba(170,178,255,.6)}
+.st-svg circle{animation:starPulse 2.8s ease-in-out infinite}
+.st-svg circle:nth-of-type(2n){animation-delay:.7s}
+.st-svg circle:nth-of-type(3n){animation-delay:1.4s}
+.st-svg circle.gold{animation:goldPulse 2.2s ease-in-out infinite}
+@keyframes starPulse{0%,100%{opacity:.75}50%{opacity:1;filter:drop-shadow(0 0 7px rgba(220,215,255,1))}}
+@keyframes goldPulse{0%,100%{filter:drop-shadow(0 0 6px rgba(244,223,147,.9))}50%{filter:drop-shadow(0 0 16px rgba(255,238,180,1)) drop-shadow(0 0 30px rgba(244,223,147,.6))}}
+.st-svg line{filter:drop-shadow(0 0 3px rgba(200,195,255,.7))}
+.st-progress span{position:relative}
+.st-progress span.on{background:linear-gradient(90deg,#8881cf,#f4df93);box-shadow:0 0 12px rgba(244,223,147,.45)}
+.st-progress span.on:last-of-type:after,.st-progress span.on:has(+ span:not(.on)):after{content:"✦";position:absolute;right:-6px;top:50%;transform:translateY(-52%);font-size:13px;color:#fff6cf;text-shadow:0 0 10px #f4df93}
+.st-opt{position:relative;overflow:hidden}
+.st-opt:after{content:"";position:absolute;top:0;bottom:0;left:-60%;width:45%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.10),transparent);transform:skewX(-18deg);transition:left .7s ease}
+.st-opt:hover:after{left:120%}
+.st-opt:hover{box-shadow:0 0 0 1px rgba(170,163,255,.35),0 10px 30px rgba(120,110,230,.18)}
+.primary{position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(121,133,232,.3),0 0 24px rgba(160,169,239,.35)}
+.primary:after{content:"";position:absolute;top:0;bottom:0;left:-70%;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);animation:btnShine 3.8s ease-in-out infinite}
+@keyframes btnShine{0%,60%{left:-70%}100%{left:130%}}
+.st-sky{position:relative;overflow:hidden}
+.st-sky>*{position:relative;z-index:1}
+.st-sky:before{content:"";position:absolute;inset:-30%;z-index:0;pointer-events:none;filter:blur(18px);opacity:.9;
+ background:linear-gradient(118deg,transparent 34%,rgba(200,190,255,.10) 42%,rgba(255,236,220,.30) 49%,rgba(214,200,255,.20) 53%,rgba(255,220,240,.08) 60%,transparent 68%);animation:bandDrift 14s ease-in-out infinite alternate}
+@keyframes bandDrift{from{transform:translateX(-4%) rotate(-2deg)}to{transform:translateX(4%) rotate(2deg)}}
+.st-sky .twinkle{position:absolute;z-index:0;border-radius:50%;background:#fff;pointer-events:none;animation:twinkle var(--d,3s) ease-in-out var(--dl,0s) infinite}
+.st-sky .twinkle.g{background:#fff3c4;box-shadow:0 0 6px #f4df93}
+.st-sky .twinkle.x:before,.st-sky .twinkle.x:after{content:"";position:absolute;left:50%;top:50%;background:rgba(255,255,255,.85);transform:translate(-50%,-50%)}
+.st-sky .twinkle.x:before{width:9px;height:1px}.st-sky .twinkle.x:after{width:1px;height:9px}
+@keyframes twinkle{0%,100%{opacity:.15;transform:scale(.7)}50%{opacity:1;transform:scale(1.15)}}
+.st-tally-grid div{transition:background .3s,box-shadow .3s}
+.st-tally-grid div:hover{background:rgba(154,164,238,.12);box-shadow:0 0 18px rgba(154,164,238,.2)}
+@media (prefers-reduced-motion: reduce){
+ .st-card:before,.st-result:after,.st-intro h2,.st-sky h2,.st-svg circle,.primary:after,.st-sky:before,.st-sky .twinkle{animation:none}
+}
 </style>
 </head>
 <body>
@@ -112,6 +162,8 @@ a{color:inherit}
 <script>
 // MILE 홈페이지 주소
 const HOME_URL = 'https://251311-source.github.io/mile.com/';
+// 추천 키트(상품 담으러 가기) 링크
+const KIT_URL = 'https://oksusususu.github.io/milehomepage03/';
 
 /* ================================
    MILE 기숙사 별자리 테스트
@@ -330,10 +382,162 @@ function applyStarKit() {
   if (!stLast.dawn && t.kit === 'custom') set['수면 안대 · 귀마개'] = 1;
   const q = new URLSearchParams({ kit: t.kit, set: 'dorm', all: t.preset.all ? '1' : '0',
     items: Object.entries(set).map(([n, c]) => n + ':' + c).join(','), from: t.name });
-  location.href = HOME_URL + '#' + q.toString();
+  location.href = KIT_URL + '#' + q.toString();
 }
 
 renderStarTest();
+
+/* =========================================
+   은하수 밤하늘 배경
+   (은하수 띠 · 반짝이는 별 · 별똥별 · 결과 별 폭죽)
+   ========================================= */
+(function galaxySky() {
+  const cv = document.createElement('canvas');
+  cv.id = 'galaxy';
+  document.body.prepend(cv);
+  const ctx = cv.getContext('2d');
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let w = 0, h = 0, dpr = 1, band = null, stars = [], shoots = [], sparks = [];
+  let mx = 0, my = 0, px = 0, py = 0, last = performance.now(), nextShoot = 1500;
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const gauss = () => (Math.random() + Math.random() + Math.random() + Math.random() - 2) / 2;
+
+  // 은하수 띠는 한 번만 그려 두고 매 프레임 재사용
+  function buildBand() {
+    band = document.createElement('canvas');
+    band.width = w * dpr; band.height = h * dpr;
+    const b = band.getContext('2d');
+    b.scale(dpr, dpr);
+    const x0 = -0.15 * w, y0 = 0.95 * h, x1 = 1.15 * w, y1 = 0.05 * h;
+    const len = Math.hypot(x1 - x0, y1 - y0), nx = -(y1 - y0) / len, ny = (x1 - x0) / len;
+    const width = Math.max(110, Math.min(w, h) * 0.2);
+    const at = (t, off) => [x0 + (x1 - x0) * t + nx * off, y0 + (y1 - y0) * t + ny * off];
+    b.globalCompositeOperation = 'lighter';
+    const tints = ['150,140,255', '255,170,210', '244,223,147', '130,170,255'];
+    for (let i = 0; i < 70; i++) {                       // 성운 구름
+      const t = Math.random(), [x, y] = at(t, gauss() * width * 0.7);
+      const r = rnd(width * 0.5, width * 1.4), c = tints[i % tints.length];
+      const g = b.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(${c},${rnd(0.035, 0.08)})`); g.addColorStop(1, `rgba(${c},0)`);
+      b.fillStyle = g; b.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    const n = Math.round(len * 3.2);
+    for (let i = 0; i < n; i++) {                        // 띠를 이루는 작은 별 무리
+      const [x, y] = at(Math.random(), gauss() * width * 0.55);
+      b.fillStyle = `rgba(255,${200 + Math.random() * 55 | 0},${220 + Math.random() * 35 | 0},${rnd(0.15, 0.75)})`;
+      b.fillRect(x, y, rnd(0.4, 1.3), rnd(0.4, 1.3));
+    }
+    b.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < 90; i++) {                       // 어두운 먼지 띠 (가늘고 길게)
+      const [x, y] = at(i / 90 + rnd(-0.004, 0.004), width * 0.08 + gauss() * width * 0.06);
+      const r = rnd(width * 0.08, width * 0.2);
+      const g = b.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, 'rgba(8,8,28,.16)'); g.addColorStop(1, 'rgba(8,8,28,0)');
+      b.fillStyle = g; b.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+  }
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = innerWidth; h = innerHeight;
+    cv.width = w * dpr; cv.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    buildBand();
+    stars = Array.from({ length: Math.min(320, Math.round(w * h / 3800)) }, () => ({
+      x: Math.random() * w, y: Math.random() * h, r: rnd(0.35, 1.5), z: rnd(0.2, 1),
+      ph: Math.random() * 6.3, sp: rnd(0.4, 2), gold: Math.random() < 0.08
+    }));
+    if (reduce) draw(0, 0);
+  }
+
+  function shoot(x, y) {
+    const a = Math.PI * rnd(0.15, 0.3), s = rnd(0.6, 0.95);
+    shoots.push({ x: x ?? rnd(w * 0.3, w * 1.05), y: y ?? rnd(-20, h * 0.35), vx: -Math.cos(a) * s, vy: Math.sin(a) * s, life: 0, max: rnd(900, 1400) });
+  }
+  window.skyBurst = function (x, y, n = 70) {
+    if (reduce) return;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = rnd(0.08, 0.5);
+      sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 0.05, life: 0, max: rnd(900, 1800), gold: Math.random() < 0.55, r: rnd(0.8, 2.2) });
+    }
+  };
+
+  function star4(x, y, r, a, color) {
+    ctx.globalAlpha = a; ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 6.29); ctx.fill();
+    if (r > 1.1 && a > 0.7) {
+      ctx.globalAlpha = (a - 0.7) * 2;
+      ctx.fillRect(x - r * 5, y - 0.35, r * 10, 0.7);
+      ctx.fillRect(x - 0.35, y - r * 5, 0.7, r * 10);
+    }
+  }
+
+  function draw(t, dt) {
+    ctx.clearRect(0, 0, w, h);
+    px += (mx - px) * 0.04; py += (my - py) * 0.04;
+    const breathe = reduce ? 0.85 : 0.78 + 0.14 * Math.sin(t / 3200);
+    ctx.globalAlpha = breathe;
+    ctx.drawImage(band, px * -10 + Math.sin(t / 9000) * 6, py * -7, w, h);
+    for (const s of stars) {
+      if (!reduce) { s.x -= s.z * dt * 0.004; if (s.x < -6) { s.x = w + 6; s.y = Math.random() * h; } }
+      const a = reduce ? 0.7 : 0.2 + 0.8 * (0.5 + 0.5 * Math.sin(t * 0.0013 * s.sp + s.ph));
+      star4(s.x + px * s.z * 18, s.y + py * s.z * 12, s.r, a, s.gold ? '#f4df93' : '#eef0ff');
+    }
+    for (let i = shoots.length - 1; i >= 0; i--) {
+      const s = shoots[i]; s.life += dt; s.x += s.vx * dt; s.y += s.vy * dt;
+      const k = s.life / s.max; if (k >= 1) { shoots.splice(i, 1); continue; }
+      const f = Math.sin(Math.PI * k), tail = 170 * f, tx = s.x - s.vx * tail / 0.8, ty = s.y - s.vy * tail / 0.8;
+      const g = ctx.createLinearGradient(s.x, s.y, tx, ty);
+      g.addColorStop(0, `rgba(255,250,228,${0.95 * f})`); g.addColorStop(1, 'rgba(244,223,147,0)');
+      ctx.globalAlpha = 1; ctx.strokeStyle = g; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(tx, ty); ctx.stroke();
+      star4(s.x, s.y, 1.7, f, '#fffbe8');
+    }
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const p = sparks[i]; p.life += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.00012 * dt; p.vx *= 0.995;
+      const k = p.life / p.max; if (k >= 1) { sparks.splice(i, 1); continue; }
+      star4(p.x, p.y, p.r, (1 - k) * (0.6 + 0.4 * Math.sin(p.life / 60)), p.gold ? '#f4df93' : '#d9d6ff');
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function frame(t) {
+    const dt = Math.min(50, t - last); last = t;
+    if (!document.hidden) {
+      draw(t, dt);
+      nextShoot -= dt;
+      if (nextShoot <= 0) { shoot(); nextShoot = rnd(2200, 5200); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  addEventListener('pointermove', e => { mx = e.clientX / innerWidth - 0.5; my = e.clientY / innerHeight - 0.5; });
+  addEventListener('resize', resize);
+  addEventListener('click', e => { if (!reduce && !e.target.closest('button,a')) shoot(e.clientX + 120, e.clientY - 60); });
+  resize();
+  if (!reduce) requestAnimationFrame(frame);
+})();
+
+// 결과가 나오면 결과 카드 위에서 별 폭죽
+const _showStarResult = showStarResult;
+showStarResult = function () {
+  _showStarResult.apply(this, arguments);
+  const skyBox = document.querySelector('.st-sky');
+  if (skyBox) {                                        // 결과 하늘에 반짝이는 별 뿌리기
+    let html = '';
+    for (let i = 0; i < 46; i++) {
+      const size = (Math.random() * 2 + 1).toFixed(1), kind = Math.random() < 0.18 ? 'g' : Math.random() < 0.15 ? 'x' : '';
+      html += `<i class="twinkle ${kind}" style="left:${(Math.random() * 100).toFixed(1)}%;top:${(Math.random() * 100).toFixed(1)}%;width:${size}px;height:${size}px;--d:${(2 + Math.random() * 3).toFixed(1)}s;--dl:-${(Math.random() * 4).toFixed(1)}s"></i>`;
+    }
+    skyBox.insertAdjacentHTML('afterbegin', html);
+  }
+  setTimeout(() => {
+    const sky = document.querySelector('.st-sky svg') || document.querySelector('.st-sky');
+    if (!sky || !window.skyBurst) return;
+    const r = sky.getBoundingClientRect();
+    window.skyBurst(r.left + r.width / 2, r.top + r.height / 2, 90);
+  }, 450);
+};
 </script>
 </body>
 </html>
