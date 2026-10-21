@@ -35,3 +35,6 @@
 - `js/store.js` 저장소, `js/docs.js` PDF(pdf.js)·PPTX(JSZip) 파싱과 범위, `js/ai.js` Claude API 호출(@anthropic-ai/sdk, 구조화 출력·프롬프트 캐싱·웹 검색), `js/questions.js` 문제 생성·렌더링·채점 엔진, `js/panels.js` 고정 패널, `js/features/*` 각 기능 화면
 - 외부 라이브러리는 jsDelivr CDN에서 버전을 고정해 불러옵니다.
 - 스캔 이미지로 된 PDF는 글자를 읽을 수 없습니다. 구형 `.ppt`는 `.pptx`로 저장해서 올려 주세요.
+
+## 파일 하나로 만들기
+`npm i esbuild` 후 `node sociology/tools/build-single.mjs 출력파일.html`을 실행하면 CSS·JS를 모두 넣은 HTML 파일 하나가 만들어집니다. 더블클릭으로 열어 쓸 수 있습니다(라이브러리는 CDN에서 불러오므로 인터넷 연결 필요).

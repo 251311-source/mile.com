@@ -104,7 +104,8 @@ export async function generateMany({ count, typePool, difficulty, focus, avoid }
   const types = Array.from({ length: count }, (_, i) => typePool[i % typePool.length]);
   const planned = typePool.length > 1 ? shuffle(types) : types;
   const chunks = [];
-  for (let i = 0; i < planned.length; i += 8) chunks.push(planned.slice(i, i + 8));
+  // 작은 묶음을 동시에 요청해야 기다리는 시간이 짧다.
+  for (let i = 0; i < planned.length; i += 4) chunks.push(planned.slice(i, i + 4));
   const results = await Promise.allSettled(chunks.map((c, i) => generateQuestions({
     types: c, difficulty, focus, avoid,
   })));
