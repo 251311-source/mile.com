@@ -4,8 +4,8 @@
 서버가 필요 없는 정적 사이트이며, 이 저장소를 GitHub Pages 등으로 배포하면 `/sociology/` 경로에서 열립니다.
 
 ## 시작하기
-1. `sociology/index.html`을 웹 서버로 엽니다. (로컬: 저장소 루트에서 `python3 -m http.server` 후 `http://localhost:8000/sociology/`)
-2. **설정**에서 Anthropic API 키를 입력합니다. 키는 브라우저 localStorage에만 저장되고, 요청은 브라우저에서 Anthropic API로 바로 갑니다.
+1. Firebase Hosting으로 배포한 주소에 접속해 Google 계정 또는 이메일로 로그인합니다.
+2. **설정 → API 키 입력**에 Anthropic API 키를 넣습니다. 키는 로그인한 계정의 비공개 문서(`users/{uid}/private/settings`)에만 저장되고 코드에는 들어 있지 않습니다.
 3. **자료·범위**에서 PDF/PPTX를 올리고 단원(목차·PPT 구역), 쪽/슬라이드 번호, 범위 입력(예: `3-12, 15`)으로 학습 범위를 고릅니다.
 
 ## 기능
@@ -27,14 +27,21 @@
 ## 출처 표기 방식
 자료는 `[[D1:12]]`(자료 D1의 12쪽/슬라이드 12) 표지를 붙여 AI에 전달합니다. AI가 돌려준 출처는 실제 자료에 있는 위치인지 확인해 보여 주며, 확인되지 않으면 「⚠ 확인 불가」로 표시합니다. 비판적 읽기의 원문 문단은 자료 본문과 직접 대조합니다.
 
-## 저장
-- 업로드한 자료: IndexedDB / 학습 기록(오답노트, 질문 기록, 정답률, 플래시카드 진도): localStorage
-- 다른 기기로 옮기려면 **설정 → 백업 파일 저장/불러오기**를 사용합니다.
+## 저장 (계정)
+- 모든 학습 기록은 Firestore `users/{uid}/...`에 항목별 문서로 저장됩니다: `wrong`, `qlog`, `cards`, `exams`, `bank`, `reports`(항목 1개 = 문서 1개), `attempts`(날짜별 문서), `quoteBank`·`maps`(범위별 문서), `meta/state`(학습 범위·설정·마지막 백업), `private/settings`(API 키), `materials`(자료 분석 결과).
+- 원본 PDF/PPT는 계정에 올리지 않고 이 기기 IndexedDB에만 둡니다. 계정에는 분석 결과(파일 이름, 쪽 구조, 개념·학자 목록, 쪽 번호가 붙은 핵심 문장)만 저장해 다른 기기에서도 퀴즈 등을 쓸 수 있습니다. 같은 이름의 파일을 다시 올리면 기존 분석에 연결됩니다.
+- Firestore 오프라인 캐시를 쓰므로 인터넷이 끊겨도 동작하고, 다시 연결되면 자동으로 저장됩니다.
+- 보안 규칙(`firestore.rules`): 각 사용자는 자기 `users/{uid}` 아래만 읽고 쓸 수 있습니다.
+
+## 배포
+저장소 루트에서 `firebase deploy --only hosting,firestore:rules` (설정은 `firebase.json`, 공개 폴더는 `sociology/`).
+로컬 테스트: `firebase emulators:start --project demo-socstudy --only auth,firestore,hosting` 후 `http://127.0.0.1:5000/?emulator=1`
 
 ## 구성
 - `js/store.js` 저장소, `js/docs.js` PDF(pdf.js)·PPTX(JSZip) 파싱과 범위, `js/ai.js` Claude API 호출(@anthropic-ai/sdk, 구조화 출력·프롬프트 캐싱·웹 검색), `js/questions.js` 문제 생성·렌더링·채점 엔진, `js/panels.js` 고정 패널, `js/features/*` 각 기능 화면
 - 외부 라이브러리는 jsDelivr CDN에서 버전을 고정해 불러옵니다.
 - 스캔 이미지로 된 PDF는 글자를 읽을 수 없습니다. 구형 `.ppt`는 `.pptx`로 저장해서 올려 주세요.
 
-## 파일 하나로 만들기
+## 파일 하나로 만들기 (로그인 기능 이전 방식)
+로그인·계정 저장은 웹 주소(https)에서만 동작하므로, 파일 하나로 열어 쓰는 방식은 더 이상 권장하지 않습니다.
 `npm i esbuild` 후 `node sociology/tools/build-single.mjs 출력파일.html`을 실행하면 CSS·JS를 모두 넣은 HTML 파일 하나가 만들어집니다. 더블클릭으로 열어 쓸 수 있습니다(라이브러리는 CDN에서 불러오므로 인터넷 연결 필요).

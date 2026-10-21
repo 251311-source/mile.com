@@ -1,0 +1,19 @@
+rules_version = '2';
+
+// 사회학 학습 프로그램 보안 규칙
+// - 로그인한 사용자는 자기 데이터(users/{자기 uid}/...)만 읽고 쓸 수 있다.
+// - 그 밖의 모든 경로는 누구도 읽거나 쓸 수 없다(기본 거부).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{collection}/{docId} {
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      allow read, delete: if isOwner();
+      allow create, update: if isOwner()
+        && request.resource.data.keys().hasOnly(['v', 't', 'apiKey'])
+        && (!('v' in request.resource.data) || request.resource.data.v is string)
+        && (!('apiKey' in request.resource.data) || (collection == 'private' && request.resource.data.apiKey is string));
+    }
+  }
+}

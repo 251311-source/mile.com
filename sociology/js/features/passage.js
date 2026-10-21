@@ -1,7 +1,7 @@
 // 2. 비판적 읽기: 문단 속 바뀐 단어 찾기
 import { h, add, clear, pageHead, loadingBox, errorBox, sourceChips, setCurrent, toast } from '../ui.js';
 import { askJSON, T, SOURCES } from '../ai.js';
-import { findInScope } from '../docs.js';
+import { findInScope, needsOriginal } from '../docs.js';
 import { uid, S, pushRecent, recordAttempt, addWrong, markMastered } from '../store.js';
 import { openChatAbout } from '../panels.js';
 import { verifyItems } from '../verify.js';
@@ -22,6 +22,14 @@ const JUDGE = T.obj({
 });
 
 export function render(root) {
+  const missing = needsOriginal();
+  if (missing.length) {
+    add(root, pageHead('비판적 읽기', null), h('div', { class: 'notice warn' },
+      h('p', null, h('b', null, '이 기능은 원본 파일이 필요해요. 같은 파일을 다시 업로드해주세요.')),
+      h('p', { class: 'small' }, `이 기기에 원본이 없는 자료: ${missing.join(', ')}`),
+      h('a', { class: 'btn primary', href: '#/scope' }, '📚 자료 올리기')));
+    return;
+  }
   const area = h('div');
   const btn = h('button', { class: 'btn primary', onclick: () => next() }, '새 문단 받기');
   add(root, 

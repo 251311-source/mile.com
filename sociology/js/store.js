@@ -1,5 +1,5 @@
-// 학습 기록(localStorage)과 업로드 자료(IndexedDB) 저장소.
-const KEY = 'socstudy:v1';
+// 학습 기록 저장소. 로그인한 계정(Firestore)과 cloud.js가 동기화하고, 업로드 자료 원본은 이 기기의 IndexedDB에만 둔다.
+export const LEGACY_KEY = 'socstudy:v1'; // 로그인 기능 이전에 브라우저에 저장하던 기록
 const MAX_ATTEMPTS = 8000;
 
 const DEFAULTS = () => ({
@@ -19,19 +19,23 @@ const DEFAULTS = () => ({
   firstUse: Date.now(),
 });
 
-let state = load();
+let state = DEFAULTS();
 const listeners = new Set();
 
-function load() {
+// 로그인 이전 버전이 이 브라우저에 남긴 기록 (계정으로 옮기기용)
+export function loadLegacy() {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return DEFAULTS();
+    const raw = localStorage.getItem(LEGACY_KEY);
+    if (!raw) return null;
     const parsed = JSON.parse(raw);
     const base = DEFAULTS();
     return { ...base, ...parsed, settings: { ...base.settings, ...(parsed.settings || {}) } };
   } catch {
-    return DEFAULTS();
+    return null;
   }
+}
+export function clearLegacy() {
+  try { localStorage.removeItem(LEGACY_KEY); } catch {}
 }
 
 let saveTimer = null;
@@ -39,18 +43,9 @@ export function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(flush, 50);
 }
+// 변경 알림. 계정 저장은 cloud.js가 이 알림을 받아 바뀐 항목만 올린다.
 export function flush() {
   clearTimeout(saveTimer);
-  try {
-    localStorage.setItem(KEY, JSON.stringify(state));
-  } catch (e) {
-    // 용량 초과 시 오래된 채점 기록부터 줄인다.
-    if (state.attempts.length > 1000) {
-      state.attempts = state.attempts.slice(-1000);
-      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {}
-    }
-    console.warn('저장 실패', e);
-  }
   listeners.forEach((fn) => fn());
 }
 export function onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }

@@ -5,10 +5,20 @@ import { testKey } from '../ai.js';
 import { downloadBackup, parseBackup, applyBackup, summarize, backupFileName } from '../backup.js';
 import { REASONS, reportedLabel, showReview } from '../report.js';
 import { TYPES } from '../questions.js';
+import { saveApiKey } from '../cloud.js';
+import { deleteAccount } from '../auth.js';
+import { fb } from '../firebase.js';
+import { legacySummary, askMigration } from '../migrate.js';
 
 export function render(root) {
   const s = settings();
-  const key = h('input', { class: 'input', type: 'password', value: s.apiKey, placeholder: 'sk-ant-...', autocomplete: 'off', oninput: (e) => { s.apiKey = e.target.value.trim(); save(); } });
+  let keyTimer = null;
+  const key = h('input', { class: 'input', type: 'password', value: s.apiKey, placeholder: 'sk-ant-...', autocomplete: 'off', 'aria-label': 'API 키 입력', oninput: (e) => {
+    const v = e.target.value.trim();
+    s.apiKey = v;
+    clearTimeout(keyTimer);
+    keyTimer = setTimeout(() => saveApiKey(v).then(() => toast(v ? 'API 키를 계정에 저장했어요.' : 'API 키를 지웠어요.')).catch((err) => toast('API 키 저장 실패: ' + err.message, 'error')), 600);
+  } });
   const testBtn = h('button', { class: 'btn', onclick: () => busy(testBtn, async () => { await testKey(); toast('연결되었습니다. ✔'); }) }, '연결 확인');
   const fileIn = h('input', { type: 'file', accept: 'application/json,.json', hidden: true, onchange: async (e) => {
     const f = e.target.files[0];
@@ -32,6 +42,10 @@ export function render(root) {
       { label: '합치기', primary: true, onclick: () => apply('merge') },
     ]);
   } });
+  const legacyBtn = h('span');
+  legacySummary().then((sum) => {
+    if (sum) legacyBtn.replaceWith(h('button', { class: 'btn', onclick: () => askMigration(fb.auth.currentUser.uid, sum) }, '이 브라우저의 기존 기록을 계정으로 옮기기'));
+  });
   const reportBox = h('div');
   const drawReports = () => {
     clear(reportBox);
@@ -55,20 +69,36 @@ export function render(root) {
     pageHead('설정', null),
     h('section', { class: 'card' },
       h('h2', null, 'AI 연결'),
-      field('Anthropic API 키', h('div', { class: 'row' }, key, testBtn),
-        '키는 이 브라우저(localStorage)에만 저장되고, 요청은 브라우저에서 Anthropic API로 바로 전송됩니다. 공용 컴퓨터에서는 사용 후 지워 주세요. 키 발급: console.anthropic.com'),
+      field('API 키 입력', h('div', { class: 'row' }, key, testBtn),
+        '입력한 Anthropic API 키는 로그인한 계정의 비공개 저장 공간(본인만 읽을 수 있음)에 저장되어, 다른 기기에서 로그인해도 자동으로 불러옵니다. 프로그램 코드에는 키가 들어 있지 않습니다. 요청은 브라우저에서 Anthropic API로 바로 전송됩니다. 키 발급: console.anthropic.com'),
       h('div', { class: 'grid-3' },
         field('모델', select([['claude-opus-5-5', 'Claude Opus 5.5 (기본·가장 정확)'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5 (빠르고 저렴)'], ['claude-haiku-5-5', 'Claude Haiku 5.5 (가장 저렴)']], s.model, (v) => { s.model = v; save(); })),
         field('사고 깊이(effort)', select([['low', '낮음 (빠름)'], ['medium', '보통'], ['high', '높음 (정확, 느림)']], s.effort, (v) => { s.effort = v; save(); })),
         field('AI에 보낼 자료 최대 길이', h('input', { class: 'input', type: 'number', min: 20000, step: 10000, value: s.maxChars, oninput: (e) => { s.maxChars = Math.max(20000, +e.target.value || 400000); save(); } }), '글자 수. 범위가 이보다 길면 뒷부분은 빠집니다.'))),
     h('section', { class: 'card' },
       h('h2', null, '학습 기록'),
-      h('p', { class: 'muted' }, `오답 ${S().wrong.length}개 · 질문 기록 ${S().qlog.length}개 · 채점 기록 ${S().attempts.length}개 · 플래시카드 ${S().cards.length}장 · 문제 은행 ${S().bank.length}개. 기록은 이 브라우저에 자동 저장되어 다음에 접속해도 유지됩니다.`),
+      h('p', { class: 'muted' }, `오답 ${S().wrong.length}개 · 질문 기록 ${S().qlog.length}개 · 채점 기록 ${S().attempts.length}개 · 플래시카드 ${S().cards.length}장 · 문제 은행 ${S().bank.length}개. 기록은 로그인한 계정에 자동 저장되어 어느 기기·브라우저에서 로그인해도 이어집니다.`),
       h('p', { class: 'muted small' }, `백업 파일에는 오답노트·질문 기록·정답률·플래시카드 진도·문제 은행·신고 기록·학습 범위가 들어갑니다. 올린 PDF/PPT 원본은 용량 때문에 넣지 않고 파일 이름만 기록합니다. 파일 이름 예: ${backupFileName()} · 마지막 백업: ${S().lastBackup ? fmtDate(S().lastBackup) : '없음'}`),
       h('div', { class: 'row wrap' },
         h('button', { class: 'btn', onclick: () => { downloadBackup(); toast('백업 파일을 내보냈습니다.'); document.getElementById('backup-banner')?.remove(); } }, '⬇ 백업 파일 내보내기'),
         h('button', { class: 'btn', onclick: () => fileIn.click() }, '⬆ 백업 파일 불러오기'), fileIn,
-        h('button', { class: 'btn danger', onclick: async () => { if (await confirmBox('오답노트, 질문 기록, 정답률, 플래시카드를 모두 지울까요? 되돌릴 수 없습니다.')) { resetRecords(); toast('기록을 초기화했습니다.'); location.reload(); } } }, '기록 초기화'))),
+        legacyBtn)),
+    h('section', { class: 'card' },
+      h('h2', null, '계정'),
+      h('p', { class: 'muted' }, `로그인한 계정: ${fb?.auth?.currentUser?.email || ''}`),
+      h('div', { class: 'row wrap' },
+        h('button', { class: 'btn danger', onclick: async () => {
+          if (!(await confirmBox('오답노트, 질문 기록, 정답률, 플래시카드 진도, 문제 은행, 신고 기록을 모두 삭제할까요? (올린 자료와 API 키, 학습 범위는 남습니다)'))) return;
+          if (!(await confirmBox('정말 삭제할까요? 모든 기기에서 사라지며 되돌릴 수 없습니다. (필요하면 먼저 백업 파일을 내보내세요)'))) return;
+          resetRecords();
+          toast('모든 학습 기록을 삭제했어요.');
+          setTimeout(() => location.reload(), 1500);
+        } }, '모든 학습 기록 삭제'),
+        h('button', { class: 'btn danger', onclick: async () => {
+          if (!(await confirmBox('계정을 탈퇴할까요? 이 계정의 모든 학습 기록, 자료 분석 결과, API 키가 삭제됩니다.'))) return;
+          if (!(await confirmBox('정말 탈퇴할까요? 되돌릴 수 없습니다. 마지막 확인입니다.'))) return;
+          deleteAccount();
+        } }, '계정 탈퇴'))),
     h('section', { class: 'card', id: 'reports' },
       h('h2', null, '신고한 문제 목록'),
       h('p', { class: 'muted small' }, '신고 이유와 처리 결과입니다. 신고한 문제는 출제에서 빠지고 오답노트·정답률에서도 제외됩니다.'),

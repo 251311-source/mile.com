@@ -1,8 +1,12 @@
 // 진입점: 상단 내비게이션, 해시 라우팅, 공통 안내.
 import { h, clear, setCurrent } from './ui.js';
 import { loadDocs, hasScope, scopeSummary } from './docs.js';
-import { onChange, settings, flush } from './store.js';
+import { onChange, settings, flush, S } from './store.js';
 import { initPanels } from './panels.js';
+import { initFirebase, fb } from './firebase.js';
+import { startSync, loadPrivate } from './cloud.js';
+import { showLoginScreen, hideLoginScreen, showAccount, authMessage } from './auth.js';
+import { maybeAskMigration } from './migrate.js';
 import { backupOverdue, downloadBackup, BACKUP_REMIND_DAYS } from './backup.js';
 
 const ROUTES = [
@@ -84,16 +88,52 @@ async function route() {
   main.focus({ preventScroll: true });
 }
 
-async function init() {
-  buildNav();
-  initPanels();
+function screenMessage(title, text) {
+  clear(main);
+  main.appendChild(h('div', { class: 'empty-state' }, h('h1', null, title), h('p', { class: 'muted' }, text)));
+}
+
+let started = false;
+async function startApp(user) {
+  started = true;
+  hideLoginScreen();
+  showAccount(user);
+  screenMessage('불러오는 중…', '계정에 저장된 학습 기록을 불러오고 있어요.');
+  await startSync(user.uid);
+  await loadPrivate(user.uid);
   await loadDocs();
+  initPanels();
   updateChip();
   updateBanner();
   onChange(() => { updateChip(); updateBanner(); });
   window.addEventListener('hashchange', route);
-  window.addEventListener('beforeunload', flush);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+  // 다른 기기에서 바뀐 기록이 들어오면, 입력 중이 아닌 목록 화면은 새로 그린다
+  document.addEventListener('remotechange', () => {
+    const id = (location.hash.match(/^#\/(\w+)/) || [])[1];
+    const typing = main.contains(document.activeElement) && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+    if (['wrong', 'dashboard', 'bank', 'cards'].includes(id) && !typing && !main.querySelector('.qcard, .flashcard')) route();
+  });
   route();
+  if (fb.emu) window.__soc = { S, flush }; // 에뮬레이터 테스트 전용
+  maybeAskMigration(user.uid);
+}
+
+async function init() {
+  buildNav();
+  document.body.classList.add('signed-out');
+  try {
+    await initFirebase();
+  } catch (e) {
+    console.error(e);
+    screenMessage('시작할 수 없어요', e.message);
+    return;
+  }
+  const { A, auth } = fb;
+  A.getRedirectResult(auth).catch((e) => { showLoginScreen(); const el = document.querySelector('.auth-error'); if (el) el.textContent = authMessage(e); });
+  A.onAuthStateChanged(auth, (user) => {
+    if (user && !started) startApp(user).catch((e) => { console.error(e); screenMessage('불러오지 못했어요', e.message); });
+    else if (!user && started) location.reload(); // 다른 탭에서 로그아웃함
+    else if (!user) showLoginScreen();
+  });
 }
 init();

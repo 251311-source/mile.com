@@ -1,5 +1,6 @@
 // PDF/PPTX 파싱, 자료 목록, 학습 범위 관리.
 import { docsDB, S, save, uid, settings } from './store.js';
+import { loadMaterials, saveMaterial, deleteMaterial, currentUid } from './cloud.js';
 
 const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289';
 const JSZIP = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
@@ -9,13 +10,56 @@ export const allDocs = () => docs;
 export const docById = (id) => docs.find((d) => d.id === id);
 export const docByTag = (tag) => docs.find((d) => d.tag === tag);
 
+// 계정에 저장된 자료 분석 결과 + 이 기기에 있는 원본(IndexedDB)을 합친다.
+// 원본이 없는 자료는 분석 결과(핵심 문장)만으로 동작한다.
 export async function loadDocs() {
-  docs = (await docsDB.all()).sort((a, b) => a.addedAt - b.addedAt);
-  // 범위에서 삭제된 자료 정리
-  const scope = S().scope;
-  for (const id of Object.keys(scope)) if (!docById(id)) delete scope[id];
+  const owner = currentUid();
+  const local = (await docsDB.all()).filter((d) => d.owner === owner);
+  const materials = await loadMaterials();
+  const { docFromAnalysis } = await import('./analysis.js');
+  const out = [];
+  for (const m of materials) {
+    const full = local.find((d) => d.id === m.id);
+    out.push(full ? { ...full, tag: m.tag, analysis: m } : docFromAnalysis(m));
+  }
+  // 분석 결과를 아직 못 올린 원본(오프라인 등)도 보여 주고 다시 올린다
+  for (const d of local) if (!materials.some((m) => m.id === d.id)) { out.push(d); syncAnalysis(d); }
+  docs = out.sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
   return docs;
 }
+
+// 로그인 이전 버전에서 이 브라우저에 올린 자료 (계정으로 옮기기용)
+export async function legacyDocs() {
+  return (await docsDB.all()).filter((d) => !d.owner);
+}
+export async function adoptLegacyDocs(list) {
+  for (const d of list) {
+    if (docs.some((x) => x.id === d.id || x.name === d.name)) continue;
+    const doc = { ...d, owner: currentUid(), tag: nextTag() };
+    await docsDB.put(doc);
+    docs.push(doc);
+    await syncAnalysis(doc);
+  }
+}
+
+// 분석 결과를 계정에 올린다. API 키가 없거나 실패하면 구조만 올리고 나중에 다시 분석할 수 있게 둔다.
+export async function syncAnalysis(doc, { analyze = true } = {}) {
+  const { structureOf, analyzeDoc } = await import('./analysis.js');
+  let m = doc.analysis?.analyzed ? doc.analysis : structureOf(doc);
+  if (analyze && !m.analyzed && settings().apiKey) {
+    if (!doc.analysis) { m.tag = doc.tag; saveMaterial(m).catch(() => {}); } // 구조부터 먼저 올려 둔다
+    doc.analyzing = true;
+    document.dispatchEvent(new CustomEvent('docanalysis', { detail: doc }));
+    try { m = await analyzeDoc(doc); } catch (e) { console.warn('자료 분석 실패', e); m.analysisError = e.message; }
+    doc.analyzing = false;
+  }
+  m.tag = doc.tag;
+  doc.analysis = m;
+  try { await saveMaterial(m); } catch (e) { console.warn('분석 결과 저장 실패', e); }
+  document.dispatchEvent(new CustomEvent('docanalysis', { detail: doc }));
+  return m;
+}
+export const needsOriginal = () => [...new Set(scopeUnits().filter((x) => x.doc.analysisOnly).map((x) => x.doc.name))];
 
 export const unitName = (doc) => (doc.kind === 'pptx' ? '슬라이드' : '쪽');
 export const unitLabel = (doc, n) => (doc.kind === 'pptx' ? `슬라이드 ${n}` : `p.${n}`);
@@ -35,17 +79,30 @@ export async function addFile(file, onProgress = () => {}) {
   else if (lower.endsWith('.ppt')) throw new Error(`${file.name}: 구형 .ppt 형식은 읽을 수 없습니다. PowerPoint에서 .pptx로 저장한 뒤 올려 주세요.`);
   else throw new Error(`${file.name}: PDF 또는 PPTX 파일만 올릴 수 있습니다.`);
 
-  const doc = { id: uid(), tag: nextTag(), name: file.name, addedAt: Date.now(), ...parsed };
+  // 같은 이름의 자료가 계정에 있으면 그 분석 결과에 연결한다(다른 기기에서 다시 올린 경우).
+  const same = docs.find((d) => d.name === file.name);
+  if (same) {
+    const doc = { ...parsed, id: same.id, tag: same.tag, name: file.name, addedAt: same.addedAt || Date.now(), owner: currentUid(), analysis: same.analysis };
+    await docsDB.put(doc);
+    docs[docs.indexOf(same)] = doc;
+    if (!doc.analysis?.analyzed) syncAnalysis(doc);
+    save();
+    doc.linked = true;
+    return doc;
+  }
+  const doc = { id: uid(), tag: nextTag(), name: file.name, addedAt: Date.now(), owner: currentUid(), ...parsed };
   await docsDB.put(doc);
   docs.push(doc);
   // 새 자료는 기본적으로 전체 범위 선택
   S().scope[doc.id] = doc.units.filter((u) => u.text.trim()).map((u) => u.n);
   save();
+  syncAnalysis(doc); // 분석은 뒤에서 진행 (끝나면 docanalysis 이벤트)
   return doc;
 }
 
 export async function removeDoc(id) {
   await docsDB.remove(id);
+  await deleteMaterial(id);
   docs = docs.filter((d) => d.id !== id);
   delete S().scope[id];
   save();

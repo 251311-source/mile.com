@@ -441,3 +441,33 @@ body.panel-open .dock { right: min(440px, 100vw); }
 .report-btn { color: var(--ink-2); }
 .review-body .card { margin: 10px 0; }
 .review-body pre.qstem { font-weight: 500; }
+
+/* ---------- 로그인 · 계정 · 저장 상태 ---------- */
+body.signed-out .nav, body.signed-out .scope-chip, body.signed-out .account-box, body.signed-out .dock, body.signed-out #sync-status, body.signed-out .backup-banner { display: none !important; }
+body.signed-out:has(#auth-screen) main { display: none; }
+.account-box { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.account-email { font-size: 13px; color: var(--ink-2); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.auth-screen { min-height: calc(100vh - 60px); display: grid; place-items: center; padding: 24px 16px; }
+.auth-card { width: min(100%, 400px); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px 24px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; }
+.auth-brand { display: flex; align-items: center; gap: 10px; }
+.auth-brand h1 { margin: 0; font-size: 1.4rem; }
+.auth-brand .brand-mark { width: 36px; height: 36px; font-size: 18px; }
+.google-btn { width: 100%; min-height: 46px; font-weight: 500; gap: 10px; margin-top: 6px; }
+.g-mark { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #fff; background: conic-gradient(#ea4335 0 25%, #fbbc05 0 50%, #34a853 0 75%, #4285f4 0); font-size: 13px; }
+.auth-or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; margin: 6px 0; }
+.auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.auth-card .row { margin: 4px 0; }
+.auth-card .row .btn { flex: 1; }
+.auth-card .linklike { align-self: flex-start; font-size: 14px; }
+.auth-error { color: var(--wrong); font-size: 14px; margin: 0; min-height: 0; }
+.auth-info { color: var(--right); font-size: 14px; margin: 0; }
+.sync-status { position: fixed; left: 12px; bottom: 12px; z-index: 80; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--ink-2); box-shadow: var(--shadow); }
+.sync-status.saving { color: var(--accent); }
+.sync-status.offline { color: var(--partial); border-color: var(--partial); }
+.sync-status.error { color: var(--wrong); border-color: var(--wrong); }
+.tag.label-original { background: var(--partial-soft); color: var(--partial); }
+@media (max-width: 760px) {
+  .brand-row { flex-wrap: wrap; row-gap: 6px; }
+  .account-email { max-width: 34vw; }
+  .sync-status { bottom: 74px; left: 10px; }
+}

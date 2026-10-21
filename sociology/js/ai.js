@@ -39,9 +39,11 @@ const RULES = `너는 대학 사회학 학습 프로그램의 출제·채점·�
 [형식]
 - JSON을 요구받으면 설명이나 코드 블록 없이 JSON 객체 하나만 출력한다.`;
 
-function system(useMaterial) {
+function system(useMaterial, materialText) {
   const blocks = [{ type: 'text', text: RULES }];
-  if (useMaterial) {
+  if (materialText) {
+    blocks.push({ type: 'text', text: `다음은 분석할 자료다.\n\n${materialText}` });
+  } else if (useMaterial) {
     const m = buildMaterial();
     blocks.push({
       type: 'text',
@@ -120,14 +122,14 @@ export function parseJSON(text) {
 
 // JSON 결과를 받는 호출.
 // web: true면 웹 검색 도구를 허용한다(이때는 출력 형식 강제를 쓰지 않는다).
-export async function askJSON({ task, schema, material = true, web = false, maxTokens = 32000, effort }) {
-  if (material && !hasScope()) throw new Error('먼저 [자료·범위]에서 자료를 올리고 학습 범위를 선택해 주세요.');
+export async function askJSON({ task, schema, material = true, web = false, maxTokens = 32000, effort, materialText = '' }) {
+  if (material && !materialText && !hasScope()) throw new Error('먼저 [자료·범위]에서 자료를 올리고 학습 범위를 선택해 주세요.');
   const s = settings();
   const content = `${task}\n\n출력은 다음 JSON 스키마를 따르는 JSON 객체 하나다:\n${JSON.stringify(schema)}`;
   const params = {
     model: s.model,
     max_tokens: maxTokens,
-    system: system(material),
+    system: system(material, materialText),
     messages: [{ role: 'user', content }],
     output_config: { effort: effort || s.effort },
   };

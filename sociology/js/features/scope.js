@@ -1,6 +1,6 @@
 // 공통 설정: 자료 업로드와 학습 범위 선택
 import { h, add, clear, pageHead, toast, confirmBox } from '../ui.js';
-import { allDocs, addFile, removeDoc, unitName, parseRanges, formatRanges, scopeSummary, buildMaterial } from '../docs.js';
+import { syncAnalysis, allDocs, addFile, removeDoc, unitName, parseRanges, formatRanges, scopeSummary, buildMaterial } from '../docs.js';
 import { S, save, settings } from '../store.js';
 
 export function render(root) {
@@ -42,7 +42,7 @@ export function render(root) {
     const docs = allDocs();
     if (!docs.length) list.appendChild(h('p', { class: 'muted empty' }, '아직 올린 자료가 없습니다.'));
     docs.forEach((d) => list.appendChild(docCard(d, () => { drawSummary(); }, async () => {
-      if (await confirmBox(`'${d.name}'을(를) 삭제할까요? 학습 기록은 유지됩니다.`)) {
+      if (await confirmBox(`'${d.name}'을(를) 삭제할까요? 계정에 저장된 이 자료의 분석 결과도 지워져 모든 기기에서 사라집니다. 학습 기록은 유지됩니다.`)) {
         await removeDoc(d.id);
         drawList(); drawSummary();
       }
@@ -57,7 +57,7 @@ export function render(root) {
       try {
         const doc = await addFile(f, (p) => { bar.firstChild.style.width = Math.round(p * 100) + '%'; });
         const empty = doc.units.filter((u) => !u.text.trim()).length;
-        toast(`${f.name}: ${doc.units.length}${unitName(doc)} 읽음`);
+        toast(doc.linked ? `${f.name}: 계정에 있던 같은 이름의 자료에 원본을 연결했어요.` : `${f.name}: ${doc.units.length}${unitName(doc)} 읽음 · 분석 결과를 계정에 저장합니다`);
         if (empty) toast(`${f.name}: 글자가 없는 ${unitName(doc)} ${empty}개는 범위에서 제외했습니다(스캔 이미지일 수 있음).`, 'warn');
       } catch (e) {
         console.error(e);
@@ -71,6 +71,22 @@ export function render(root) {
 
   drawList();
   drawSummary();
+  const onAnalysis = () => { if (!document.body.contains(list)) return document.removeEventListener('docanalysis', onAnalysis); drawList(); drawSummary(); };
+  document.addEventListener('docanalysis', onAnalysis);
+}
+
+function analysisLine(d, redraw) {
+  const a = d.analysis;
+  if (d.analyzing) return h('p', { class: 'muted small' }, '⏳ 자료를 분석해 계정에 저장하는 중…');
+  if (d.analysisOnly) {
+    return h('p', { class: 'small' }, h('span', { class: 'tag label-original' }, '원본 없음 · 분석 결과로 동작'),
+      ` 개념 ${a?.concepts?.length || 0}개 · 학자 ${a?.sociologists?.length || 0}명 · 핵심 문장 ${a?.keySentences?.length || 0}개. 비판적 읽기처럼 원문이 필요한 기능은 같은 파일을 다시 올리면 쓸 수 있어요.`);
+  }
+  if (a?.analyzed) return h('p', { class: 'muted small' }, `☁ 계정에 분석 결과 저장됨 · 개념 ${a.concepts.length}개 · 학자 ${a.sociologists.length}명 · 핵심 문장 ${a.keySentences.length}개`);
+  return h('p', { class: 'small' }, h('span', { class: 'tag label-unverified' }, '분석 결과 미저장'),
+    ' 다른 기기에서도 쓰려면 분석 결과를 계정에 저장해야 해요. ',
+    h('button', { class: 'btn small', onclick: async (e) => { e.target.disabled = true; await syncAnalysis(d); redraw(); } }, '분석해서 저장'),
+    a?.analysisError ? h('span', { class: 'muted' }, ` (지난 오류: ${a.analysisError})`) : '');
 }
 
 function stat(label, value) {
@@ -95,6 +111,7 @@ function docCard(d, onChange, onDelete) {
         h('span', { class: 'doc-kind ' + d.kind }, d.kind === 'pptx' ? 'PPT' : 'PDF'),
         h('div', { class: 'doc-title' }, h('strong', null, d.name), h('span', { class: 'muted small' }, `${d.tag} · 전체 ${total}${unitName(d)} · 선택 ${s.size}${unitName(d)}`)),
         h('button', { class: 'icon-btn', 'aria-label': '자료 삭제', title: '삭제', onclick: onDelete }, '🗑')),
+      analysisLine(d, draw),
       h('div', { class: 'row wrap' },
         h('button', { class: 'btn small', onclick: () => set(textual) }, '전체 선택'),
         h('button', { class: 'btn small', onclick: () => set([]) }, '전체 해제'),
