@@ -4,6 +4,9 @@ import { askJSON, T, SOURCES } from '../ai.js';
 import { uid, recordAttempt, addWrong } from '../store.js';
 import { openChatAbout } from '../panels.js';
 import { segBtn } from './quiz.js';
+import { verifyItems, generateVerified } from '../verify.js';
+import { saveToBank } from '../bank.js';
+import { reportButton } from '../report.js';
 
 const ITEM = T.obj({ answer: T.str, aliases: T.arr(T.str), category: T.str, sociologist: T.str, clues: T.arr(T.str), explanation: T.str, sources: SOURCES });
 const NORMAL = T.obj({ items: T.arr(ITEM) });
@@ -28,36 +31,62 @@ export function render(root) {
     go.disabled = true;
     area.replaceChildren(loadingBox('특징 카드를 만들고 있습니다…'));
     try {
+      let skipped = 0;
       if (opts.mode === 'normal') {
-        const { data } = await askJSON({ schema: NORMAL, task: [
-          `학습 범위에서 이론 또는 개념 ${opts.count}개를 골라 "특징만 보고 맞히기" 문제를 만들어라.`,
-          '- answer: 자료에 쓰인 이름. aliases: 같은 것을 가리키는 다른 표기(원어 포함).',
-          '- clues: 특징 5개를 막연한 것부터 구체적인 것 순서로. 단서 안에 answer나 aliases를 쓰지 않는다. 모두 자료에 근거한다.',
-          '- category: "이론" 또는 "개념". sociologist: 관련 학자(없으면 빈 문자열). explanation: 2~3문장 설명. sources: 자료 위치.',
-          used.length && `- 다음은 이미 나왔으니 제외: ${used.slice(-30).join(', ')}`,
-        ].filter(Boolean).join('\n') });
-        const items = (data.items || []).map(clean).filter(Boolean);
-        if (!items.length) throw new Error('문제를 만들지 못했습니다.');
-        used.push(...items.map((x) => x.answer));
-        sequence(area, items.map((x) => ({ kind: 'single', item: x })));
+        // 생성 → 자체 검증 → 실패분만 다시 생성 → 또 실패하면 건너뜀
+        const r = await generateVerified(opts.count, async (n) => {
+          const { data } = await askJSON({ schema: NORMAL, task: [
+            `학습 범위에서 이론 또는 개념 ${n}개를 골라 "특징만 보고 맞히기" 문제를 만들어라.`,
+            '- answer: 자료에 쓰인 이름. aliases: 같은 것을 가리키는 다른 표기(원어 포함).',
+            '- clues: 특징 5개를 막연한 것부터 구체적인 것 순서로. 단서 안에 answer나 aliases를 쓰지 않는다. 모두 자료에 근거한다.',
+            '- category: "이론" 또는 "개념". sociologist: 관련 학자(없으면 빈 문자열). explanation: 2~3문장 설명. sources: 자료 위치.',
+            used.length && `- 다음은 이미 나왔으니 제외: ${used.slice(-30).join(', ')}`,
+          ].filter(Boolean).join('\n') });
+          const items = (data.items || []).map(clean).filter(Boolean);
+          used.push(...items.map((x) => x.answer));
+          return items;
+        }, (items) => verifyItems('concept', items.map(forCheck)));
+        if (!r.items.length) throw new Error('검증을 통과한 문제를 만들지 못했습니다. 다시 시도해 주세요.');
+        skipped = r.skipped;
+        r.items.forEach((x) => saveToBank(conceptQ(x), { feature: 'concept', kind: 'concept' }));
+        sequence(area, r.items.map((x) => ({ kind: 'single', item: x })));
       } else {
-        const { data } = await askJSON({ schema: PAIRS, task: [
-          `학습 범위에서 서로 헷갈리기 쉬운 이론/개념 짝 ${opts.count}쌍을 골라라(예: 계급과 지위집단, 기계적 연대와 유기적 연대처럼 자료에 함께 나오는 것).`,
-          '- 각 a, b에 대해 answer, aliases, category, sociologist, clues(특징 5개, 막연한→구체적, 정답 이름 금지), explanation, sources.',
-          '- 두 항목의 같은 순번 단서는 같은 관점(예: 1번은 사회 유형, 2번은 결속 근거)을 다뤄 비교가 되게 한다.',
-          '- distinction: 둘을 구분하는 핵심 차이 2~3문장. sources: 근거 위치.',
-          '- 학습 범위에 짝이 될 만한 것이 부족하면 있는 만큼만 만든다.',
-        ].join('\n') });
-        const pairs = (data.pairs || []).map((p) => ({ a: clean(p.a), b: clean(p.b), distinction: p.distinction, sources: p.sources })).filter((p) => p.a && p.b);
-        if (!pairs.length) throw new Error('학습 범위에서 혼동 쌍을 찾지 못했습니다. 범위를 넓혀 보세요.');
-        sequence(area, pairs.map((p) => ({ kind: 'pair', pair: p })));
+        const r = await generateVerified(opts.count, async (n) => {
+          const { data } = await askJSON({ schema: PAIRS, task: [
+            `학습 범위에서 서로 헷갈리기 쉬운 이론/개념 짝 ${n}쌍을 골라라(예: 계급과 지위집단, 기계적 연대와 유기적 연대처럼 자료에 함께 나오는 것).`,
+            '- 각 a, b에 대해 answer, aliases, category, sociologist, clues(특징 5개, 막연한→구체적, 정답 이름 금지), explanation, sources.',
+            '- 두 항목의 같은 순번 단서는 같은 관점(예: 1번은 사회 유형, 2번은 결속 근거)을 다뤄 비교가 되게 한다.',
+            '- distinction: 둘을 구분하는 핵심 차이 2~3문장. sources: 근거 위치.',
+            '- 학습 범위에 짝이 될 만한 것이 부족하면 있는 만큼만 만든다.',
+            used.length && `- 다음 짝은 이미 나왔으니 제외: ${used.slice(-30).join(', ')}`,
+          ].filter(Boolean).join('\n') });
+          const pairs = (data.pairs || []).map((p) => ({ a: clean(p.a), b: clean(p.b), distinction: p.distinction, sources: p.sources })).filter((p) => p.a && p.b);
+          used.push(...pairs.map((p) => `${p.a.answer}/${p.b.answer}`));
+          return pairs;
+        }, async (pairs) => {
+          const v = await verifyItems('concept', pairs.flatMap((p) => [forCheck(p.a), forCheck(p.b)]));
+          return pairs.map((_, i) => ({ pass: v[2 * i].pass && v[2 * i + 1].pass }));
+        });
+        if (!r.items.length) throw new Error('학습 범위에서 검증을 통과한 혼동 쌍을 찾지 못했습니다. 범위를 넓혀 보세요.');
+        skipped = r.skipped;
+        r.items.forEach((p) => { saveToBank(conceptQ(p.a), { feature: 'concept', kind: 'concept' }); saveToBank(conceptQ(p.b), { feature: 'concept', kind: 'concept' }); });
+        sequence(area, r.items.map((p) => ({ kind: 'pair', pair: p })));
       }
+      if (skipped) area.prepend(h('div', { class: 'notice' }, `검증을 두 번 통과하지 못한 ${skipped}개는 건너뛰었습니다.`));
     } catch (e) {
       area.replaceChildren(errorBox(e, run));
     } finally {
       go.disabled = false;
     }
   }
+}
+
+const forCheck = (x) => ({ answer: x.answer, aliases: x.aliases, clues: x.clues, explanation: x.explanation, sources: x.sources });
+function conceptQ(item) {
+  return {
+    id: item.id, type: 'short', stem: '다음 특징이 설명하는 ' + (item.category || '개념') + '은(는)?\n' + item.clues.map((c) => '· ' + c).join('\n'),
+    answer_text: item.answer, accept: item.aliases, explanation: item.explanation, sources: item.sources, concepts: [item.answer], sociologists: [item.sociologist].filter(Boolean), options: [], context: '', verified: true,
+  };
 }
 
 function clean(x) {
@@ -109,11 +138,8 @@ async function judgeAll(entries) {
 function points(item, shown, ok) { return ok ? Math.round((100 * (item.clues.length - shown + 1)) / item.clues.length) : 0; }
 
 function record(item, ok, pts, user) {
-  recordAttempt({ feature: 'concept', type: 'concept', concepts: [item.answer], sociologists: [item.sociologist], correct: ok, score: pts / 100 });
-  if (!ok) addWrong({ feature: 'concept', userAnswer: user, q: {
-    id: item.id, type: 'short', stem: '다음 특징이 설명하는 ' + (item.category || '개념') + '은(는)?\n' + item.clues.map((c) => '· ' + c).join('\n'),
-    answer_text: item.answer, accept: item.aliases, explanation: item.explanation, sources: item.sources, concepts: [item.answer], sociologists: [item.sociologist].filter(Boolean), options: [], context: '',
-  } });
+  recordAttempt({ qid: item.id, feature: 'concept', type: 'concept', concepts: [item.answer], sociologists: [item.sociologist], correct: ok, score: pts / 100 });
+  if (!ok) addWrong({ feature: 'concept', userAnswer: user, q: conceptQ(item) });
 }
 
 function clueList(item, shown) {
@@ -170,7 +196,10 @@ function answerBox(item, r, pts, ctx, next) {
     r.comment && h('p', null, r.comment),
     h('div', { class: 'explain' }, item.explanation),
     sourceChips(item.sources),
-    next && h('div', { class: 'row' }, h('button', { class: 'btn ghost', onclick: () => openChatAbout(ctx, '이 개념을 더 설명해 주세요. ') }, '💬 AI에게 질문'), h('button', { class: 'btn primary', onclick: next }, '다음')));
+    h('div', { class: 'row' },
+      next && h('button', { class: 'btn ghost', onclick: () => openChatAbout(ctx, '이 개념을 더 설명해 주세요. ') }, '💬 AI에게 질문'),
+      reportButton(conceptQ(item), { feature: 'concept' }),
+      next && h('button', { class: 'btn primary', onclick: next }, '다음')));
 }
 
 function pairCard(pair, onScore, next) {

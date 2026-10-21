@@ -432,3 +432,12 @@ body.panel-open .dock { right: min(440px, 100vw); }
   #toasts { bottom: 80px; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition: none !important; scroll-behavior: auto !important; } }
+
+/* ---------- 백업 알림 · 문제 은행 · 신고 ---------- */
+.backup-banner { max-width: 980px; margin: 12px auto 0; padding: 8px 12px; display: flex; align-items: center; gap: 10px; background: var(--partial-soft); border: 1px solid var(--partial); border-radius: 10px; font-size: 14px; }
+.backup-banner span { flex: 1; }
+@media (max-width: 760px) { .backup-banner { margin: 10px 16px 0; } }
+.bank-note { font-size: 14px; }
+.report-btn { color: var(--ink-2); }
+.review-body .card { margin: 10px 0; }
+.review-body pre.qstem { font-weight: 500; }

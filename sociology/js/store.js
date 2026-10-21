@@ -13,6 +13,10 @@ const DEFAULTS = () => ({
   quoteBank: {},      // { [scopeKey]: {quotes, sociologists, topics} }
   maps: {},           // { [scopeKey]: graph }
   recent: {},         // 중복 방지용 최근 출제 기록 { passage: [], critique: [], realworld: [] }
+  bank: [],           // 문제 은행 (검증 통과 문제)
+  reports: [],        // 신고한 문제
+  lastBackup: 0,      // 마지막 백업 시각
+  firstUse: Date.now(),
 });
 
 let state = load();
@@ -59,9 +63,10 @@ export function uid() {
 }
 
 // ---------- 채점 기록 ----------
-export function recordAttempt({ feature, type, concepts = [], sociologists = [], correct, score }) {
+export function recordAttempt({ qid, feature, type, concepts = [], sociologists = [], correct, score }) {
+  if (qid) bankRecord(qid, !!correct);
   state.attempts.push({
-    ts: Date.now(), feature, type,
+    ts: Date.now(), qid, feature, type,
     concepts: concepts.filter(Boolean).slice(0, 5),
     sociologists: sociologists.filter(Boolean).slice(0, 5),
     correct: !!correct,
@@ -108,10 +113,38 @@ export function addQlog({ text, answer = '', origin = 'manual', ctx = '' }) {
 }
 export function updateQlog(id, patch) {
   const e = state.qlog.find((x) => x.id === id);
-  if (e) { Object.assign(e, patch); save(); }
+  if (e) { Object.assign(e, patch, { updatedAt: Date.now() }); save(); }
 }
 export function removeQlog(id) {
   state.qlog = state.qlog.filter((x) => x.id !== id);
+  save();
+}
+
+// ---------- 문제 은행 ----------
+export const bankEntry = (qid) => state.bank.find((b) => b.id === qid);
+function bankRecord(qid, ok) {
+  const b = bankEntry(qid);
+  if (!b) return;
+  b.asked = (b.asked || 0) + 1;
+  if (ok) { b.correct = (b.correct || 0) + 1; b.streak = (b.streak || 0) + 1; } else b.streak = 0;
+  b.lastResult = ok;
+  b.lastAt = b.updatedAt = Date.now();
+}
+// 신고된 문제의 오답·채점 기록을 빼고, 신고 취소 시 되돌릴 수 있게 돌려준다.
+export function detachRecords(qid) {
+  const wrong = state.wrong.filter((w) => w.q?.id === qid);
+  const attempts = state.attempts.filter((a) => a.qid === qid);
+  state.wrong = state.wrong.filter((w) => w.q?.id !== qid);
+  state.attempts = state.attempts.filter((a) => a.qid !== qid);
+  save();
+  return { wrong, attempts };
+}
+export function reattachRecords(removed) {
+  if (!removed) return;
+  const ids = new Set(state.wrong.map((w) => w.id));
+  state.wrong.unshift(...(removed.wrong || []).filter((w) => !ids.has(w.id)));
+  state.attempts.push(...(removed.attempts || []));
+  state.attempts.sort((a, b) => a.ts - b.ts);
   save();
 }
 
@@ -122,21 +155,15 @@ export function pushRecent(kind, value, keep = 15) {
   save();
 }
 
-// ---------- 백업 ----------
-export function exportData() {
-  const copy = { ...state, settings: { ...state.settings, apiKey: '' } };
-  return JSON.stringify({ app: 'socstudy', version: 1, exportedAt: new Date().toISOString(), data: copy }, null, 1);
-}
-export function importData(json) {
-  const parsed = JSON.parse(json);
-  if (parsed.app !== 'socstudy' || !parsed.data) throw new Error('이 프로그램의 백업 파일이 아닙니다.');
-  const key = state.settings.apiKey;
-  state = { ...DEFAULTS(), ...parsed.data };
-  state.settings = { ...DEFAULTS().settings, ...(parsed.data.settings || {}), apiKey: key };
+// ---------- 백업 (backup.js가 사용) ----------
+export function replaceState(next) {
+  state = next;
   flush();
 }
+export const freshState = DEFAULTS;
+
 export function resetRecords() {
-  const keep = { settings: state.settings, scope: state.scope };
+  const keep = { settings: state.settings, scope: state.scope, lastBackup: state.lastBackup };
   state = { ...DEFAULTS(), ...keep };
   flush();
 }

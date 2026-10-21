@@ -1,8 +1,8 @@
 // 1. 종합 퀴즈
 import { h, add, clear, pageHead, field, select, loadingBox, errorBox, pct } from '../ui.js';
-import { TYPES, QUIZ_TYPES, DIFF, generateMany, renderQuestion } from '../questions.js';
+import { TYPES, QUIZ_TYPES, DIFF, getQuestions, renderQuestion } from '../questions.js';
 
-const opts = { difficulty: 'medium', count: 5, mode: 'mixed', single: 'mc', mixed: new Set(QUIZ_TYPES), focus: '' };
+const opts = { difficulty: 'medium', count: 5, mode: 'mixed', single: 'mc', mixed: new Set(QUIZ_TYPES), focus: '', freshOnly: false };
 const recentStems = [];
 
 export function render(root, params) {
@@ -35,7 +35,12 @@ export function render(root, params) {
         segBtn('mixed', '혼합 모드', () => opts.mode, (v) => { opts.mode = v; drawTypes(); })))),
     typeBox,
     field('집중 주제 (선택)', focusInput),
-    h('div', { class: 'row end' }, start));
+    h('div', { class: 'row wrap' },
+      h('label', { class: 'check', title: '문제 은행에 저장된 문제를 쓰지 않고 모두 새로 만듭니다.' },
+        h('input', { type: 'checkbox', checked: opts.freshOnly, onchange: (e) => { opts.freshOnly = e.target.checked; } }),
+        h('span', null, '새 문제만 받기')),
+      h('span', { class: 'muted small grow' }, '끄면 문제 은행에서 조건에 맞는 문제를 먼저 쓰고, 모자란 만큼만 새로 만듭니다.'),
+      start));
   drawTypes();
 
   add(root, pageHead('종합 퀴즈', '난이도와 문항 수, 유형을 고르면 학습 범위 안에서 문제를 만듭니다. 문제마다 정답·해설·출처 쪽수를 보여 줍니다.'), settingsCard, area);
@@ -46,9 +51,12 @@ export function render(root, params) {
     start.disabled = true;
     area.replaceChildren(loadingBox(`문제 ${opts.count}개를 만들고 있습니다…`));
     try {
-      const qs = await generateMany({ count: opts.count, typePool: pool, difficulty: opts.difficulty, focus: opts.focus, avoid: recentStems });
-      recentStems.push(...qs.map((q) => q.stem));
-      showSet(area, qs);
+      const r = await getQuestions({ count: opts.count, typePool: pool, difficulty: opts.difficulty, focus: opts.focus, avoid: recentStems, freshOnly: opts.freshOnly });
+      recentStems.push(...r.questions.map((q) => q.stem));
+      showSet(area, r.questions);
+      area.prepend(h('div', { class: 'notice bank-note' },
+        `문제 은행에서 ${r.fromBank}개, 새로 만든 문제 ${r.generated}개 (모두 자체 검증 통과)`,
+        r.skipped ? ` · 검증을 두 번 통과하지 못한 ${r.skipped}개는 건너뛰었습니다.` : ''));
     } catch (e) {
       area.replaceChildren(errorBox(e, run));
     } finally {

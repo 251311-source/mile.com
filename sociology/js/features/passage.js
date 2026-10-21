@@ -4,6 +4,9 @@ import { askJSON, T, SOURCES } from '../ai.js';
 import { findInScope } from '../docs.js';
 import { uid, S, pushRecent, recordAttempt, addWrong, markMastered } from '../store.js';
 import { openChatAbout } from '../panels.js';
+import { verifyItems } from '../verify.js';
+import { saveToBank, similarity } from '../bank.js';
+import { reportButton } from '../report.js';
 
 const GEN = T.obj({
   original: T.str,
@@ -43,7 +46,9 @@ export function render(root) {
 async function generatePassage() {
   const n = Math.floor(Math.random() * 5); // 0~4개, 사용자에게 알리지 않는다
   const recent = (S().recent.passage || []).slice(-10);
-  for (let attempt = 0; attempt < 3; attempt++) {
+  const isRecent = (text) => recent.some((r) => text.startsWith(r.slice(0, 25)) || similarity(r, text.slice(0, r.length)) > 0.7);
+  let verifyFails = 0;
+  for (let attempt = 0; attempt < 5; attempt++) {
     const task = [
       '학습 범위 자료에서 사회학 개념·이론 설명이 담긴 한 문단(150~400자)을 골라 original에 원문 그대로(띄어쓰기 포함, 글자 하나 바꾸지 말고) 옮겨라. 슬라이드 글머리표라면 이어지는 문장들을 문단처럼 이어 붙여도 된다(내용은 그대로).',
       n === 0
@@ -58,17 +63,31 @@ async function generatePassage() {
     let changes = n === 0 ? [] : (data.changes || []).filter((c) => c.wrong && c.correct && modified.includes(c.wrong) && original.includes(c.correct) && c.wrong !== c.correct);
     if (!original) continue;
     if (n > 0 && (!changes.length || modified === original)) continue;
+    if (isRecent(original) && attempt < 4) continue; // 최근에 쓴 문단은 바로 다시 내지 않는다
     const found = findInScope(original);
     if (!found && attempt < 2) continue; // 원문이 자료에 없으면 다시 생성
-    pushRecent('passage', original.slice(0, 30));
-    return {
+    const sources = data.sources?.length ? data.sources : found ? [{ doc: found.doc.tag, page: found.unit.n }] : [];
+    // 자체 검증: 바뀐 단어가 실제로 틀린 의미가 되었는지, 원래 단어 목록이 정확한지
+    const [v] = await verifyItems('passage', [{ original, modified, changes, sources }]);
+    if (!v.pass) {
+      if (++verifyFails >= 2) throw new Error('검증을 통과한 문단을 만들지 못했습니다. [새 문단 받기]로 다시 시도해 주세요.');
+      continue;
+    }
+    pushRecent('passage', original.slice(0, 60));
+    const passage = {
       id: uid(), original, modified, changes,
       verified: !!found,
-      sources: data.sources?.length ? data.sources : found ? [{ doc: found.doc.tag, page: found.unit.n }] : [],
+      sources,
       concepts: data.concepts || [], sociologists: data.sociologists || [],
     };
+    saveToBank(passageQ(passage), { feature: 'passage', kind: 'passage' });
+    return passage;
   }
   throw new Error('조건에 맞는 문단을 만들지 못했습니다. 다시 시도해 주세요.');
+}
+
+function passageQ(data) {
+  return { id: data.id, type: 'passage', stem: '비판적 읽기: 문단 속 바뀐 단어 찾기', data, concepts: data.concepts, sociologists: data.sociologists, sources: data.sources, verified: true };
 }
 
 function parseLines(text) {
@@ -114,8 +133,8 @@ export function renderPassage(data, { retry = false, onNext, onResult } = {}) {
       const correct = nFound === data.changes.length && !falseFlags.length;
       const score = data.changes.length ? nFound / (data.changes.length + falseFlags.length) : correct ? 1 : 0;
 
-      const q = { id: data.id, type: 'passage', stem: '비판적 읽기: 문단 속 바뀐 단어 찾기', data, concepts: data.concepts, sociologists: data.sociologists, sources: data.sources };
-      recordAttempt({ feature: 'passage', type: 'passage', concepts: data.concepts, sociologists: data.sociologists, correct, score });
+      const q = passageQ(data);
+      recordAttempt({ qid: data.id, feature: 'passage', type: 'passage', concepts: data.concepts, sociologists: data.sociologists, correct, score });
       if (retry) markMastered(data.id, correct);
       if (!correct) addWrong({ feature: 'passage', q, userAnswer: none.checked ? '오류 없음' : ta.value, feedback: judged.feedback });
 
@@ -124,6 +143,7 @@ export function renderPassage(data, { retry = false, onNext, onResult } = {}) {
       result.replaceChildren(passageResult(data, lines, judged, { found, located, falseFlags, correct, noneChecked: none.checked }),
         h('div', { class: 'row' },
           h('button', { class: 'btn ghost', onclick: () => openChatAbout({ ...ctx, text: ctx.text + `\n원문: ${data.original}\n변경: ${JSON.stringify(data.changes)}` }, '이 문단에서 ') }, '💬 AI에게 질문'),
+          reportButton(q, { feature: 'passage' }),
           onNext && h('button', { class: 'btn primary', onclick: onNext }, '다음 문단')));
       onResult && onResult({ correct, score });
     } catch (e) {

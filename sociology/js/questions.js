@@ -3,6 +3,9 @@ import { askJSON, T, SOURCES } from './ai.js';
 import { h, clear, CIRC, shuffle, sourceChips, setCurrent, loadingBox } from './ui.js';
 import { uid, recordAttempt, addWrong, markMastered } from './store.js';
 import { openChatAbout } from './panels.js';
+import { verifyItems } from './verify.js';
+import { pickFromBank, existingStems, isNearDuplicate, bankQuizQuestions, saveToBank } from './bank.js';
+import { reportButton } from './report.js';
 
 export const TYPES = {
   mc: '5지선다',
@@ -44,7 +47,7 @@ const DIFF_SPEC = {
   hard: '어려움: 여러 개념을 통합하고 미묘한 차이를 묻는다. 그럴듯한 오답 선지를 쓴다.',
 };
 
-const Q_SCHEMA = T.obj({
+export const Q_SCHEMA = T.obj({
   type: T.oneOf(...QUIZ_TYPES),
   stem: T.str,
   context: T.str,
@@ -86,7 +89,7 @@ export async function generateQuestions({ types, difficulty = 'medium', focus = 
     '- 문항끼리 같은 내용을 반복하지 않는다. 범위 전체에 고르게 출제한다.',
     focus && `- 다음 주제를 중심으로 출제한다: ${focus}`,
     similarTo && `- 다음 문제와 같은 개념을 묻되 표현·사례·선지가 다른 새 문제를 만든다:\n${JSON.stringify(similarTo)}`,
-    avoid.length && `- 다음 문제들과 겹치지 않게 한다: ${avoid.slice(-20).map((s) => s.slice(0, 50)).join(' / ')}`,
+    avoid.length && `- 아래는 이미 있는 문제들이다. 같은 개념을 묻더라도 표현만 살짝 바꾼 사실상 같은 문제는 만들지 말고, 다른 측면·다른 사례·다른 선지로 출제한다:\n${avoid.slice(-40).map((s) => '  · ' + s.slice(0, 90)).join('\n')}`,
   ].filter(Boolean).join('\n');
 
   const { data } = await askJSON({ task, schema: GEN_SCHEMA });
@@ -99,22 +102,82 @@ export async function generateQuestions({ types, difficulty = 'medium', focus = 
   return out;
 }
 
-// 많은 문항은 나눠서 동시에 생성한다.
-export async function generateMany({ count, typePool, difficulty, focus, avoid }) {
-  const types = Array.from({ length: count }, (_, i) => typePool[i % typePool.length]);
-  const planned = typePool.length > 1 ? shuffle(types) : types;
-  const chunks = [];
-  // 작은 묶음을 동시에 요청해야 기다리는 시간이 짧다.
-  for (let i = 0; i < planned.length; i += 4) chunks.push(planned.slice(i, i + 4));
-  const results = await Promise.allSettled(chunks.map((c, i) => generateQuestions({
-    types: c, difficulty, focus, avoid,
-  })));
-  const qs = results.filter((r) => r.status === 'fulfilled').flatMap((r) => r.value);
-  if (!qs.length) throw results.find((r) => r.status === 'rejected')?.reason || new Error('문제 생성 실패');
-  return qs;
+// 한 묶음(최대 4문항)을 생성 → 검증 → 실패한 문항만 한 번 더 생성 → 또 실패하면 건너뛴다.
+async function generateChunkVerified({ types, difficulty, focus, avoid, similarTo, seen }) {
+  let pending = [...types];
+  const out = [];
+  for (let round = 0; round < 2 && pending.length; round++) {
+    let qs;
+    try {
+      qs = await generateQuestions({ types: pending, difficulty, focus, avoid: [...avoid, ...out.map((q) => q.stem)], similarTo });
+    } catch (e) {
+      if (round === 0) throw e;
+      break;
+    }
+    const fresh = qs.filter((q) => !isNearDuplicate(q, [...seen, ...out]));
+    const verdicts = await verifyItems('quiz', fresh);
+    for (let i = 0; i < fresh.length; i++) {
+      if (!verdicts[i].pass) continue;
+      const k = pending.indexOf(fresh[i].type);
+      if (k < 0) continue;
+      pending.splice(k, 1);
+      fresh[i].verified = true;
+      out.push(fresh[i]);
+    }
+  }
+  return { qs: out, skipped: pending.length };
 }
 
-function normalize(raw, difficulty) {
+// 문제 은행에서 먼저 찾고, 모자란 만큼만 새로 만든다(검증 통과분만 은행에 저장).
+export async function getQuestions({ count, typePool, difficulty, focus = '', freshOnly = false, avoid = [], feature = 'quiz' }) {
+  const types = Array.from({ length: count }, (_, i) => typePool[i % typePool.length]);
+  const slots = typePool.length > 1 ? shuffle(types) : types;
+  const fromBank = freshOnly ? slots.map(() => null) : pickFromBank({ slots, difficulty, focus });
+  const missing = slots.filter((_, i) => !fromBank[i]);
+  let generated = [], skipped = 0;
+  if (missing.length) {
+    const seen = bankQuizQuestions();
+    const avoidAll = [...existingStems({ focus, types: [...new Set(missing)] }), ...avoid];
+    const chunks = [];
+    for (let i = 0; i < missing.length; i += 4) chunks.push(missing.slice(i, i + 4));
+    const results = await Promise.allSettled(chunks.map((c) => generateChunkVerified({ types: c, difficulty, focus, avoid: avoidAll, seen })));
+    for (const r of results) {
+      if (r.status === 'fulfilled') { generated.push(...r.value.qs); skipped += r.value.skipped; }
+    }
+    if (!generated.length && !fromBank.some(Boolean)) throw results.find((r) => r.status === 'rejected')?.reason || new Error('검증을 통과한 문제를 만들지 못했습니다. 다시 시도해 주세요.');
+    skipped += results.reduce((acc, r, i) => (r.status === 'rejected' ? acc + chunks[i].length : acc), 0);
+  }
+  // 묶음끼리 겹친 문제 제거 후 은행에 저장
+  const uniq = [];
+  for (const q of generated) if (!isNearDuplicate(q, uniq)) uniq.push(q);
+  skipped += generated.length - uniq.length;
+  uniq.forEach((q) => saveToBank(q, { feature }));
+  // 계획한 순서대로 배치 (은행 문제 자리는 그대로, 빈자리는 새 문제로)
+  const pool = [...uniq];
+  const ordered = [];
+  const used = new Set();
+  slots.forEach((t, i) => {
+    let q = fromBank[i];
+    if (!q) {
+      const k = pool.findIndex((x) => x.type === t);
+      q = k >= 0 ? pool.splice(k, 1)[0] : null;
+    }
+    if (q && !used.has(q.id)) { used.add(q.id); ordered.push(q); }
+  });
+  pool.forEach((q) => { if (!used.has(q.id)) { used.add(q.id); ordered.push(q); } });
+  return { questions: ordered, fromBank: fromBank.filter(Boolean).length, generated: uniq.length, skipped };
+}
+
+// 유사 문제 등: 은행을 거치지 않고 새로 만들되 검증과 저장은 똑같이 한다.
+export async function generateVerifiedQuestions({ types, difficulty = 'medium', focus = '', similarTo = null, feature = 'similar' }) {
+  const seen = bankQuizQuestions();
+  const { qs, skipped } = await generateChunkVerified({ types, difficulty, focus, avoid: existingStems({ focus, types }), similarTo, seen });
+  if (!qs.length) throw new Error('검증을 통과한 문제를 만들지 못했습니다. 다시 시도해 주세요.');
+  qs.forEach((q) => saveToBank(q, { feature }));
+  return { questions: qs, skipped };
+}
+
+export function normalize(raw, difficulty) {
   const q = { ...raw, id: uid(), difficulty };
   const arr = (x) => (Array.isArray(x) ? x : []);
   q.options = arr(q.options).map(String);
@@ -363,7 +426,7 @@ export const grade = async (q, a) => (await gradeMany([{ q, a }]))[0];
 
 // 채점 결과를 기록: 대시보드 + 오답노트 (+ 다시 풀기면 '완전 정복' 표시)
 export function recordResult(q, a, res, { feature, retry = false }) {
-  recordAttempt({ feature, type: q.type, concepts: q.concepts, sociologists: q.sociologists, correct: res.correct, score: res.score });
+  recordAttempt({ qid: q.id, feature, type: q.type, concepts: q.concepts, sociologists: q.sociologists, correct: res.correct, score: res.score });
   if (retry) {
     markMastered(q.id, res.correct);
     if (!res.correct) addWrong({ feature, q, userAnswer: a, feedback: res.feedback });
@@ -375,7 +438,7 @@ export function recordResult(q, a, res, { feature, retry = false }) {
 // ---------- 렌더링 ----------
 // mode: 'practice'(바로 채점) | 'exam'(나중에 일괄 채점)
 export function renderQuestion(q, { index, mode = 'practice', feature = 'quiz', retry = false, onResult } = {}) {
-  const view = { q, answer: null, locked: false };
+  const view = { q, answer: null, locked: false, feature };
   const card = h('article', { class: 'qcard', 'data-type': q.type });
   const focusCtx = () => setCurrent({ kind: 'question', q, answer: view.answer, result: view.result, label: `${index != null ? index + 1 + '번 ' : ''}${TYPES[q.type]} 문제` });
   card.addEventListener('focusin', focusCtx);
@@ -430,6 +493,7 @@ export function renderQuestion(q, { index, mode = 'practice', feature = 'quiz', 
     clear(actions);
     resultBox.replaceChildren(resultView(q, view.answer, res));
     actions.appendChild(h('button', { class: 'btn ghost', onclick: () => openChatAbout({ kind: 'question', q, answer: view.answer, result: res, label: TYPES[q.type] + ' 문제' }, '이 문제의 해설이 이해가 안 돼요. ') }, '💬 이 문제 AI에게 질문'));
+    actions.appendChild(reportButton(q, { feature: view.feature, userAnswer: view.answer, wasWrong: !res.correct }));
     focusCtx();
   };
   return view;

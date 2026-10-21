@@ -1,6 +1,6 @@
 // 7. 자동 오답노트
 import { h, add, clear, pageHead, loadingBox, errorBox, fmtDate, confirmBox, select, toast } from '../ui.js';
-import { TYPES, renderQuestion, answerText, userAnswerText, generateQuestions } from '../questions.js';
+import { TYPES, renderQuestion, answerText, userAnswerText, generateVerifiedQuestions } from '../questions.js';
 import { S, removeWrong } from '../store.js';
 import { hasScope } from '../docs.js';
 import { renderPassage } from './passage.js';
@@ -91,7 +91,7 @@ export function render(root) {
     work.scrollIntoView({ behavior: 'smooth' });
     try {
       const { id, ...shape } = w.q;
-      const qs = await generateQuestions({ types: [w.q.type, w.q.type], difficulty: w.q.difficulty || 'medium', focus: (w.q.concepts || []).join(', '), similarTo: { stem: shape.stem, concepts: shape.concepts, type: shape.type } });
+      const { questions: qs } = await generateVerifiedQuestions({ types: [w.q.type, w.q.type], difficulty: w.q.difficulty || 'medium', focus: (w.q.concepts || []).join(', '), similarTo: { stem: shape.stem, concepts: shape.concepts, type: shape.type } });
       clear(work);
       work.appendChild(h('div', { class: 'row' }, h('h2', { class: 'grow' }, '유사 문제'), h('button', { class: 'btn ghost', onclick: () => clear(work) }, '닫기')));
       const box = h('div');

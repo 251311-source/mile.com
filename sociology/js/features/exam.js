@@ -1,6 +1,6 @@
 // 13. 시험 모드
 import { h, add, clear, pageHead, field, loadingBox, errorBox, pct, confirmBox } from '../ui.js';
-import { QUIZ_TYPES, TYPES, DIFF, generateMany, renderQuestion, gradeMany, recordResult } from '../questions.js';
+import { QUIZ_TYPES, TYPES, DIFF, getQuestions, renderQuestion, gradeMany, recordResult } from '../questions.js';
 import { S, save } from '../store.js';
 import { segBtn } from './quiz.js';
 
@@ -27,7 +27,7 @@ export function render(root) {
     start.disabled = true;
     area.replaceChildren(loadingBox(`시험지 ${opts.count}문항을 만들고 있습니다… (조금 걸릴 수 있습니다)`));
     try {
-      const qs = await generateMany({ count: opts.count, typePool: QUIZ_TYPES, difficulty: opts.difficulty });
+      const { questions: qs } = await getQuestions({ count: opts.count, typePool: QUIZ_TYPES, difficulty: opts.difficulty, feature: 'exam' });
       runExam(root, area, qs);
     } catch (e) {
       area.replaceChildren(errorBox(e, begin));

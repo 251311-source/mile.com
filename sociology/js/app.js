@@ -3,6 +3,7 @@ import { h, clear, setCurrent } from './ui.js';
 import { loadDocs, hasScope, scopeSummary } from './docs.js';
 import { onChange, settings, flush } from './store.js';
 import { initPanels } from './panels.js';
+import { backupOverdue, downloadBackup, BACKUP_REMIND_DAYS } from './backup.js';
 
 const ROUTES = [
   ['scope', '📚', '자료·범위', () => import('./features/scope.js')],
@@ -16,11 +17,12 @@ const ROUTES = [
   ['cards', '🃏', '플래시카드', () => import('./features/flashcards.js')],
   ['exam', '⏱️', '시험 모드', () => import('./features/exam.js')],
   ['wrong', '📕', '오답노트', () => import('./features/wrong.js')],
+  ['bank', '🗄️', '문제 은행', () => import('./features/bank.js')],
   ['dashboard', '📊', '취약점 분석', () => import('./features/dashboard.js')],
   ['settings', '⚙️', '설정', () => import('./features/settings.js')],
 ];
 // 학습 범위가 없어도 쓸 수 있는 화면
-const NO_SCOPE_OK = new Set(['scope', 'wrong', 'dashboard', 'settings', 'cards']);
+const NO_SCOPE_OK = new Set(['scope', 'wrong', 'dashboard', 'settings', 'cards', 'bank']);
 
 const nav = document.getElementById('nav');
 const main = document.getElementById('main');
@@ -37,6 +39,19 @@ function updateChip() {
   const s = scopeSummary();
   scopeChip.textContent = s.units ? `학습 범위: 파일 ${s.files}개 · ${s.units}쪽/슬라이드` : '학습 범위 미선택';
   scopeChip.classList.toggle('warn', !s.units);
+}
+
+let bannerDismissed = false;
+function updateBanner() {
+  const show = !bannerDismissed && backupOverdue();
+  let el = document.getElementById('backup-banner');
+  if (!show) { el?.remove(); return; }
+  if (el) return;
+  el = h('div', { id: 'backup-banner', class: 'backup-banner', role: 'status' },
+    h('span', null, `💾 백업한 지 ${BACKUP_REMIND_DAYS}일이 지났어요.`),
+    h('button', { class: 'btn small primary', onclick: () => { downloadBackup(); el.remove(); } }, '지금 백업'),
+    h('button', { class: 'icon-btn', 'aria-label': '닫기', onclick: () => { bannerDismissed = true; el.remove(); } }, '✕'));
+  main.before(el);
 }
 
 let renderToken = 0;
@@ -74,7 +89,8 @@ async function init() {
   initPanels();
   await loadDocs();
   updateChip();
-  onChange(updateChip);
+  updateBanner();
+  onChange(() => { updateChip(); updateBanner(); });
   window.addEventListener('hashchange', route);
   window.addEventListener('beforeunload', flush);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });

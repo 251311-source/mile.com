@@ -4,6 +4,9 @@ import { askJSON, T, SOURCES } from '../ai.js';
 import { scopeKey } from '../docs.js';
 import { S, save, uid, recordAttempt, addWrong } from '../store.js';
 import { openChatAbout } from '../panels.js';
+import { verifyItems } from '../verify.js';
+import { saveToBank } from '../bank.js';
+import { reportButton } from '../report.js';
 
 const EXTRACT = T.obj({
   quotes: T.arr(T.obj({ quote_ko: T.str, original: T.str, original_lang: T.str, speaker: T.str, topic: T.str, kind: T.oneOf('direct', 'claim'), sources: SOURCES })),
@@ -24,6 +27,7 @@ function bank() { return S().quoteBank[scopeKey()]; }
 export async function render(root) {
   const area = h('div');
   const toolbar = h('div', { class: 'row wrap' });
+  const seen = new Set(); // 이번 세션에서 이미 낸 인용
   add(root, pageHead('발화자 맞히기', '자료 속 사회학자의 말을 무작위 순서로 보여 줍니다. 누가 한 말인지 맞혀 보세요.'), toolbar, area);
 
   const drawToolbar = () => {
@@ -31,12 +35,12 @@ export async function render(root) {
     const b = bank();
     const counts = { material: 0, verified: 0, unverified: 0 };
     (b?.quotes || []).forEach((q) => counts[q.origin]++);
-    const addBtn = h('button', { class: 'btn', onclick: () => busy(addBtn, async () => { await addFromWeb(); drawToolbar(); start(); }) }, '➕ 추가 (웹 검색)');
+    const addBtn = h('button', { class: 'btn', onclick: () => busy(addBtn, async () => { await addFromWeb(); drawToolbar(); start(false); }) }, '➕ 추가 (웹 검색)');
     add(toolbar, 
       h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: showOriginal, onchange: (e) => { showOriginal = e.target.checked; area.querySelectorAll('.q-original').forEach((x) => { x.hidden = !showOriginal; }); } }), h('span', null, '원문 함께 보기')),
       h('span', { class: 'grow' }),
       b && h('span', { class: 'muted small' }, `자료 ${counts.material} · 웹 검증 ${counts.verified} · 웹 미검증 ${counts.unverified}`),
-      h('button', { class: 'btn', onclick: () => start() }, '🔀 다시 섞기'),
+      h('button', { class: 'btn', onclick: () => start(true) }, '🔀 다시 섞기'),
       addBtn,
       h('button', { class: 'btn ghost', onclick: async () => { delete S().quoteBank[scopeKey()]; save(); await load(); } }, '자료에서 다시 추출'));
   };
@@ -55,20 +59,27 @@ export async function render(root) {
     start();
   }
 
-  function start() {
+  // reset이 true면 새 세션(처음부터 다시 섞기), false면 이번 세션에서 안 나온 인용만
+  function start(reset = true) {
+    if (reset) seen.clear();
     const b = bank();
     if (!b?.quotes.length) {
       area.replaceChildren(h('div', { class: 'notice' }, '학습 범위에서 학자의 말을 찾지 못했습니다. 범위를 넓히거나 [추가] 버튼으로 웹에서 찾아보세요.'));
       return;
     }
-    const order = shuffle(b.quotes);
+    const order = shuffle(b.quotes.filter((q) => !seen.has(q.id)));
+    if (!order.length) {
+      area.replaceChildren(h('div', { class: 'card center' }, h('h2', null, '이번 세션의 인용을 모두 풀었습니다'), h('p', { class: 'muted' }, '같은 인용은 한 세션에서 다시 나오지 않습니다.'), h('button', { class: 'btn primary', onclick: () => start(true) }, '다시 섞어서 풀기')));
+      return;
+    }
     let i = 0, right = 0;
     const next = () => {
       if (i >= order.length) {
-        area.replaceChildren(h('div', { class: 'card center' }, h('h2', null, `끝! ${order.length}문제 중 ${right}개 정답`), h('button', { class: 'btn primary', onclick: start }, '다시 섞어서 풀기')));
+        area.replaceChildren(h('div', { class: 'card center' }, h('h2', null, `끝! ${order.length}문제 중 ${right}개 정답`), h('button', { class: 'btn primary', onclick: () => start(true) }, '다시 섞어서 풀기')));
         return;
       }
       const q = order[i++];
+      seen.add(q.id);
       area.replaceChildren(h('div', { class: 'score-bar' }, `${i}/${order.length} · 정답 ${right}`), quoteCard(q, b, (ok) => { if (ok) right++; }, next));
     };
     next();
@@ -85,14 +96,34 @@ async function extract() {
     '- speaker: 자료에 쓰인 학자 이름. topic: 관련 주제/개념. sources: 자료 위치.',
     '- sociologists: 학습 범위에 등장하는 모든 사회학자 이름. topics: 학습 범위의 주요 주제·이론 목록.',
   ].join('\n');
-  const { data } = await askJSON({ task, schema: EXTRACT });
-  const quotes = (data.quotes || []).filter((q) => q.quote_ko && q.speaker).map((q) => ({
+  const toQuotes = (d) => (d.quotes || []).filter((q) => q.quote_ko && q.speaker).map((q) => ({
     id: uid(), text: q.quote_ko, original: q.original || '', lang: q.original_lang || '', speaker: q.speaker, topic: q.topic, kind: q.kind,
     origin: 'material', sources: q.sources || [],
   }));
+  const check = (list) => verifyItems('quote', list.map((q) => ({ quote: q.text, original: q.original, speaker: q.speaker, topic: q.topic, kind: q.kind, sources: q.sources })));
+  const { data } = await askJSON({ task, schema: EXTRACT });
+  let first = toQuotes(data);
+  // 자체 검증: 자료의 그 쪽에 실제로 그 학자의 말로 나오는지
+  const v1 = await check(first);
+  const quotes = first.filter((_, i) => v1[i].pass);
+  const failed = first.length - quotes.length;
+  if (failed) {
+    const again = await askJSON({ schema: EXTRACT, task: task + `\n- 최대 ${failed}개만 찾는다. 다음 문장들은 제외한다: ${first.map((q) => q.text.slice(0, 30)).join(' / ')}` }).catch(() => null);
+    if (again) {
+      const second = toQuotes(again.data);
+      const v2 = await check(second);
+      quotes.push(...second.filter((_, i) => v2[i].pass));
+    }
+  }
+  quotes.forEach((q) => saveToBank(quoteQ(q), { feature: 'speaker', kind: 'quote' }));
   const sociologists = [...new Set([...(data.sociologists || []), ...quotes.map((q) => q.speaker)])];
   S().quoteBank[scopeKey()] = { quotes, sociologists, topics: data.topics || [] };
   save();
+}
+
+function quoteQ(q) {
+  return { id: q.id, type: 'short', stem: `다음 말을 한 사회학자는? “${q.text}”`, answer_text: q.speaker, accept: [], options: [], context: '',
+    explanation: `${q.speaker}의 말입니다.${q.note ? ' (' + q.note + ')' : ''}${q.url ? ' 출처: ' + q.url : ''}`, sources: q.sources || [], concepts: [q.topic].filter(Boolean), sociologists: [q.speaker], verified: true };
 }
 
 async function addFromWeb() {
@@ -141,7 +172,7 @@ function quoteCard(q, b, onAnswered, next) {
     answered = true;
     const ok = sameName(choice, q.speaker);
     onAnswered(ok);
-    recordAttempt({ feature: 'speaker', type: 'speaker', concepts: [q.topic], sociologists: [q.speaker], correct: ok, score: ok ? 1 : 0 });
+    recordAttempt({ qid: q.id, feature: 'speaker', type: 'speaker', concepts: [q.topic], sociologists: [q.speaker], correct: ok, score: ok ? 1 : 0 });
     if (!ok) {
       addWrong({ feature: 'speaker', userAnswer: choices.indexOf(choice), q: {
         id: q.id, type: 'mc', stem: `다음 말을 한 사회학자는? “${q.text}”`, context: '', options: choices, answer_index: choices.indexOf(q.speaker),
@@ -158,7 +189,7 @@ function quoteCard(q, b, onAnswered, next) {
       h('div', { class: 'result-head' }, h('strong', null, ok ? '✔ 정답' : '✘ 오답'), h('span', null, `정답: ${q.speaker}`), !ok && h('span', { class: 'muted small' }, '오답노트에 저장됨')),
       q.topic && h('p', null, h('b', null, '주제 '), q.topic),
       originView(q),
-      h('div', { class: 'row' }, h('button', { class: 'btn ghost', onclick: () => openChatAbout(ctx, '이 말의 의미를 설명해 주세요. ') }, '💬 AI에게 질문'), h('button', { class: 'btn primary', onclick: next }, '다음'))));
+      h('div', { class: 'row' }, h('button', { class: 'btn ghost', onclick: () => openChatAbout(ctx, '이 말의 의미를 설명해 주세요. ') }, '💬 AI에게 질문'), reportButton(quoteQ(q), { feature: 'speaker' }), h('button', { class: 'btn primary', onclick: next }, '다음'))));
   };
   const card = h('article', { class: 'qcard quote-card' },
     h('div', { class: 'qmeta' }, h('span', { class: 'tag label-' + q.origin }, LABEL[q.origin]), q.kind === 'claim' && h('span', { class: 'tag soft' }, '자료 속 주장'), q.lang && h('span', { class: 'tag ghost' }, q.lang)),
