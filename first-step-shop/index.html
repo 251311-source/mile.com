@@ -351,8 +351,9 @@ svg { display: block; }
   background: color-mix(in srgb, var(--c) 14%, transparent);
   font-size: 12px;
   font-weight: 400;
-  animation: pop .25s ease-out;
 }
+
+.kit-chip.fresh { animation: pop .25s ease-out; }
 
 .kit-chip svg { width: 22px; height: 22px; color: var(--c); filter: drop-shadow(0 0 4px var(--c)); }
 .kit-chip .x { color: var(--dim); font-size: 10px; margin-left: 1px; }
@@ -675,7 +676,7 @@ svg { display: block; }
 
 .shake { animation: shake .3s; }
 
-@media (max-height: 760px) {
+@media (max-width: 859px) and (max-height: 760px) {
   .hud { padding-top: max(8px, env(safe-area-inset-top)); padding-bottom: 4px; }
   .counter { height: 168px; margin-top: 4px; }
   .bubble { min-height: 88px; padding: 10px 13px; font-size: 13.5px; line-height: 1.5; }
@@ -694,6 +695,189 @@ svg { display: block; }
   .item { padding: 6px 3px 5px; gap: 2px; }
   .item .orb { width: 34px; height: 34px; }
   .item .orb svg { width: 24px; height: 24px; }
+}
+
+/* 키보드 단축키 표시 (마우스를 쓰는 PC에서만) */
+kbd {
+  display: none;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 1px solid #dfe3ff40;
+  background: #ffffff10;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--muted);
+  vertical-align: middle;
+}
+
+.btn-serve kbd { border-color: #1a164040; background: #1a164014; color: #1a1640aa; }
+.item kbd.num { position: absolute; top: 5px; left: 6px; }
+
+@media (hover: hover) and (pointer: fine) {
+  kbd { display: inline-block; }
+  .btn kbd { margin-left: 4px; }
+  .item:hover:not(.in) { border-color: color-mix(in srgb, var(--c) 55%, transparent); background: #ffffff0d; }
+  .btn:hover:not(:disabled), .choice:hover, .tab:hover { filter: brightness(1.12); }
+}
+
+/* 소리 켜고 끄기 */
+.sound {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid #dfe3ff26;
+  background: #ffffff0d;
+  color: var(--lavender);
+}
+
+.sound svg { width: 16px; height: 16px; }
+
+/* 손님 별명 */
+.name small {
+  display: block;
+  margin-bottom: 1px;
+  font-size: 10px;
+  color: var(--lavender);
+  white-space: normal;
+  line-height: 1.3;
+  word-break: keep-all;
+}
+
+/* 손님 속마음 */
+.thought {
+  position: absolute;
+  left: 6px;
+  right: 110px;
+  top: 128px;
+  font-family: var(--serif);
+  font-size: 12px;
+  color: var(--lavender);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity .3s, transform .3s;
+  pointer-events: none;
+  word-break: keep-all;
+}
+
+.thought.show { opacity: .95; transform: none; }
+
+/* 콤보 · 별똥별 피버 */
+.combo {
+  margin-left: auto;
+  margin-right: 8px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fff4cf, var(--gold));
+  color: #1a1640;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  animation: pop .3s ease-out;
+}
+
+.combo:empty { display: none; }
+
+.fever-banner {
+  position: absolute;
+  z-index: 35;
+  left: 50%;
+  top: 40%;
+  translate: -50% -50%;
+  padding: 14px 26px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fff4cf, var(--gold) 50%, var(--gold-deep));
+  color: #1a1640;
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 0 60px #ffe6a6aa;
+  pointer-events: none;
+  animation: feverIn 1.6s ease-out forwards;
+}
+
+#app.fever .kit { border-color: #ffe6a6aa; box-shadow: 0 0 28px #ffe6a655, inset 0 0 24px #ffe6a61a; }
+#app.fever .meteor { animation-duration: 2.4s; animation-delay: 0s; background: linear-gradient(90deg, #fff4cf, #ffe6a6aa 25%, transparent); }
+#app.fever .milky-way { filter: blur(14px) hue-rotate(-25deg) brightness(1.4); }
+
+/* 기숙사 고양이 */
+.customer.cat .avatar { cursor: pointer; }
+.customer.cat .avatar:active { transform: scale(.95); }
+.purr { animation: purr .25s ease-in-out 4; }
+
+@keyframes feverIn {
+  0% { opacity: 0; transform: scale(.6); }
+  20% { opacity: 1; transform: scale(1.08); }
+  75% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.1); }
+}
+
+@keyframes purr { 50% { transform: rotate(-4deg) scale(1.05); } }
+
+/* PC: 넓은 화면에서는 손님·키트(왼쪽)와 진열대(오른쪽)를 나란히 */
+@media (min-width: 860px) and (min-height: 560px) {
+  #app {
+    max-width: 1180px;
+    display: grid;
+    grid-template-columns: minmax(380px, 1fr) minmax(440px, 1.15fr);
+    grid-template-rows: auto auto auto auto auto;
+    align-content: center;
+    grid-template-areas: "hud hud" "sub sub" "counter shelf" "kit shelf" "actions shelf";
+    column-gap: 24px;
+    padding: 0 26px 26px;
+  }
+
+  .hud { grid-area: hud; padding: 20px 2px 8px; }
+  .day { font-size: 19px; }
+  .stat { font-size: 14px; padding: 6px 12px 6px 8px; }
+  .subhud { grid-area: sub; padding: 0 2px 4px; }
+  .calm { font-size: 12px; }
+  .calm-bar { width: 120px; }
+
+  .counter { grid-area: counter; height: 300px; margin: 12px 0 0; }
+  .bubble { right: 160px; min-height: 160px; padding: 18px 20px; font-size: 17px; }
+  .customer { width: 150px; }
+  .avatar { width: 140px; height: 156px; }
+  .name { font-size: 12px; }
+  .thought { top: 182px; right: 165px; font-size: 13.5px; }
+
+  .kit { grid-area: kit; margin: 14px 0 0; padding: 14px 16px 16px; }
+  .kit-items { min-height: 48px; }
+  .kit-chip { font-size: 13px; }
+  .actions { grid-area: actions; margin: 14px 0 0; }
+  .btn { padding: 14px 8px; font-size: 14.5px; }
+
+  .shelf-wrap {
+    grid-area: shelf;
+    margin: 12px 0 0;
+    padding: 18px;
+    border: 1px solid #dce1ff2b;
+    border-radius: 26px;
+    background: linear-gradient(135deg, #ffffff12, #ffffff04), #0d1030a8;
+    box-shadow: inset 0 1px 0 #ffffff14, 0 14px 40px #02030e66;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tabs { margin-bottom: 14px; }
+  .shelf { flex: 1; grid-auto-rows: 1fr; }
+  .item { justify-content: center; }
+  .tab { padding: 10px; font-size: 14px; }
+  .shelf { gap: 12px; }
+  .item { padding: 16px 6px 12px; font-size: 13px; gap: 6px; }
+  .item .orb { width: 60px; height: 60px; }
+  .item .orb svg { width: 38px; height: 38px; }
+  .item .price { font-size: 11px; }
+
+  .toast { top: 96px; font-size: 14px; }
+  .card { max-width: 520px; padding: 30px 28px 26px; }
+  .card h1 { font-size: 32px; }
+  .card h2 { font-size: 25px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -832,6 +1016,8 @@ svg { display: block; }
 }
 
 .cope-tips li::before { content: "✦ "; color: var(--cyan); }
+.keys-hint { display: none; font-size: 11.5px !important; }
+@media (hover: hover) and (pointer: fine) { .keys-hint { display: block; } }
 </style>
 </head>
 <body>
@@ -847,6 +1033,7 @@ svg { display: block; }
     <div class="stats">
       <div class="stat" id="coinStat"><span id="coinIcon"></span><b id="coins">0</b></div>
       <div class="stat" id="mileStat"><span id="mileIcon"></span><b id="mile">0</b></div>
+      <button class="sound" id="soundBtn" aria-label="소리 켜기/끄기"></button>
     </div>
   </header>
   <div class="subhud">
@@ -854,7 +1041,7 @@ svg { display: block; }
     <div class="calm">
       마음 별빛
       <div class="calm-bar"><div class="calm-fill" id="calmFill"></div></div>
-      <button class="breath" id="breathBtn">숨 고르기 <b id="breaths">3</b></button>
+      <button class="breath" id="breathBtn">숨 고르기 <b id="breaths">3</b> <kbd>B</kbd></button>
     </div>
   </div>
 
@@ -867,19 +1054,20 @@ svg { display: block; }
       <div class="avatar" id="avatar"></div>
       <div class="name" id="custName"></div>
     </div>
+    <div class="thought" id="thought"></div>
     <div class="patience"><div class="patience-fill" id="patienceFill"></div></div>
     <div class="patience-label">기다리는 별빛</div>
   </section>
 
   <section class="kit glass">
-    <div class="kit-title">별빛 키트 상자 <span>담긴 물건을 누르면 빼요</span></div>
+    <div class="kit-title">별빛 키트 상자 <b class="combo" id="combo"></b><span>담긴 물건을 누르면 빼요</span></div>
     <div class="kit-items" id="kitItems"></div>
   </section>
 
   <div class="actions">
-    <button class="btn btn-ghost" id="clearBtn">비우기</button>
-    <button class="btn btn-wrong" id="wrongBtn">이 가게 아니에요!</button>
-    <button class="btn btn-serve" id="serveBtn">건네기 ✦</button>
+    <button class="btn btn-ghost" id="clearBtn">비우기<kbd>C</kbd></button>
+    <button class="btn btn-wrong" id="wrongBtn"><span id="wrongLabel">이 가게 아니에요!</span><kbd>X</kbd></button>
+    <button class="btn btn-serve" id="serveBtn"><span id="serveLabel">건네기 ✦</span><kbd>Enter</kbd></button>
   </div>
 
   <section class="shelf-wrap">
@@ -994,7 +1182,12 @@ const STRANGE_REQUESTS = [
   "라면 하나 끓여 주실 수 있어요? 계란 넣어서요.",
   "택배 찾으러 왔어요. 302호 앞으로 온 거요.",
   "멀티탭 있어요? 콘센트가 하나뿐이라서요.",
-  "룸메랑 싸웠는데… 화해하는 방법도 파나요?"
+  "룸메랑 싸웠는데… 화해하는 방법도 파나요?",
+  "월요일을 없애는 약 있어요? 효과 좋은 걸로요.",
+  "과제를 대신 써 주는 펜 주세요. 마감이 세 시간 남았어요.",
+  "룸메 코골이를 끄는 리모컨 있죠? 버튼 하나면 되는데.",
+  "내일 학식 메뉴 미리 알려 주실 수 있어요? 여기 다 안다던데.",
+  "지구에서 제일 맛있는 라면 하나만요. 저 사실 다른 은하에서 왔거든요."
 ];
 const STRANGE_CHANCE = 0.18;          // 손님이 엉뚱한 손님일 확률
 const MAX_STRANGE_PER_ROUND = 2;      // 하루에 엉뚱한 손님 최대 수
@@ -1115,10 +1308,92 @@ const icon = (name, refill) =>
 const COIN_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="#ffe6a633" stroke="#ffe6a6" stroke-width="1.3"/><path d="M10 5.2l1.3 3 3.2.3-2.4 2.1.7 3.2-2.8-1.7-2.8 1.7.7-3.2-2.4-2.1 3.2-.3z" fill="#ffe6a6"/></svg>`;
 const MILE_SVG = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5c.6 4.6 3.9 7.9 8.5 8.5-4.6.6-7.9 3.9-8.5 8.5-.6-4.6-3.9-7.9-8.5-8.5 4.6-.6 7.9-3.9 8.5-8.5z" fill="#c5c6ff" style="filter:drop-shadow(0 0 3px #c5c6ff)"/></svg>`;
 
+const SOUND_ON_SVG = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h3l4-3.5v11L6 12H3z"/><path d="M13.5 7.5a3.5 3.5 0 0 1 0 5M15.8 5.2a6.8 6.8 0 0 1 0 9.6"/></svg>`;
+const SOUND_OFF_SVG = `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h3l4-3.5v11L6 12H3z"/><path d="M13.5 8l4 4M17.5 8l-4 4"/></svg>`;
+
 // 손님 모습: 옷 빛깔과 머리 모양을 섞어서 만들어요
 const CUSTOMER_COLORS = ["#9baeff", "#c5b8ff", "#f0c4ff", "#9fe0ff", "#b6a4ff", "#ffd6ec"];
 const HAIR_COLORS = ["#2b2563", "#3a2f7a", "#1f2a5c", "#4a3a86"];
 const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예준", "수아", "시우", "유나", "건우", "채원", "지호"];
+// 손님 별명 (이름 위에 붙어요)
+const CUSTOMER_TITLES = [
+  "시험기간 좀비", "새벽 라면 장인", "알람 다섯 개 끄는", "공강 낮잠러", "택배 언박싱 장인",
+  "룸메 눈치 9단", "마감 3분 전", "학식 메뉴 박사", "통금 수호자", "엘베 버튼 연타",
+  "편의점 VIP", "빨래 미루기 장인", "와이파이 사냥꾼", "아침 수업 생존자"
+];
+
+/* =========================================================
+   재미 요소 — 콤보, 별똥별 피버, 속마음, 기숙사 고양이, 칭호
+   ========================================================= */
+
+// 딱 맞게 연속으로 건네면 콤보! feverAt 콤보마다 별똥별 피버가 시작돼요
+const COMBO = {
+  bonusPerCombo: 1,     // 콤보 하나당 추가 MILE (2콤보부터)
+  maxBonus: 4,          // 콤보 추가 MILE 최대
+  feverAt: 3,           // 이 콤보에 도달하면 피버 시작
+  feverCustomers: 2,    // 피버가 이어지는 손님 수
+  feverTipMul: 2,       // 피버 중 팁 배수
+  feverMile: 3          // 피버 중 추가 MILE
+};
+
+// 딱 맞게 건넸을 때 손님 반응
+const PERFECT_LINES = [
+  "와, 딱 이거예요! 고마워요!",
+  "어떻게 아셨어요? 혹시 독심술 배우셨어요?",
+  "덕분에 오늘 밤은 편하게 지낼 수 있겠어요!",
+  "사장님 최고! 별점 다섯 개 드릴게요.",
+  "이 정도면 기숙사 생활 만렙이에요!",
+  "엄마한테 SOS 안 쳐도 되겠어요!"
+];
+
+// 손님 속마음 (딱 맞게 건넸을 때 가끔 보여요)
+const THOUGHTS = [
+  "(속마음: 이제 엄마한테 전화 안 해도 되겠다…)",
+  "(속마음: 룸메한테 자랑해야지.)",
+  "(속마음: 오늘부터 나도 살림꾼!)",
+  "(속마음: 통장은 울고 있지만 마음은 웃는다.)",
+  "(속마음: 이 가게 단골 해야겠다.)",
+  "(속마음: 사장님 손이 거의 별똥별 속도였어…)",
+  "(속마음: 자취 레벨이 1 올랐습니다.)"
+];
+const THOUGHT_CHANCE = 0.5;
+
+// 기숙사 고양이: 가끔 놀러 와요. 쓰다듬으면 마음 별빛이 채워져요
+const CAT = {
+  chance: 0.6,          // 하루에 고양이가 찾아올 확률
+  name: "기숙사 고양이 별이",
+  title: "간식 감별사",
+  patience: 10,         // 머무는 시간(초)
+  calm: 20,             // 쓰다듬으면 채워지는 마음 별빛
+  mile: 2,              // 쓰다듬으면 받는 MILE
+  lines: [
+    "냐아앙… (진열대 사이로 슬쩍 들어왔어요)",
+    "냥. (키트 상자에 들어가고 싶은 눈치예요)",
+    "미야오~ (계산대 위에 털썩 누웠어요)"
+  ]
+};
+
+// 기숙사 소식 (하루를 시작할 때 하나씩 보여요)
+const DORM_NEWS = [
+  "502호에서 새벽 라면 냄새 신고가 들어왔어요. 범인은 아직 못 잡았어요.",
+  "세탁실 3번 세탁기가 또 양말 한 짝을 삼켰대요.",
+  "엘리베이터 버튼을 열 번 누른다고 빨리 오지는 않는대요. 과학적으로요.",
+  "기숙사 고양이 별이가 어제 간식 세 개를 받아 갔대요.",
+  "시험 기간이라 복도에서 좀비가 목격됐어요. 다들 커피를 챙겨요."
+];
+
+// 게임이 끝나면 받는 칭호 (조건에 맞는 것 중 최대 3개)
+const TITLES = [
+  { name: "번개손 점장",     desc: "딱 맞게 10번 이상 건넸어요",       test: (s) => s.perfects >= 10 },
+  { name: "콤보 장인",       desc: "5콤보 이상을 달성했어요",          test: (s) => s.maxCombo >= 5 },
+  { name: "진상 퇴치 전문가", desc: "진상 손님을 모두 침착하게 응대했어요", test: (s) => s.copeTotal >= 2 && s.copeGood === s.copeTotal },
+  { name: "눈치 100단",      desc: "엉뚱한 손님을 2명 이상 알아봤어요",  test: (s) => s.strangeRight >= 2 },
+  { name: "리필 요정",       desc: "리필 손님을 3번 이상 만족시켰어요",  test: (s) => s.refillPerfect >= 3 },
+  { name: "고양이 집사",     desc: "별이를 쓰다듬어 줬어요",            test: (s) => s.catPets >= 1 },
+  { name: "강철 멘탈",       desc: "숨 고르기 없이 영업을 마쳤어요",     test: (s) => s.breathsUsed === 0 },
+  { name: "느긋한 사장님",   desc: "손님 3명 이상이 기다리다 떠났어요…", test: (s) => s.left >= 3 }
+];
+const DEFAULT_TITLE = { name: "새내기 점장", desc: "누구나 처음은 있는 법이에요" };
 
 /* =========================================================
    게임 로직
@@ -1137,7 +1412,9 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
     box: [], coins: 0, mile: 0, roundCoins: 0, roundMile: 0, roundStats: null,
     patience: 0, patienceMax: 1, running: false, paused: false, picks: {}, mood: "",
     calm: CALM.max, breaths: CALM.breathsPerDay, tiredWarned: false,
-    copeGood: 0, copeTotal: 0, onChoice: null
+    copeGood: 0, copeTotal: 0, onChoice: null,
+    combo: 0, fever: 0,
+    stats: { perfects: 0, maxCombo: 0, strangeRight: 0, refillPerfect: 0, catPets: 0, breathsUsed: 0, left: 0 }
   };
 
   $("coinIcon").innerHTML = COIN_SVG;
@@ -1190,11 +1467,75 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
       </svg>`;
   };
 
+  // ── 효과음 (파일 없이 즉석에서 만드는 소리) ──
+  let audio = null;
+  let soundOn = true;
+  try { soundOn = localStorage.getItem("mileShopSound") !== "off"; } catch (e) {}
+
+  const tone = (freq, start, dur, type = "sine", vol = .08) => {
+    const o = audio.createOscillator();
+    const g = audio.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, audio.currentTime + start);
+    g.gain.setValueAtTime(0, audio.currentTime + start);
+    g.gain.linearRampToValueAtTime(vol, audio.currentTime + start + .01);
+    g.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + start + dur);
+    o.connect(g).connect(audio.destination);
+    o.start(audio.currentTime + start);
+    o.stop(audio.currentTime + start + dur + .05);
+    return o;
+  };
+
+  const SFX = {
+    pick: () => tone(1046, 0, .12),
+    drop: () => tone(523, 0, .1),
+    perfect: () => [784, 988, 1318].forEach((f, i) => tone(f, i * .08, .25)),
+    partial: () => { tone(659, 0, .15); tone(523, .12, .2); },
+    wrong: () => { tone(196, 0, .25, "square", .04); tone(165, .15, .3, "square", .04); },
+    cope: () => { tone(740, 0, .15); tone(988, .1, .25); },
+    hurt: () => { tone(330, 0, .2, "triangle"); tone(247, .15, .3, "triangle"); },
+    breathe: () => { const o = tone(392, 0, 1.1, "sine", .06); o.frequency.linearRampToValueAtTime(262, audio.currentTime + 1.1); },
+    fever: () => [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, i * .07, .3, "triangle", .07)),
+    meow: () => { const o = tone(700, 0, .45, "sine", .07); o.frequency.linearRampToValueAtTime(1050, audio.currentTime + .15); o.frequency.linearRampToValueAtTime(620, audio.currentTime + .45); }
+  };
+
+  const sfx = (name) => {
+    if (!soundOn) return;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === "suspended") audio.resume();
+      SFX[name]();
+    } catch (e) {}
+  };
+
+  const renderSound = () => { $("soundBtn").innerHTML = soundOn ? SOUND_ON_SVG : SOUND_OFF_SVG; };
+
+  // ── 기숙사 고양이 그림 ──
+  const catSVG = (mood) => `
+    <svg viewBox="0 0 96 108" aria-hidden="true">
+      <defs><radialGradient id="catHalo"><stop offset="0" stop-color="#ffe6a6" stop-opacity=".4"/><stop offset="1" stop-color="#ffe6a6" stop-opacity="0"/></radialGradient></defs>
+      <circle cx="48" cy="58" r="46" fill="url(#catHalo)"/>
+      <path d="M74 92c10-2 14-12 8-20" fill="none" stroke="#d9cfff" stroke-width="6" stroke-linecap="round" style="transform-origin:74px 92px;animation: idle 1.2s ease-in-out infinite alternate"/>
+      <ellipse cx="50" cy="88" rx="26" ry="18" fill="#d9cfff"/>
+      <path d="M30 40 L28 20 L42 32 Z M66 40 L68 20 L54 32 Z" fill="#d9cfff"/>
+      <path d="M32 36 L31 25 L39 32 Z M64 36 L65 25 L57 32 Z" fill="#f0c4ff"/>
+      <circle cx="48" cy="50" r="21" fill="#e9e2ff"/>
+      ${mood === "happy"
+        ? `<path d="M37 50q3.5-3.5 7 0M52 50q3.5-3.5 7 0" stroke="#2b2563" stroke-width="2.2" fill="none" stroke-linecap="round"/>`
+        : `<ellipse cx="40" cy="50" rx="2.6" ry="3.4" fill="#2b2563"/><ellipse cx="56" cy="50" rx="2.6" ry="3.4" fill="#2b2563"/>`}
+      <path d="M46 56h4l-2 2.2z" fill="#f0a0c8"/>
+      <path d="M48 58.2q-2 3-5 1.5M48 58.2q2 3 5 1.5" stroke="#2b2563" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <path d="M30 55h-9M30 59l-8 2M66 55h9M66 59l8 2" stroke="#9a92c8" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M36 70q12 5 24 0" stroke="#ffe6a6" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M48 72l1.4 2.9 3.2.4-2.4 2.2.7 3.1-2.9-1.6-2.9 1.6.7-3.1-2.4-2.2 3.2-.4z" fill="#ffe6a6"/>
+    </svg>`;
+
   // ── 화면 그리기 ──
   const renderTabs = () => {
     $("tabs").innerHTML = Object.entries(SHELVES).map(([key, t]) => {
       const n = state.box.filter(id => itemById[id].shelf === key).length;
-      return `<button class="tab ${state.tab === key ? "on" : ""}" data-tab="${key}" style="--c:${t.color}">${t.name}${n ? `<small>✦${n}</small>` : ""}</button>`;
+      const k = ["Q", "W", "E", "R"][Object.keys(SHELVES).indexOf(key)] || "";
+      return `<button class="tab ${state.tab === key ? "on" : ""}" data-tab="${key}" style="--c:${t.color}">${t.name}${n ? `<small>✦${n}</small>` : ""} <kbd>${k}</kbd></button>`;
     }).join("");
   };
 
@@ -1203,18 +1544,19 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
     $("shelf").innerHTML = ITEMS.filter(i => i.shelf === state.tab).map((i, n) => `
       <button class="item ${state.box.includes(i.id) ? "in" : ""}" data-id="${i.id}"
               style="--c:${TYPES[i.type].color};--d:${(-n * .33).toFixed(2)}s">
-        <span class="orb">${icon(i.icon, i.type === "refill")}</span>${i.name}
+        ${n < 9 ? `<kbd class="num">${n + 1}</kbd>` : ""}<span class="orb">${icon(i.icon, i.type === "refill")}</span>${i.name}
         <span class="price">${won(i.price)}</span>
       </button>`).join("");
   };
 
   const chip = (id, removable) =>
-    `<button class="kit-chip" data-id="${id}" style="--c:${colorOf(id)}">${icon(itemById[id].icon, itemById[id].type === "refill")}${itemById[id].name}${removable ? '<span class="x">✕</span>' : ""}</button>`;
+    `<button class="kit-chip ${id === state.fresh ? "fresh" : ""}" data-id="${id}" style="--c:${colorOf(id)}">${icon(itemById[id].icon, itemById[id].type === "refill")}${itemById[id].name}${removable ? '<span class="x">✕</span>' : ""}</button>`;
 
   const renderBox = () => {
     $("kitItems").innerHTML = state.box.length
       ? state.box.map(id => chip(id, true)).join("")
       : `<span class="kit-empty">아직 비어 있어요. 진열대에서 별을 골라 주세요.</span>`;
+    state.fresh = null;
     renderShelf();
   };
 
@@ -1230,6 +1572,8 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
 
   const renderHud = () => {
     $("coins").textContent = won(state.coins);
+    $("combo").textContent = state.combo >= 2 ? `${state.combo}콤보${state.fever ? " · 피버!" : ""}` : "";
+    $("app").classList.toggle("fever", state.fever > 0);
     $("mile").textContent = state.mile;
     $("dayLabel").textContent = ROUNDS[state.round].label;
     $("queueInfo").innerHTML = state.queue.map((_, i) =>
@@ -1284,7 +1628,7 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
 
   // ── 손님 만들기 ──
   const makeLook = () => ({ color: pick(CUSTOMER_COLORS), hairColor: pick(HAIR_COLORS), hair: Math.floor(Math.random() * 3) });
-  const makeName = () => `${200 + Math.floor(Math.random() * 3) * 100 + Math.floor(Math.random() * 12) + 1}호 ${pick(CUSTOMER_NAMES)}`;
+  const makeName = () => `<small>${pick(CUSTOMER_TITLES)}</small>${200 + Math.floor(Math.random() * 3) * 100 + Math.floor(Math.random() * 12) + 1}호 ${pick(CUSTOMER_NAMES)}`;
 
   const makeQueue = (roundIndex) => {
     const round = ROUNDS[roundIndex];
@@ -1310,6 +1654,10 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
       if (event) hard++;
       queue.push({ ...req, look: makeLook(), name: makeName(), event, eventDone: false, drain: event?.drain || 1 });
     }
+    if (Math.random() < CAT.chance) {
+      const at = 2 + Math.floor(Math.random() * (queue.length - 2));
+      queue.splice(at, 0, { cat: true, text: pick(CAT.lines), name: `<small>${CAT.title}</small>${CAT.name}`, drain: 1 });
+    }
     return queue;
   };
 
@@ -1331,7 +1679,7 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
   const setMood = (mood) => {
     if (state.mood === mood) return;
     state.mood = mood;
-    $("avatar").innerHTML = avatarSVG(state.current.look, mood);
+    $("avatar").innerHTML = state.current.cat ? catSVG(mood) : avatarSVG(state.current.look, mood);
   };
 
   const nextCustomer = () => {
@@ -1339,10 +1687,14 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
     const c = state.current = state.queue[state.index];
     state.box = [];
     state.mood = "";
-    state.patienceMax = state.patience = ROUNDS[state.round].patience + (c.needs ? (c.needs.length - 1) * 4 : 0);
+    state.patienceMax = state.patience = c.cat ? CAT.patience : ROUNDS[state.round].patience + (c.needs ? (c.needs.length - 1) * 4 : 0);
     setMood(c.event?.timing === "start" ? "upset" : "happy");
-    $("custName").textContent = c.name;
+    $("custName").innerHTML = c.name;
+    $("customer").classList.toggle("cat", !!c.cat);
+    $("serveLabel").textContent = c.cat ? "쓰다듬기 ✦" : "건네기 ✦";
+    $("wrongLabel").textContent = c.cat ? "다음에 또 와!" : "이 가게 아니에요!";
     $("customer").classList.remove("out");
+    if (c.cat) setTimeout(() => sfx("meow"), 300);
     state.running = true;
     state.paused = false;
 
@@ -1388,9 +1740,11 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
         state.roundMile += SCORE.mileCopeGood;
         c.drain = 1;
         if (ch.refresh || ev.timing === "start") state.patience = Math.max(state.patience, state.patienceMax * .85);
+        sfx("cope");
         result = `<div class="cope-result good"><b>침착하게 잘 응대했어요!</b>MILE +${SCORE.mileCopeGood} · 마음 별빛 ${sign(ch.calm || 0)}</div>`;
         bump("mileStat");
       } else {
+        sfx("hurt");
         result = `<div class="cope-result bad"><b>마음이 조금 다쳤어요.</b>마음 별빛 ${sign(ch.calm || 0)}${ch.patience ? " · 손님 기다림이 줄었어요" : ""}${ch.coin ? " · 매출이 줄어요" : ""}${ch.mile ? " · MILE이 줄어요" : ""}</div>`;
       }
       $("card").innerHTML = `
@@ -1410,7 +1764,7 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
       <h2>${ev.label}</h2>
       <div class="cope-line">“${ev.line}”</div>
       <p class="sub">어떻게 대답할까요? 기다림은 잠시 멈춰 있어요.</p>
-      <div class="choices">${choices.map((ch, i) => `<button class="choice" data-choice="${i}">${ch.text}</button>`).join("")}</div>`);
+      <div class="choices">${choices.map((ch, i) => `<button class="choice" data-choice="${i}"><kbd>${i + 1}</kbd> ${ch.text}</button>`).join("")}</div>`);
   };
 
   const triggerMidEvent = (c) => {
@@ -1428,7 +1782,27 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
     });
   };
 
+  const showThought = (text) => {
+    const t = $("thought");
+    t.textContent = text;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 1500);
+  };
+
+  const feverBanner = () => {
+    const b = document.createElement("div");
+    b.className = "fever-banner";
+    b.textContent = "✦ 별똥별 피버! ✦";
+    $("app").appendChild(b);
+    setTimeout(() => b.remove(), 1700);
+    sfx("fever");
+  };
+
   const finish = (reaction, coins, mile, gainText, stat, mood) => {
+    if (["partial", "left", "wrong"].includes(stat)) { state.combo = 0; state.fever = 0; }
+    if (stat === "left") state.stats.left++;
+    if (stat === "strange" && mood === "happy") state.stats.strangeRight++;
+    sfx({ perfect: "perfect", partial: "partial", left: "hurt", wrong: "wrong", strange: "cope", cat: "meow" }[stat]);
     state.running = false;
     state.paused = false;
     setButtons(false);
@@ -1436,7 +1810,7 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
     state.mile = Math.max(0, state.mile + mile);
     state.roundCoins += coins;
     state.roundMile += mile;
-    state.roundStats[stat]++;
+    state.roundStats[stat] = (state.roundStats[stat] || 0) + 1;
     setMood(mood);
     showBubble(reaction, "", { react: true });
     toast(gainText.title, gainText.detail);
@@ -1467,10 +1841,26 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
     const tiredNote = tired() ? " · 지쳐서 MILE 절반" : "";
 
     if (!miss && !extra) {
-      const coins = Math.round((hits.reduce((a, id) => a + itemById[id].price, 0) + SCORE.tipMax * ratio) * (mod.coin || 1) / 100) * 100;
-      const mile = Math.round((SCORE.milePerfect + (ratio > .5 ? SCORE.mileFastBonus : 0)) * mileMul);
-      return finish(pick(["와, 딱 이거예요! 고마워요!", "어떻게 아셨어요? 완벽해요!", "덕분에 오늘 밤은 편하게 지낼 수 있겠어요!"]),
-        coins, mile, { title: "딱 맞았어요! ✦", detail: `매출 +${won(coins)} · MILE +${mile}${tiredNote}` }, "perfect", "happy");
+      const inFever = state.fever > 0;
+      state.combo++;
+      state.stats.perfects++;
+      state.stats.maxCombo = Math.max(state.stats.maxCombo, state.combo);
+      if (c.refill) state.stats.refillPerfect++;
+      const comboBonus = Math.min(Math.max(state.combo - 1, 0) * COMBO.bonusPerCombo, COMBO.maxBonus);
+      const tip = SCORE.tipMax * ratio * (inFever ? COMBO.feverTipMul : 1);
+      const coins = Math.round((hits.reduce((a, id) => a + itemById[id].price, 0) + tip) * (mod.coin || 1) / 100) * 100;
+      const mile = Math.round((SCORE.milePerfect + (ratio > .5 ? SCORE.mileFastBonus : 0) + comboBonus + (inFever ? COMBO.feverMile : 0)) * mileMul);
+      if (inFever) state.fever--;
+      const extras = [state.combo >= 2 && `${state.combo}콤보`, inFever && "피버"].filter(Boolean).join(" · ");
+      finish(pick(PERFECT_LINES), coins, mile,
+        { title: `딱 맞았어요! ✦${extras ? ` ${extras}` : ""}`, detail: `매출 +${won(coins)} · MILE +${mile}${tiredNote}` }, "perfect", "happy");
+      if (Math.random() < THOUGHT_CHANCE) setTimeout(() => showThought(pick(THOUGHTS)), 350);
+      if (state.combo > 0 && state.combo % COMBO.feverAt === 0) {
+        state.fever = COMBO.feverCustomers;
+        setTimeout(feverBanner, 300);
+        renderHud();
+      }
+      return;
     }
 
     const coins = Math.max(0, Math.round((hits.reduce((a, id) => a + itemById[id].price, 0) - extra * SCORE.extraCost) * (mod.coin || 1)));
@@ -1484,9 +1874,20 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
     finish(reaction, coins, mile, { title: parts || "조금 아쉬워요.", detail: `매출 +${won(coins)} · MILE +${mile}${tiredNote}` }, "partial", hits.length ? "worry" : "upset");
   };
 
+  const petCat = () => {
+    if (!state.running || state.paused || !state.current?.cat) return;
+    state.stats.catPets++;
+    changeCalm(CAT.calm);
+    $("avatar").classList.add("purr");
+    setTimeout(() => $("avatar").classList.remove("purr"), 1100);
+    finish("그르릉… (별이가 만족한 듯 꼬리를 살랑살랑 흔들어요)", 0, CAT.mile,
+      { title: "별이를 쓰다듬었어요. 마음이 말랑해졌어요.", detail: `마음 별빛 +${CAT.calm} · MILE +${CAT.mile}` }, "cat", "happy");
+  };
+
   const serve = () => {
     if (!state.running || state.paused) return;
     const c = state.current;
+    if (c.cat) return petCat();
     if (!state.box.length) {
       $("kitItems").classList.add("shake");
       setTimeout(() => $("kitItems").classList.remove("shake"), 300);
@@ -1511,6 +1912,7 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
   const rejectCustomer = () => {
     if (!state.running || state.paused) return;
     const c = state.current;
+    if (c.cat) return finish("냥! (별이가 꼬리를 한 번 흔들고 사라졌어요)", 0, 0, { title: "별이가 다음에 또 온대요." }, "cat", "worry");
     if (c.strange) {
       return finish(pick(["앗, 잘못 찾아왔나 봐요! 알려 줘서 고마워요.", "여기가 아니었군요… 다른 데 가 볼게요!"]),
         0, SCORE.mileStrangeRight, { title: "잘 알아봤어요! 여긴 그런 걸 안 팔아요.", detail: `MILE +${SCORE.mileStrangeRight}` }, "strange", "happy");
@@ -1522,6 +1924,7 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
 
   const timeout = () => {
     const c = state.current;
+    if (c.cat) return finish("하아암… (별이가 하품을 하고 떠났어요)", 0, 0, { title: "별이가 낮잠 자러 갔어요." }, "cat", "worry");
     if (c.strange) {
       return finish("흠, 여기 아닌가 보네요. 그냥 갈게요.", 0, 0, { title: "엉뚱한 손님이 스스로 떠났어요." }, "strange", "worry");
     }
@@ -1533,6 +1936,8 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
   const breathe = () => {
     if (!state.running || state.paused || !state.breaths) return;
     state.breaths--;
+    state.stats.breathsUsed++;
+    sfx("breathe");
     state.patience -= CALM.breatheCost;
     changeCalm(CALM.breathe);
     if (!tired()) state.tiredWarned = false;
@@ -1585,6 +1990,8 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
     state.breaths = CALM.breathsPerDay;
     state.tiredWarned = false;
     state.tab = "life";
+    state.combo = 0;
+    state.fever = 0;
     renderBox();
     renderHud();
 
@@ -1595,11 +2002,12 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
       <p class="sub">오늘은 손님 <b>${ROUNDS[n].customers}명</b>이 찾아와요.<br>${n === 0
         ? `진열대에 기본 품목 ${ITEMS.filter(i => i.type === "basic").length}가지와 리필 ${ITEMS.filter(i => i.type === "refill").length}가지가 모두 준비돼 있어요.`
         : "손님이 더 많아지고, 기다려 주는 시간은 짧아져요."}</p>
+      <div class="how" style="margin-top:12px"><b>오늘의 기숙사 소식</b><br>${pick(DORM_NEWS)}</div>
       <ul class="cope-tips">
         <li>곤란한 말을 하는 <b>진상 손님</b>이 올 수 있어요. 응대 카드에서 차분한 대답을 골라 보세요.</li>
         <li>마음 별빛이 줄어 지치면 MILE을 절반만 받아요. <b>숨 고르기</b>는 하루 ${CALM.breathsPerDay}번이에요.</li>
       </ul>
-      <button class="btn btn-serve" data-act="open">가게 열기 ✦</button>`);
+      <button class="btn btn-serve" data-act="open">가게 열기 ✦ <kbd>Enter</kbd></button>`);
   };
 
   const endRound = () => {
@@ -1617,12 +2025,12 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
         <div><b>${s.partial}</b>조금 아쉽게</div>
         <div><b>${s.left}</b>떠난 손님</div>
       </div>
-      <p class="sub">오늘 매출 <b>${won(state.roundCoins)}</b>, MILE <b>${sign(state.roundMile)}</b>을 모았어요.${s.strange ? `<br>엉뚱한 손님 ${s.strange}명도 잘 돌려보냈어요.` : ""}</p>
+      <p class="sub">오늘 매출 <b>${won(state.roundCoins)}</b>, MILE <b>${sign(state.roundMile)}</b>을 모았어요.${s.strange ? `<br>엉뚱한 손님 ${s.strange}명도 잘 돌려보냈어요.` : ""}${s.cat ? "<br>기숙사 고양이 별이도 다녀갔어요." : ""}</p>
       <ul class="cope-tips">
         <li>${state.calm >= 60 ? "오늘은 마음 별빛을 잘 지켰어요." : "오늘은 마음이 많이 지쳤어요. 내일은 숨 고르기를 아끼지 말아요."}</li>
         <li>힘든 손님의 말은 나를 향한 게 아니라 상황을 향한 거예요. 한 번 숨을 고르고 차분하게 대답해요.</li>
       </ul>
-      <button class="btn btn-serve" data-act="${last ? "final" : "next"}">${last ? "자립의 별자리 보기 ✦" : "다음 날 준비하기"}</button>`);
+      <button class="btn btn-serve" data-act="${last ? "final" : "next"}">${last ? "자립의 별자리 보기 ✦" : "다음 날 준비하기"} <kbd>Enter</kbd></button>`);
   };
 
   const constellationSVG = (lit) => {
@@ -1650,6 +2058,9 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
   const showFinal = () => {
     const lit = 1 + STAR_THRESHOLDS.filter(t => state.mile >= t).length;
     const top = Object.entries(state.picks).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const titleStats = { ...state.stats, copeGood: state.copeGood, copeTotal: state.copeTotal };
+    const earned = TITLES.filter(t => t.test(titleStats)).slice(0, 3);
+    const titles = earned.length ? earned : [DEFAULT_TITLE];
     const messages = [
       "첫 별이 켜졌어요. 시작이 반이에요!",
       "별 두 개가 이어졌어요. 생활이 조금씩 자리를 잡고 있어요.",
@@ -1669,6 +2080,8 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
       <p class="sub">${state.copeTotal
         ? `진상 손님 ${state.copeTotal}명 중 <b>${state.copeGood}명</b>을 침착하게 응대했어요.`
         : "이번엔 진상 손님이 오지 않았어요. 운이 좋았네요!"}</p>
+      <p class="sub" style="margin-top:14px">오늘의 칭호</p>
+      <ol class="rank">${titles.map(t => `<li style="--c:#ffe6a6"><span><b style="color:var(--gold);font-weight:500">✦ ${t.name}</b></span><small style="color:var(--muted)">${t.desc}</small></li>`).join("")}</ol>
       <p class="sub" style="margin-top:14px">가장 많이 담은 물건</p>
       <ol class="rank">${top.length
         ? top.map(([id, n], i) => `<li style="--c:${colorOf(id)}"><span>${icon(itemById[id].icon, itemById[id].type === "refill")}${i + 1}. ${itemById[id].name}</span><small>${n}번</small></li>`).join("")
@@ -1689,11 +2102,36 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
         <li>너무 늦으면 손님이 떠나요. <b>기다리는 별빛</b>을 잘 봐 주세요.</li>
         <li>가게에 없는 걸 찾는 손님은 <b>이 가게 아니에요!</b>로 돌려보내요.</li>
         <li><b>진상 손님</b>에게는 응대 카드로 차분하게 대답하고, 지치면 <b>숨 고르기</b>로 마음을 돌봐요.</li>
+        <li>연속으로 딱 맞게 건네면 <b>콤보</b>! ${COMBO.feverAt}콤보마다 <b>별똥별 피버</b>가 터져요.</li>
+        <li>가끔 기숙사 고양이 <b>별이</b>가 놀러 와요. 쓰다듬어 주면 마음이 말랑해져요.</li>
       </ul>
-      <button class="btn btn-serve" data-act="start">시작하기 ✦</button>`);
+      <p class="sub keys-hint">PC에서는 키보드로도 할 수 있어요 · 숫자 <kbd>1</kbd>~<kbd>8</kbd> 담기 · <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> 칸 바꾸기 · <kbd>Enter</kbd> 건네기 · <kbd>X</kbd> 돌려보내기 · <kbd>C</kbd> 비우기 · <kbd>B</kbd> 숨 고르기</p>
+      <button class="btn btn-serve" data-act="start">시작하기 ✦ <kbd>Enter</kbd></button>`);
   };
 
-  // ── 입력 (탭만 사용) ──
+  // ── 입력 (휴대폰은 탭, PC는 클릭과 키보드) ──
+  const toggleItem = (id, el) => {
+    if (!state.running || state.paused) return;
+    if (state.current?.cat) return toast("별이는 물건엔 관심이 없어요.", "간식이라면 모를까… 쓰다듬어 줄래요?");
+    const at = state.box.indexOf(id);
+    if (at >= 0) {
+      state.box.splice(at, 1);
+      sfx("drop");
+    } else {
+      state.box.push(id);
+      state.fresh = id;
+      sfx("pick");
+      if (el) sparkle(el, colorOf(id));
+    }
+    renderBox();
+  };
+
+  const clearBox = () => {
+    if (!state.running || state.paused || !state.box.length) return;
+    state.box = [];
+    sfx("drop");
+    renderBox();
+  };
   $("tabs").addEventListener("click", (e) => {
     const b = e.target.closest("[data-tab]");
     if (!b) return;
@@ -1703,25 +2141,23 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
 
   $("shelf").addEventListener("click", (e) => {
     const b = e.target.closest("[data-id]");
-    if (!b || !state.running || state.paused) return;
-    const id = b.dataset.id;
-    const at = state.box.indexOf(id);
-    if (at >= 0) state.box.splice(at, 1);
-    else {
-      state.box.push(id);
-      sparkle(b, colorOf(id));
-    }
-    renderBox();
+    if (b) toggleItem(b.dataset.id, b);
   });
 
   $("kitItems").addEventListener("click", (e) => {
     const b = e.target.closest("[data-id]");
     if (!b || !state.running || state.paused) return;
-    state.box.splice(state.box.indexOf(b.dataset.id), 1);
-    renderBox();
+    toggleItem(b.dataset.id);
   });
 
-  $("clearBtn").addEventListener("click", () => { if (state.running && !state.paused) { state.box = []; renderBox(); } });
+  $("clearBtn").addEventListener("click", clearBox);
+  $("avatar").addEventListener("click", petCat);
+  $("soundBtn").addEventListener("click", () => {
+    soundOn = !soundOn;
+    try { localStorage.setItem("mileShopSound", soundOn ? "on" : "off"); } catch (e) {}
+    renderSound();
+    sfx("pick");
+  });
   $("serveBtn").addEventListener("click", serve);
   $("wrongBtn").addEventListener("click", rejectCustomer);
   $("breathBtn").addEventListener("click", breathe);
@@ -1736,9 +2172,51 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
     else if (act === "next") startRound(state.round + 1);
     else if (act === "final") showFinal();
     else if (act === "restart") {
-      Object.assign(state, { coins: 0, mile: 0, picks: {}, copeGood: 0, copeTotal: 0 });
+      Object.assign(state, {
+        coins: 0, mile: 0, picks: {}, copeGood: 0, copeTotal: 0,
+        stats: { perfects: 0, maxCombo: 0, strangeRight: 0, refillPerfect: 0, catPets: 0, breathsUsed: 0, left: 0 }
+      });
       startRound(0);
     }
+  });
+
+  // PC 키보드 단축키 (한글 입력 상태에서도 되도록 자판 위치로 판단)
+  document.addEventListener("keydown", (e) => {
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+    const code = e.code;
+    // 마우스로 누른 버튼에 남은 포커스 때문에 같은 버튼이 한 번 더 눌리지 않도록
+    if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+    const digit = /^(Digit|Numpad)([1-9])$/.exec(code);
+    if (!$("overlay").hidden) {
+      if (digit && state.onChoice) {
+        const i = Number(digit[2]) - 1;
+        if ($("card").querySelector(`[data-choice="${i}"]`)) state.onChoice(i);
+        e.preventDefault();
+      } else if (code === "Enter" || code === "NumpadEnter" || code === "Space") {
+        const primary = $("card").querySelector('[data-act]:not([data-act="restart"])');
+        if (primary) { primary.click(); e.preventDefault(); }
+      }
+      return;
+    }
+    const tabKeys = { KeyQ: 0, KeyW: 1, KeyE: 2, KeyR: 3 };
+    const shelfKeys = Object.keys(SHELVES);
+    if (digit) {
+      const list = ITEMS.filter(i => i.shelf === state.tab);
+      const item = list[Number(digit[2]) - 1];
+      if (item) toggleItem(item.id, $("shelf").querySelector(`[data-id="${item.id}"]`));
+    } else if (code in tabKeys && shelfKeys[tabKeys[code]]) {
+      state.tab = shelfKeys[tabKeys[code]];
+      renderShelf();
+    } else if (code === "ArrowRight" || code === "ArrowLeft") {
+      const i = shelfKeys.indexOf(state.tab) + (code === "ArrowRight" ? 1 : -1);
+      state.tab = shelfKeys[(i + shelfKeys.length) % shelfKeys.length];
+      renderShelf();
+    } else if (code === "Enter" || code === "NumpadEnter" || code === "Space") serve();
+    else if (code === "KeyX") rejectCustomer();
+    else if (code === "KeyC" || code === "Backspace") clearBox();
+    else if (code === "KeyB") breathe();
+    else return;
+    e.preventDefault();
   });
 
   // ── 기다림 타이머 ──
@@ -1757,6 +2235,7 @@ const CUSTOMER_NAMES = ["민지", "서준", "하린", "도윤", "지우", "예�
   };
   requestAnimationFrame(loop);
 
+  renderSound();
   setButtons(false);
   renderShelf();
   renderBox();
