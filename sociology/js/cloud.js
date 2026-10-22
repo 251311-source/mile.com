@@ -395,11 +395,13 @@ export function deleteMaterial(id) {
 export async function deleteAllUserData(userId) {
   const { F, db } = fb;
   await stopSync();
+  // 계정 공통 문서를 먼저 지운다: 다른 기기가 이것을 보고 바로 동기화를 멈추고 로그아웃한다
+  // (나중에 지우면 그사이 다른 기기가 지워진 기록을 다시 올릴 수 있다)
   const cols = [
+    userCol(userId, 'account'),
     ...SUBJECT_IDS.flatMap((s) => SUBJ_COLS.map((c) => subjCol(userId, s, c))),
     ...OLD_COLS.map((c) => userCol(userId, c)),
     userCol(userId, 'private'),
-    userCol(userId, 'account'), // 마지막에 지운다(다른 기기가 이것을 보고 로그아웃한다)
   ];
   for (const ref of cols) {
     const snap = await F.getDocs(ref);
@@ -429,6 +431,9 @@ export async function readAccount(userId) {
     return { state: 'ready', subject: a.subject };
   }
   if (!online) return { state: 'offline' };
+  // 이미 과목 구조에 기록이 있으면(삭제가 중간에 끊긴 경우 등) 다시 옮기지 않는다
+  const soc = await F.getDocFromServer(subjDoc(userId, 'soc', 'meta', 'state')).catch(() => null);
+  if (soc?.exists()) return { state: 'ready', subject: 'soc' };
   const old = await F.getDocFromServer(userDoc(userId, 'meta', 'state')).catch(() => null);
   return old?.exists() ? { state: 'migrate' } : { state: 'new' };
 }
