@@ -163,7 +163,7 @@ export function parseJSON(text) {
 
 // JSON 결과를 받는 호출.
 // web: true면 웹 검색 도구를 허용한다(이때는 출력 형식 강제를 쓰지 않는다).
-// images: [{ data: base64, mediaType }] 를 함께 보낼 수 있다(스캔한 쪽 글자 인식 등).
+// images: [{ data: base64, mediaType, label? }] 를 함께 보낼 수 있다(스캔한 쪽 글자 인식 등). label은 그림 바로 앞에 글로 붙는다.
 export async function askJSON({ task, schema, material = true, web = false, maxTokens = 32000, effort, materialText = '', images = [], signal }) {
   if (material && !materialText && !hasScope()) throw new Error('먼저 [자료·범위]에서 자료를 올리고 학습 범위를 선택해 주세요.');
   const s = settings();
@@ -181,7 +181,7 @@ export async function askJSON({ task, schema, material = true, web = false, maxT
     model: s.model,
     max_tokens: maxTokens,
     system: system(material, materialText),
-    messages: [{ role: 'user', content: images.length ? [...images.map((im) => ({ type: 'image', source: { type: 'base64', media_type: im.mediaType, data: im.data } })), { type: 'text', text: content }] : content }],
+    messages: [{ role: 'user', content: images.length ? [...images.flatMap((im) => [im.label && { type: 'text', text: im.label }, { type: 'image', source: { type: 'base64', media_type: im.mediaType, data: im.data } }].filter(Boolean)), { type: 'text', text: content }] : content }],
     output_config: { effort: effort || speed().effort },
   };
   if (web) params.tools = [{ type: 'web_search_20260209', name: 'web_search', max_uses: 6 }];

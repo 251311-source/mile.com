@@ -205,7 +205,13 @@ async function parsePdf(file, onProgress) {
   return { kind: 'pdf', units, chapters, ocr };
 }
 
-const needsOCR = (u) => u.text.replace(/\s/g, '').length < 30;
+// 글자가 (거의) 없거나, 스캔본에 딸린 숨은 글자층이 깨져 있으면(엉뚱한 기호·외국 문자) AI로 다시 읽는다
+const OK_CHARS = /[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9.,·:;!?()'"“”‘’\-–—~%/\[\]<>〈〉《》「」『』…①-⑳•▪○●■□◆◇→←↔=+*#&@]/g;
+function needsOCR(u) {
+  const s = u.text.replace(/\s/g, '');
+  if (s.length < 30) return true;
+  return (s.match(OK_CHARS) || []).length / s.length < 0.8;
+}
 
 // 글자가 없는 단위를 AI로 읽는다. getImages(unit) → [{data, mediaType}]
 async function ocrMissing(units, getImages, onProgress, kindLabel) {
@@ -224,17 +230,19 @@ async function ocrMissing(units, getImages, onProgress, kindLabel) {
   for (const u of units) {
     const t = texts.get(u.n);
     if (!t) continue;
-    u.text = u.text.trim() ? `${t}\n${u.text}` : t; // 원래 있던 몇 글자(쪽 번호 등)는 뒤에 둔다
+    const old = u.text.replace(/\s/g, '');
+    // 원래 있던 몇 글자(쪽 번호 등)는 뒤에 두고, 깨진 글자층은 버린다
+    u.text = old.length >= 30 || !old ? t : `${t}\n${u.text}`;
     u.ocr = true;
     if (!u.title || u.title.length < 2) u.title = (t.split('\n').find((l) => l.trim().length > 1) || '').slice(0, 60);
   }
   return { needed: targets.length, done: texts.size, failed };
 }
 
-// PDF 한 쪽을 JPEG로 (긴 변 약 1600px)
+// PDF 한 쪽을 글자 인식용 이미지로: 크게 그린 뒤 다듬는다(prepImage)
 async function renderPdfPage(page) {
   const base = page.getViewport({ scale: 1 });
-  const scale = Math.min(3, 1600 / Math.max(base.width, base.height));
+  const scale = Math.min(4, 2600 / Math.max(base.width, base.height));
   const viewport = page.getViewport({ scale });
   const canvas = document.createElement('canvas');
   canvas.width = Math.ceil(viewport.width);
@@ -243,8 +251,76 @@ async function renderPdfPage(page) {
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-  const data = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+  const out = prepImage(canvas);
   canvas.width = canvas.height = 0;
+  return out;
+}
+
+// 슬라이드 속 그림(파일 바이트) → 글자 인식용 이미지
+async function prepImageBytes(bytes, mime) {
+  const bmp = await createImageBitmap(new Blob([bytes], { type: mime }));
+  const canvas = document.createElement('canvas');
+  canvas.width = bmp.width; canvas.height = bmp.height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bmp, 0, 0);
+  bmp.close?.();
+  if (canvas.width < 120 || canvas.height < 40) return null; // 아이콘 같은 작은 그림은 건너뜀
+  const out = prepImage(canvas);
+  canvas.width = canvas.height = 0;
+  return out;
+}
+
+// 같은 비용으로 더 잘 읽히게: 흑백 + 대비 보정 + 여백 잘라내기 + AI가 다시 줄이지 않는 크기(긴 변 1568px, 약 115만 화소 이하)
+// (AI는 그림 크기만큼 사용량을 계산하므로, 여백을 자르면 사용량은 줄고 글자는 더 크게 보인다)
+function prepImage(src) {
+  const W = src.width, H = src.height;
+  const img = src.getContext('2d').getImageData(0, 0, W, H);
+  const d = img.data;
+  const gray = new Uint8ClampedArray(W * H);
+  const hist = new Uint32Array(256);
+  for (let i = 0, j = 0; j < gray.length; i += 4, j++) {
+    const g = (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000;
+    gray[j] = g;
+    hist[gray[j]]++;
+  }
+  // 대비: 어두운 쪽 1%, 밝은 쪽 1%를 기준으로 늘린다(바랜 스캔본을 진하게)
+  const pick = (frac) => { let acc = 0; for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= gray.length * frac) return v; } return 255; };
+  const lo = pick(0.01), hi = Math.max(pick(0.99), lo + 40);
+  // 글자가 있는 영역(배경보다 확실히 어두운 점이 있는 행·열)만 남긴다
+  const ink = lo + (hi - lo) * 0.6;
+  const rows = new Uint32Array(H), cols = new Uint32Array(W);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (gray[y * W + x] < ink) { rows[y]++; cols[x]++; }
+  const span = (arr, len, other) => {
+    const min = Math.max(2, other * 0.002); // 먼지·스캔 얼룩 무시
+    let a = 0, b = len - 1;
+    while (a < len && arr[a] < min) a++;
+    while (b > a && arr[b] < min) b--;
+    return a >= b ? [0, len - 1] : [a, b];
+  };
+  let [y0, y1] = span(rows, H, W), [x0, x1] = span(cols, W, H);
+  const pad = Math.round(Math.max(W, H) * 0.015);
+  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(W - 1, x1 + pad); y1 = Math.min(H - 1, y1 + pad);
+  const cw = x1 - x0 + 1, ch = y1 - y0 + 1;
+  // 대비 보정한 흑백 그림
+  const k = 255 / (hi - lo);
+  for (let i = 0, j = 0; j < gray.length; i += 4, j++) {
+    const v = (gray[j] - lo) * k;
+    d[i] = d[i + 1] = d[i + 2] = v;
+  }
+  const work = document.createElement('canvas');
+  work.width = W; work.height = H;
+  work.getContext('2d').putImageData(img, 0, 0);
+  const s = Math.min(1, 1568 / Math.max(cw, ch), Math.sqrt(1150000 / (cw * ch)));
+  const out = document.createElement('canvas');
+  out.width = Math.max(1, Math.floor(cw * s)); out.height = Math.max(1, Math.floor(ch * s));
+  const octx = out.getContext('2d');
+  octx.imageSmoothingEnabled = true;
+  octx.imageSmoothingQuality = 'high';
+  octx.drawImage(work, x0, y0, cw, ch, 0, 0, out.width, out.height);
+  const data = out.toDataURL('image/jpeg', 0.92).split(',')[1];
+  work.width = work.height = out.width = out.height = 0;
   return { data, mediaType: 'image/jpeg' };
 }
 
@@ -360,9 +436,8 @@ async function parsePptx(file, onProgress) {
       const ext = path.split('.').pop().toLowerCase();
       const f = zip.file(path);
       if (!MIME[ext] || !f) continue;
-      const data = await f.async('base64');
-      if (data.length > 4.5 * 1024 * 1024) continue; // 너무 큰 그림은 건너뜀
-      out.push({ data, mediaType: MIME[ext] });
+      const im = await prepImageBytes(await f.async('uint8array'), MIME[ext]).catch(() => null);
+      if (im) out.push(im);
     }
     return out;
   }, onProgress, '슬라이드');
