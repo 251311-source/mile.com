@@ -5,7 +5,7 @@
 
 ## 시작하기
 1. Firebase Hosting으로 배포한 주소에 접속해 Google 계정 또는 이메일로 로그인합니다.
-2. **설정 → API 키 입력**에 Anthropic API 키를 넣습니다. 키는 로그인한 계정의 비공개 문서(`users/{uid}/private/settings`)에만 저장되고 코드에는 들어 있지 않습니다.
+2. **설정 → 사용할 AI**에서 Anthropic Claude 또는 Google Gemini를 고르고, 해당 API 키를 넣습니다. 키는 로그인한 계정의 비공개 문서(`users/{uid}/private/settings`)에만 저장되고 코드에는 들어 있지 않습니다. Gemini는 [사용 가능한 모델 불러오기]로 키에 맞는 모델을 고르거나 모델 ID를 직접 입력할 수 있습니다.
 3. **자료·범위**에서 PDF/PPTX를 올리고 단원(목차·PPT 구역), 쪽/슬라이드 번호, 범위 입력(예: `3-12, 15`)으로 학습 범위를 고릅니다.
 
 ## 기능

@@ -471,3 +471,5 @@ body.signed-out:has(#auth-screen) main { display: none; }
   .account-email { max-width: 34vw; }
   .sync-status { bottom: 74px; left: 10px; }
 }
+.provider-box { border: 1px solid var(--line); border-radius: 10px; padding: 4px 14px 8px; margin: 10px 0; }
+.provider-box.dim { opacity: .55; }

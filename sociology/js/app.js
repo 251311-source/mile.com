@@ -99,14 +99,20 @@ async function startApp(user) {
   hideLoginScreen();
   showAccount(user);
   screenMessage('불러오는 중…', '계정에 저장된 학습 기록을 불러오고 있어요.');
+  await loadPrivate(user.uid); // API 키를 먼저 불러온 뒤 기록을 불러온다
   await startSync(user.uid);
-  await loadPrivate(user.uid);
   await loadDocs();
   initPanels();
   updateChip();
   updateBanner();
   onChange(() => { updateChip(); updateBanner(); });
   window.addEventListener('hashchange', route);
+  // 다른 기기에서 이 계정을 탈퇴하면 이 기기도 로그아웃한다(지워진 기록을 다시 만들지 않도록)
+  document.addEventListener('accountgone', async () => {
+    alert('이 계정은 다른 기기에서 탈퇴되어 로그아웃합니다.');
+    try { await fb.A.signOut(fb.auth); } catch {}
+    location.reload();
+  });
   // 다른 기기에서 바뀐 기록이 들어오면, 입력 중이 아닌 목록 화면은 새로 그린다
   document.addEventListener('remotechange', () => {
     const id = (location.hash.match(/^#\/(\w+)/) || [])[1];

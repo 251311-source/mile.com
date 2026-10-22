@@ -27,7 +27,7 @@ export async function initFirebase() {
     import(CDN + 'firebase-auth.js'),
     import(CDN + 'firebase-firestore.js'),
   ]);
-  const config = emu && !configured() ? { apiKey: 'demo-key', projectId: 'demo-socstudy', authDomain: location.host } : firebaseConfig;
+  const config = emu ? { apiKey: 'demo-key', projectId: 'demo-socstudy', authDomain: location.host } : firebaseConfig;
   const app = appM.initializeApp(config);
   const auth = A.initializeAuth(app, {
     persistence: [A.indexedDBLocalPersistence, A.browserLocalPersistence],

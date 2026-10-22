@@ -20,7 +20,7 @@ export function buildBackup() {
   const docs = allDocs();
   const data = {};
   for (const k of [...ARRAYS, ...OBJECTS, 'lastBackup', 'firstUse']) data[k] = st[k];
-  data.settings = { ...st.settings, apiKey: '' };
+  data.settings = { ...st.settings, apiKey: '', geminiKey: '' };
   const files = docs.map((d) => ({ name: d.name, kind: d.kind, units: d.units.length }));
   const scopeByFile = Object.fromEntries(docs.map((d) => [d.name, st.scope[d.id] || []]));
   return JSON.stringify({ app: 'socstudy', version: 2, exportedAt: new Date().toISOString(), files, scopeByFile, data }, null, 1);

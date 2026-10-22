@@ -3,7 +3,7 @@ export const LEGACY_KEY = 'socstudy:v1'; // 로그인 기능 이전에 브라우
 const MAX_ATTEMPTS = 8000;
 
 const DEFAULTS = () => ({
-  settings: { apiKey: '', model: 'claude-opus-5-5', effort: 'medium', maxChars: 400000 },
+  settings: { provider: 'anthropic', apiKey: '', model: 'claude-opus-5-5', geminiKey: '', geminiModel: 'gemini-2.5-pro', effort: 'medium', maxChars: 400000 },
   scope: {},          // { [docId]: number[] } 선택된 쪽/슬라이드 번호
   wrong: [],          // 오답노트 항목
   qlog: [],           // 질문 기록

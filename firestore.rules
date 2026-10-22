@@ -11,9 +11,10 @@ service cloud.firestore {
       }
       allow read, delete: if isOwner();
       allow create, update: if isOwner()
-        && request.resource.data.keys().hasOnly(['v', 't', 'apiKey'])
+        && request.resource.data.keys().hasOnly(['v', 't', 'apiKey', 'geminiKey'])
         && (!('v' in request.resource.data) || request.resource.data.v is string)
-        && (!('apiKey' in request.resource.data) || (collection == 'private' && request.resource.data.apiKey is string));
+        && (!('apiKey' in request.resource.data) || (collection == 'private' && request.resource.data.apiKey is string))
+        && (!('geminiKey' in request.resource.data) || (collection == 'private' && request.resource.data.geminiKey is string));
     }
   }
 }

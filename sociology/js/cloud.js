@@ -28,6 +28,10 @@ const MAX_DOC = 900 * 1024;
 
 let uid = null;
 let ready = false;
+// 서버에서 한 번이라도 최신 상태를 받은 컬렉션. 모두 받기 전에는 계정에 쓰지 않는다
+// (느린 연결에서 빈 화면 상태로 계정의 기록을 덮어쓰는 일을 막는다).
+let fromServer = new Set();
+const canWrite = () => fromServer.size === SYNC_COLS.length || (!navigator.onLine && synced.has('meta/state'));
 let synced = new Map(); // "컬렉션/문서ID" → 계정에 있는 JSON (마지막으로 맞춘 상태)
 let unsubs = [];
 let timer = null;
@@ -35,7 +39,10 @@ let pending = 0;
 let failed = false;
 
 const day = (ts) => { const d = new Date(ts || 0); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-const metaOf = (st) => ({ scope: st.scope, recent: st.recent, lastBackup: st.lastBackup || 0, firstUse: st.firstUse, settings: { model: st.settings.model, effort: st.settings.effort, maxChars: st.settings.maxChars } });
+const metaOf = (st) => ({ scope: st.scope, recent: st.recent, lastBackup: st.lastBackup || 0, firstUse: st.firstUse, settings: { model: st.settings.model, effort: st.settings.effort, maxChars: st.settings.maxChars, provider: st.settings.provider, geminiModel: st.settings.geminiModel } });
+// API 키는 meta가 아니라 private 문서에만 둔다
+export const SECRET_FIELDS = ['apiKey', 'geminiKey'];
+const secretsOf = (settings) => Object.fromEntries(SECRET_FIELDS.map((k) => [k, settings[k] || '']));
 
 function toDocs(st) {
   const out = new Map();
@@ -54,8 +61,9 @@ function setStatus() {
   if (!statusEl) return;
   let text, cls;
   if (!navigator.onLine) { text = '오프라인 – 연결되면 저장돼요'; cls = 'offline'; }
+  else if (!ready) { text = '불러오는 중…'; cls = 'saving'; }
   else if (failed) { text = '저장 실패 – 다시 시도할게요'; cls = 'error'; }
-  else if (pending > 0 || timer) { text = '저장 중…'; cls = 'saving'; }
+  else if (pending > 0 || timer || (ready && !canWrite())) { text = '저장 중…'; cls = 'saving'; }
   else { text = '저장됨'; cls = 'saved'; }
   statusEl.textContent = (cls === 'saved' ? '✔ ' : cls === 'offline' ? '⚡ ' : '') + text;
   statusEl.className = 'sync-status ' + cls;
@@ -87,6 +95,7 @@ function schedule() {
 
 export function syncNow() {
   if (!ready || !uid) return;
+  if (!canWrite()) { setStatus(); return; } // 서버 기록을 다 받은 뒤에 올린다
   const { F, db } = fb;
   const cur = toDocs(S());
   const ops = [];
@@ -119,7 +128,7 @@ const splitKey = (k) => { const i = k.indexOf('/'); return [k.slice(0, i), k.sli
 // ---------- 받기 ----------
 function assemble() {
   const st = freshState();
-  st.settings = { ...st.settings, apiKey: S().settings.apiKey };
+  st.settings = { ...st.settings, ...secretsOf(S().settings) };
   const attempts = [];
   for (const [k, json] of synced) {
     const [col, id] = splitKey(k);
@@ -138,7 +147,7 @@ function applyMeta(st, m) {
   st.recent = m.recent || {};
   st.lastBackup = m.lastBackup || 0;
   if (m.firstUse) st.firstUse = m.firstUse;
-  st.settings = { ...st.settings, ...(m.settings || {}), apiKey: st.settings.apiKey };
+  st.settings = { ...st.settings, ...(m.settings || {}), ...secretsOf(st.settings) };
 }
 
 function applyRemote(col, id, value) {
@@ -175,6 +184,7 @@ function onSnap(col, snap) {
     const key = `${col}/${d.id}`;
     if (c.type === 'removed') {
       if (!synced.has(key)) continue;
+      if (ready && key === 'meta/state') { accountGone(); return; } // 다른 기기에서 계정을 탈퇴함
       synced.delete(key);
       if (ready) applyRemote(col, d.id, null);
       changed = true;
@@ -194,15 +204,20 @@ export async function startSync(userId) {
   uid = userId;
   ready = false;
   synced = new Map();
+  fromServer = new Set();
   mountStatus();
   const { F } = fb;
   // 온라인이면 서버 기준 첫 결과(캐시가 아닌)를 기다린다. 오프라인이거나 늦으면 캐시로 시작한다.
   await Promise.all(SYNC_COLS.map((col) => new Promise((resolve) => {
     let first = true;
     const done = () => { if (first) { first = false; resolve(); } };
-    setTimeout(done, 5000);
+    setTimeout(done, 15000);
     unsubs.push(F.onSnapshot(userCol(uid, col), { includeMetadataChanges: true }, (snap) => {
       onSnap(col, snap);
+      if (!snap.metadata.fromCache && !fromServer.has(col)) {
+        fromServer.add(col);
+        if (ready && canWrite()) syncNow(); // 기다리던 변경을 이제 올린다
+      }
       if (!snap.metadata.fromCache || !navigator.onLine) done();
     }, (err) => {
       console.error(col, err);
@@ -216,6 +231,11 @@ export async function startSync(userId) {
   onChange(schedule);
   syncNow(); // 새 계정이면 기본 설정 문서 생성
   setStatus();
+}
+
+function accountGone() {
+  stopSync();
+  document.dispatchEvent(new CustomEvent('accountgone'));
 }
 
 export async function stopSync() {
@@ -236,31 +256,39 @@ export async function waitSaved(ms = 4000) {
 // ---------- 개인 설정(API 키): users/{uid}/private/settings — 본인만 읽고 쓸 수 있다 ----------
 export async function loadPrivate(userId) {
   const { F } = fb;
+  const apply = (snap) => {
+    let changed = false;
+    for (const k of SECRET_FIELDS) {
+      const v = snap.exists() ? snap.data()[k] || '' : '';
+      if (v !== (S().settings[k] || '')) { S().settings[k] = v; changed = true; }
+    }
+    return changed;
+  };
   try {
-    const snap = await F.getDoc(userDoc(userId, 'private', 'settings'));
-    S().settings.apiKey = snap.exists() ? snap.data().apiKey || '' : '';
+    apply(await F.getDoc(userDoc(userId, 'private', 'settings')));
   } catch (e) {
     console.warn('개인 설정을 불러오지 못했습니다', e);
   }
   // 다른 기기에서 키를 바꾸면 반영
   unsubs.push(F.onSnapshot(userDoc(userId, 'private', 'settings'), (snap) => {
     if (snap.metadata.hasPendingWrites) return;
-    const key = snap.exists() ? snap.data().apiKey || '' : '';
-    if (key !== S().settings.apiKey) { S().settings.apiKey = key; flush(); }
+    if (apply(snap)) flush();
   }, () => {}));
 }
-export async function saveApiKey(key) {
-  S().settings.apiKey = key;
+// field: 'apiKey'(Anthropic) 또는 'geminiKey'(Google Gemini)
+export async function saveSecret(field, value, userId = uid) {
+  S().settings[field] = value;
   const { F } = fb;
   pending++;
   setStatus();
   try {
-    await F.setDoc(userDoc(uid, 'private', 'settings'), { apiKey: key, t: Date.now() }, { merge: true });
+    await F.setDoc(userDoc(userId, 'private', 'settings'), { [field]: value, t: Date.now() }, { merge: true });
   } finally {
     pending--;
     setStatus();
   }
 }
+export const saveApiKey = (key) => saveSecret('apiKey', key);
 
 // ---------- 자료 분석 결과: users/{uid}/materials/{docId} ----------
 export async function loadMaterials() {

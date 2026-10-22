@@ -1,6 +1,6 @@
 // 3. 발화자 맞히기
 import { h, add, clear, pageHead, loadingBox, errorBox, sourceChips, shuffle, setCurrent, toast, CIRC, busy } from '../ui.js';
-import { askJSON, T, SOURCES } from '../ai.js';
+import { askJSON, T, SOURCES, seenInSearch } from '../ai.js';
 import { scopeKey } from '../docs.js';
 import { S, save, uid, recordAttempt, addWrong } from '../store.js';
 import { openChatAbout } from '../panels.js';
@@ -141,12 +141,11 @@ async function addFromWeb() {
   ].join('\n');
   const schema = T.obj({ quotes: T.arr(T.obj({ original: T.str, original_lang: T.str, quote_ko: T.str, speaker: T.str, topic: T.str, source_url: T.str, source_title: T.str, verification: T.oneOf('verified', 'unverified', 'misattributed'), note: T.str })) });
   const { data, searchResults } = await askJSON({ task, schema, web: true });
-  const seenUrls = new Set(searchResults.map((r) => r.url.replace(/[#?].*$/, '').replace(/\/$/, '')));
   let added = 0, filtered = 0;
   for (const q of data.quotes || []) {
     const inScope = b.sociologists.some((s) => sameName(s, q.speaker));
     const url = String(q.source_url || '');
-    const urlSeen = seenUrls.has(url.replace(/[#?].*$/, '').replace(/\/$/, ''));
+    const urlSeen = seenInSearch(url, searchResults);
     const dup = b.quotes.some((x) => norm(x.text) === norm(q.quote_ko) || (q.original && norm(x.original) === norm(q.original)));
     if (!inScope || q.verification === 'misattributed' || !q.quote_ko || !/^https?:\/\//.test(url) || dup) { filtered++; continue; }
     b.quotes.push({

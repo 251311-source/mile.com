@@ -1,6 +1,6 @@
 // 9. 현실 사례 연결
 import { h, add, pageHead, loadingBox, errorBox, sourceChips, setCurrent, toast, field } from '../ui.js';
-import { askJSON, T, SOURCES } from '../ai.js';
+import { askJSON, T, SOURCES, seenInSearch } from '../ai.js';
 import { S, uid, pushRecent, recordAttempt, addWrong } from '../store.js';
 import { openChatAbout } from '../panels.js';
 
@@ -51,8 +51,7 @@ async function findCase(topic) {
   ].filter(Boolean).join('\n');
   const { data, searchResults } = await askJSON({ task, schema: CASE, web: true });
   if (!data.title || !data.summary) throw new Error('사례를 찾지 못했습니다. 다시 시도해 주세요.');
-  const clean = (u) => String(u || '').replace(/[#?].*$/, '').replace(/\/$/, '');
-  const verified = /^https?:\/\//.test(data.url) && searchResults.some((r) => clean(r.url) === clean(data.url));
+  const verified = /^https?:\/\//.test(data.url) && seenInSearch(data.url, searchResults);
   pushRecent('realworld', data.title.slice(0, 40), 10);
   return { ...data, id: uid(), verified, results: searchResults.slice(0, 5) };
 }

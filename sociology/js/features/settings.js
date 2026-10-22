@@ -5,21 +5,69 @@ import { testKey } from '../ai.js';
 import { downloadBackup, parseBackup, applyBackup, summarize, backupFileName } from '../backup.js';
 import { REASONS, reportedLabel, showReview } from '../report.js';
 import { TYPES } from '../questions.js';
-import { saveApiKey } from '../cloud.js';
+import { saveSecret } from '../cloud.js';
+import { listGeminiModels } from '../gemini.js';
 import { deleteAccount } from '../auth.js';
 import { fb } from '../firebase.js';
 import { legacySummary, askMigration } from '../migrate.js';
 
 export function render(root) {
   const s = settings();
-  let keyTimer = null;
-  const key = h('input', { class: 'input', type: 'password', value: s.apiKey, placeholder: 'sk-ant-...', autocomplete: 'off', 'aria-label': 'API 키 입력', oninput: (e) => {
-    const v = e.target.value.trim();
-    s.apiKey = v;
-    clearTimeout(keyTimer);
-    keyTimer = setTimeout(() => saveApiKey(v).then(() => toast(v ? 'API 키를 계정에 저장했어요.' : 'API 키를 지웠어요.')).catch((err) => toast('API 키 저장 실패: ' + err.message, 'error')), 600);
-  } });
-  const testBtn = h('button', { class: 'btn', onclick: () => busy(testBtn, async () => { await testKey(); toast('연결되었습니다. ✔'); }) }, '연결 확인');
+  // 키 입력칸: 입력이 멈추면 계정의 비공개 문서에 저장
+  const keyInput = (field, label, placeholder, name) => {
+    let t = null;
+    return h('input', { class: 'input', type: 'password', value: s[field] || '', placeholder, autocomplete: 'off', 'aria-label': label, oninput: (e) => {
+      const v = e.target.value.trim();
+      s[field] = v;
+      clearTimeout(t);
+      t = setTimeout(() => saveSecret(field, v).then(() => toast(v ? `${name} 키를 계정에 저장했어요.` : `${name} 키를 지웠어요.`)).catch((err) => toast(`${name} 키 저장 실패: ` + err.message, 'error')), 600);
+    } });
+  };
+  const key = keyInput('apiKey', 'API 키 입력', 'sk-ant-...', 'API');
+  const gKey = keyInput('geminiKey', 'Gemini API 키 입력', 'AIza...', 'Gemini API');
+  const testBtn = h('button', { class: 'btn', onclick: () => busy(testBtn, async () => { await testKey(); toast(`${s.provider === 'gemini' ? 'Gemini' : 'Claude'}에 연결되었습니다. ✔`); }) }, '연결 확인');
+
+  // Gemini 모델: 기본 목록 + 직접 입력 + 키로 사용 가능한 모델 불러오기
+  const G_DEFAULT = [['gemini-2.5-pro', 'Gemini 2.5 Pro (정확)'], ['gemini-2.5-flash', 'Gemini 2.5 Flash (빠르고 저렴)'], ['gemini-2.5-flash-lite', 'Gemini 2.5 Flash-Lite (가장 저렴)']];
+  const gModelInput = h('input', { class: 'input', type: 'text', value: s.geminiModel || 'gemini-2.5-pro', 'aria-label': 'Gemini 모델 ID', oninput: (e) => { s.geminiModel = e.target.value.trim(); save(); } });
+  const gModelList = h('select', { class: 'input', 'aria-label': 'Gemini 모델 선택', onchange: (e) => { if (e.target.value) { s.geminiModel = e.target.value; gModelInput.value = e.target.value; save(); } } });
+  const fillModels = (list) => {
+    gModelList.replaceChildren(h('option', { value: '' }, '목록에서 고르기'), ...list.map(([id, l]) => h('option', { value: id, selected: id === s.geminiModel }, l)));
+  };
+  fillModels(G_DEFAULT);
+  const loadModelsBtn = h('button', { class: 'btn small', onclick: () => busy(loadModelsBtn, async () => {
+    if (!s.geminiKey) return toast('먼저 Gemini API 키를 입력해 주세요.', 'warn');
+    const list = await listGeminiModels(s.geminiKey);
+    fillModels(list.map((m) => [m.id, `${m.label} (${m.id})`]));
+    toast(`사용할 수 있는 Gemini 모델 ${list.length}개를 불러왔어요.`);
+  }) }, '사용 가능한 모델 불러오기');
+
+  const claudeBox = h('div', { class: 'provider-box' },
+    field('API 키 입력 (Anthropic Claude)', key, '키 발급: console.anthropic.com'),
+    h('div', { class: 'grid-2' },
+      field('Claude 모델', select([['claude-opus-5-5', 'Claude Opus 5.5 (기본·가장 정확)'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5 (빠르고 저렴)'], ['claude-haiku-5-5', 'Claude Haiku 5.5 (가장 저렴)']], s.model, (v) => { s.model = v; save(); })),
+      field('사고 깊이(effort)', select([['low', '낮음 (빠름)'], ['medium', '보통'], ['high', '높음 (정확, 느림)']], s.effort, (v) => { s.effort = v; save(); }))));
+  const geminiBox = h('div', { class: 'provider-box' },
+    field('Gemini API 키 입력 (Google)', gKey, '키 발급: aistudio.google.com → Get API key'),
+    h('div', { class: 'grid-2' },
+      field('Gemini 모델', gModelList),
+      field('모델 ID (직접 입력 가능)', gModelInput)),
+    h('div', { class: 'row' }, loadModelsBtn, h('span', { class: 'muted small' }, '새 모델이 나오면 목록을 불러오거나 모델 ID를 직접 입력하세요.')));
+  const showProvider = () => {
+    claudeBox.classList.toggle('dim', s.provider === 'gemini');
+    geminiBox.classList.toggle('dim', s.provider !== 'gemini');
+  };
+  showProvider();
+  const providerSeg = h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'AI 제공자' },
+    [['anthropic', 'Anthropic Claude'], ['gemini', 'Google Gemini']].map(([v, l]) => {
+      const b = h('button', { type: 'button', class: (s.provider || 'anthropic') === v ? 'on' : '', 'aria-pressed': String((s.provider || 'anthropic') === v), onclick: () => {
+        s.provider = v; save();
+        providerSeg.querySelectorAll('button').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b)); });
+        showProvider();
+        toast(`${l}를 사용합니다.`);
+      } }, l);
+      return b;
+    }));
   const fileIn = h('input', { type: 'file', accept: 'application/json,.json', hidden: true, onchange: async (e) => {
     const f = e.target.files[0];
     if (!f) return;
@@ -69,11 +117,11 @@ export function render(root) {
     pageHead('설정', null),
     h('section', { class: 'card' },
       h('h2', null, 'AI 연결'),
-      field('API 키 입력', h('div', { class: 'row' }, key, testBtn),
-        '입력한 Anthropic API 키는 로그인한 계정의 비공개 저장 공간(본인만 읽을 수 있음)에 저장되어, 다른 기기에서 로그인해도 자동으로 불러옵니다. 프로그램 코드에는 키가 들어 있지 않습니다. 요청은 브라우저에서 Anthropic API로 바로 전송됩니다. 키 발급: console.anthropic.com'),
+      field('사용할 AI', h('div', { class: 'row wrap' }, providerSeg, testBtn)),
+      h('p', { class: 'muted small' }, '입력한 API 키는 로그인한 계정의 비공개 저장 공간(본인만 읽을 수 있음)에 저장되어, 다른 기기에서 로그인해도 자동으로 불러옵니다. 프로그램 코드에는 키가 들어 있지 않습니다. 요청은 브라우저에서 고른 AI 회사로 바로 전송됩니다. 두 키를 모두 넣어 두고 위에서 바꿔 쓸 수 있습니다.'),
+      claudeBox,
+      geminiBox,
       h('div', { class: 'grid-3' },
-        field('모델', select([['claude-opus-5-5', 'Claude Opus 5.5 (기본·가장 정확)'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5 (빠르고 저렴)'], ['claude-haiku-5-5', 'Claude Haiku 5.5 (가장 저렴)']], s.model, (v) => { s.model = v; save(); })),
-        field('사고 깊이(effort)', select([['low', '낮음 (빠름)'], ['medium', '보통'], ['high', '높음 (정확, 느림)']], s.effort, (v) => { s.effort = v; save(); })),
         field('AI에 보낼 자료 최대 길이', h('input', { class: 'input', type: 'number', min: 20000, step: 10000, value: s.maxChars, oninput: (e) => { s.maxChars = Math.max(20000, +e.target.value || 400000); save(); } }), '글자 수. 범위가 이보다 길면 뒷부분은 빠집니다.'))),
     h('section', { class: 'card' },
       h('h2', null, '학습 기록'),

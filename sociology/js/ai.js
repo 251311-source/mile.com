@@ -1,6 +1,16 @@
-// Claude API 호출. 브라우저에서 사용자의 API 키로 직접 호출한다.
+// AI 호출. [설정]에서 고른 제공자(Anthropic Claude 또는 Google Gemini)를 사용자의 API 키로 브라우저에서 직접 호출한다.
 import { settings } from './store.js';
 import { buildMaterial, hasScope } from './docs.js';
+import { geminiJSON, geminiChat } from './gemini.js';
+
+const useGemini = () => settings().provider === 'gemini';
+function geminiAuth() {
+  const s = settings();
+  const key = (s.geminiKey || '').trim();
+  if (!key) throw new NeedKeyError('먼저 [설정]에서 Gemini API 키를 입력해 주세요.');
+  return { key, model: (s.geminiModel || 'gemini-2.5-pro').trim() };
+}
+const systemText = (blocks) => blocks.map((b) => b.text).join('\n\n');
 
 const SDK = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.131.0/+esm';
 
@@ -98,16 +108,24 @@ function textOf(message) {
   return message.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
 }
 
+const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
 function searchResultsOf(messages) {
   const out = [];
   for (const m of messages) {
     for (const b of m.content || []) {
       if (b.type === 'web_search_tool_result' && Array.isArray(b.content)) {
-        for (const r of b.content) if (r.url) out.push({ url: r.url, title: r.title || '', age: r.page_age || '' });
+        for (const r of b.content) if (r.url) out.push({ url: r.url, title: r.title || '', age: r.page_age || '', domain: hostOf(r.url) });
       }
     }
   }
   return out;
+}
+// AI가 적은 출처 주소가 실제 검색 결과에 있었는지.
+// Claude 검색 결과는 실제 주소와 정확히 비교하고, Gemini 검색 결과는 중계 주소만 주므로 같은 사이트인지로 비교한다.
+export function seenInSearch(url, results) {
+  const clean = (u) => String(u || '').replace(/[#?].*$/, '').replace(/\/$/, '');
+  const host = hostOf(url);
+  return results.some((r) => (r.redirect ? !!host && !!r.domain && (host === r.domain || host.endsWith('.' + r.domain)) : clean(r.url) === clean(url)));
 }
 
 export function parseJSON(text) {
@@ -126,6 +144,15 @@ export async function askJSON({ task, schema, material = true, web = false, maxT
   if (material && !materialText && !hasScope()) throw new Error('먼저 [자료·범위]에서 자료를 올리고 학습 범위를 선택해 주세요.');
   const s = settings();
   const content = `${task}\n\n출력은 다음 JSON 스키마를 따르는 JSON 객체 하나다:\n${JSON.stringify(schema)}`;
+  if (useGemini()) {
+    const { key, model } = geminiAuth();
+    const sys = systemText(system(material, materialText));
+    const r = await geminiJSON({ key, model, systemText: sys, prompt: content, schema, web });
+    let data = parseJSON(r.text);
+    if (!data) data = parseJSON((await geminiJSON({ key, model, systemText: RULES, prompt: `아래 텍스트에 담긴 내용을 스키마에 맞는 유효한 JSON 객체 하나로만 다시 출력하라. 내용은 바꾸지 마라.\n\n스키마:\n${JSON.stringify(schema)}\n\n텍스트:\n${r.text.slice(0, 60000)}`, schema })).text);
+    if (!data) throw new Error('AI 응답을 해석하지 못했습니다. 다시 시도해 주세요.');
+    return { data, searchResults: r.searchResults };
+  }
   const params = {
     model: s.model,
     max_tokens: maxTokens,
@@ -169,6 +196,10 @@ async function repairJSON(text, schema) {
 // 자유 대화(AI 질문 패널). onText로 스트리밍 텍스트를 받는다.
 export async function chat({ messages, onText }) {
   const s = settings();
+  if (useGemini()) {
+    const { key, model } = geminiAuth();
+    return geminiChat({ key, model, systemText: systemText(system(hasScope())), messages, onText });
+  }
   const msg = await run({
     model: s.model,
     max_tokens: 16000,
@@ -182,6 +213,10 @@ export async function chat({ messages, onText }) {
 
 export async function testKey() {
   const s = settings();
+  if (useGemini()) {
+    const { key, model } = geminiAuth();
+    return geminiChat({ key, model, systemText: RULES, messages: [{ role: 'user', content: '연결 확인입니다. "연결됨"이라고만 답하세요.' }] });
+  }
   const msg = await run({
     model: s.model,
     max_tokens: 2000,
