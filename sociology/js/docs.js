@@ -1,6 +1,6 @@
 // PDF/PPTX 파싱, 자료 목록, 학습 범위 관리.
 import { docsDB, S, save, uid, settings } from './store.js';
-import { loadMaterials, saveMaterial, deleteMaterial, currentUid, saveDocText, loadAllDocText, deleteDocText } from './cloud.js';
+import { loadMaterials, saveMaterial, deleteMaterial, currentUid, currentSubject, saveDocText, loadAllDocText, deleteDocText } from './cloud.js';
 
 const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289';
 const JSZIP = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
@@ -14,7 +14,8 @@ export const docByTag = (tag) => docs.find((d) => d.tag === tag);
 // 원본이 없는 자료는 분석 결과(핵심 문장)만으로 동작한다.
 export async function loadDocs() {
   const owner = currentUid();
-  const local = (await docsDB.all()).filter((d) => d.owner === owner);
+  const sid = currentSubject();
+  const local = (await docsDB.all()).filter((d) => d.owner === owner && (d.subject || 'soc') === sid); // 이 과목의 자료만
   const materials = await loadMaterials();
   const { docFromAnalysis } = await import('./analysis.js');
   // 이 기기에 없는 자료는 계정에 저장된 본문을 받아 이 기기에도 보관한다
@@ -24,7 +25,7 @@ export async function loadDocs() {
   for (const m of materials) {
     let full = local.find((d) => d.id === m.id);
     if (!full && texts.get(m.id)?.length) {
-      full = { id: m.id, tag: m.tag, name: m.name, kind: m.kind, addedAt: m.addedAt || 0, chapters: m.chapters || [], units: texts.get(m.id).sort((a, b) => a.n - b.n), owner, textSaved: true };
+      full = { id: m.id, tag: m.tag, name: m.name, kind: m.kind, addedAt: m.addedAt || 0, chapters: m.chapters || [], units: texts.get(m.id).sort((a, b) => a.n - b.n), owner, subject: sid, textSaved: true };
       docsDB.put(full).catch(() => {});
     }
     if (full) {
@@ -46,7 +47,7 @@ export async function legacyDocs() {
 export async function adoptLegacyDocs(list) {
   for (const d of list) {
     if (docs.some((x) => x.id === d.id || x.name === d.name)) continue;
-    const doc = { ...d, owner: currentUid(), tag: nextTag() };
+    const doc = { ...d, owner: currentUid(), subject: currentSubject(), tag: nextTag() };
     await docsDB.put(doc);
     docs.push(doc);
     await syncAnalysis(doc);
@@ -107,7 +108,7 @@ export async function addFile(file, onProgress = () => {}) {
   // 같은 이름의 자료가 계정에 있으면 그 분석 결과에 연결한다(다른 기기에서 다시 올린 경우).
   const same = docs.find((d) => d.name === file.name);
   if (same) {
-    const doc = { ...parsed, id: same.id, tag: same.tag, name: file.name, addedAt: same.addedAt || Date.now(), owner: currentUid(), analysis: same.analysis, textSaved: false };
+    const doc = { ...parsed, id: same.id, tag: same.tag, name: file.name, addedAt: same.addedAt || Date.now(), owner: currentUid(), subject: currentSubject(), analysis: same.analysis, textSaved: false };
     await docsDB.put(doc);
     docs[docs.indexOf(same)] = doc;
     ensureText(doc).then(() => { if (!doc.analysis?.analyzed) syncAnalysis(doc); });
@@ -115,7 +116,7 @@ export async function addFile(file, onProgress = () => {}) {
     doc.linked = true;
     return doc;
   }
-  const doc = { id: uid(), tag: nextTag(), name: file.name, addedAt: Date.now(), owner: currentUid(), ...parsed };
+  const doc = { id: uid(), tag: nextTag(), name: file.name, addedAt: Date.now(), owner: currentUid(), subject: currentSubject(), ...parsed };
   await docsDB.put(doc);
   docs.push(doc);
   // 새 자료는 기본적으로 전체 범위 선택

@@ -15,6 +15,11 @@ const DEFAULTS = () => ({
   recent: {},         // 중복 방지용 최근 출제 기록 { passage: [], critique: [], realworld: [] }
   bank: [],           // 문제 은행 (검증 통과 문제)
   reports: [],        // 신고한 문제
+  pairs: [],          // 직접 추가한 헷갈리는 개념 쌍 (국제정치)
+  timelines: {},      // { [scopeKey]: 사건·이론 연표 } (국제정치)
+  confusions: {},     // { [scopeKey]: 자동 추출한 헷갈리는 개념 쌍 } (국제정치)
+  prefSubject: 'soc', // 마지막으로 고른 과목 (계정 공통)
+  migratedAt: 0,      // 과목 구조로 옮긴 시각
   lastBackup: 0,      // 마지막 백업 시각
   firstUse: Date.now(),
 });
@@ -158,7 +163,7 @@ export function replaceState(next) {
 export const freshState = DEFAULTS;
 
 export function resetRecords() {
-  const keep = { settings: state.settings, scope: state.scope, lastBackup: state.lastBackup };
+  const keep = { settings: state.settings, scope: state.scope, lastBackup: state.lastBackup, prefSubject: state.prefSubject, migratedAt: state.migratedAt };
   state = { ...DEFAULTS(), ...keep };
   flush();
 }

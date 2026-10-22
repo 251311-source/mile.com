@@ -69,3 +69,5 @@ export function jobControls(key, { start, label = '생성', running = '생성 �
   setTimeout(() => { box.dataset.mounted = '1'; }, 0);
   return box;
 }
+
+export const anyRunning = () => [...jobs.values()].some((j) => j.status === 'running');

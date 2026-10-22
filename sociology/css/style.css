@@ -476,3 +476,29 @@ body.signed-out:has(#auth-screen) main { display: none; }
 .job-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0; }
 .job-controls .job-status { margin-left: 4px; }
 .toast-link { color: inherit; font-weight: 700; text-decoration: underline; }
+
+/* 과목 선택 */
+.subject-switch { margin-left: 4px; }
+.subject-switch button { padding: 5px 12px; font-weight: 600; }
+.migrate-box { max-width: 640px; margin: 0 auto; }
+.migrate-box .data-table { margin: 12px 0; }
+@media (max-width: 640px) { .brand-row { flex-wrap: wrap; } .subject-switch { order: 3; } }
+
+/* 국제정치: 이론 렌즈·연표·헷갈리는 개념 */
+.lens-write { display: grid; gap: 10px; margin: 10px 0; }
+.lens-table tr.mine th { color: var(--accent, #2b59c3); }
+details.model { margin: 8px 0; }
+details.model summary { cursor: pointer; font-weight: 500; }
+.timeline { list-style: none; padding: 0; margin: 8px 0; border-left: 3px solid var(--line, #ddd); }
+.tl-item { display: grid; grid-template-columns: 120px 1fr; gap: 10px; padding: 8px 0 8px 12px; position: relative; }
+.tl-item::before { content: ''; position: absolute; left: -8px; top: 14px; width: 11px; height: 11px; border-radius: 50%; background: var(--surface, #fff); border: 3px solid var(--ink-2, #888); }
+.tl-item.tl-theory::before { border-color: var(--accent, #2b59c3); background: var(--accent, #2b59c3); }
+.tl-when { font-weight: 600; color: var(--ink-2, #666); font-size: 14px; }
+.tl-body p { margin: 4px 0; }
+.match-table { display: grid; gap: 8px; margin: 8px 0; }
+.match-table .match-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; }
+.confuse-list { display: grid; gap: 8px; margin: 10px 0; }
+.pair-item { border: 1px solid var(--line, #ddd); border-radius: 10px; padding: 10px 12px; }
+.add-pair .input { flex: 1; min-width: 140px; }
+.compare-card .pair-col h3 { margin-top: 0; }
+@media (max-width: 640px) { .tl-item { grid-template-columns: 1fr; gap: 2px; } .match-table .match-row { grid-template-columns: 1fr; } }

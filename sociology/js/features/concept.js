@@ -8,6 +8,7 @@ import { segBtn } from './quiz.js';
 import { verifyItems, generateVerified } from '../verify.js';
 import { saveToBank } from '../bank.js';
 import { reportButton } from '../report.js';
+import { subject } from '../subjects.js';
 
 const ITEM = T.obj({ answer: T.str, aliases: T.arr(T.str), category: T.str, sociologist: T.str, clues: T.arr(T.str), explanation: T.str, sources: SOURCES });
 const NORMAL = T.obj({ items: T.arr(ITEM) });
@@ -20,29 +21,38 @@ const used = [];
 export function render(root) {
   const area = persistentArea('concept'); // 화면을 떠나도 생성·풀이가 유지된다
   const go = jobControls('concept', { start: () => run(), label: '시작', running: '생성 중… 다른 화면에 다녀와도 계속 만들어요.' });
+  const ir = subject().id === 'ir';
+  if (ir) opts.mode = 'normal'; // 국제정치의 헷갈리는 개념은 [헷갈리는 개념] 메뉴에서 다룬다
   add(root, 
-    pageHead('개념 맞히기', '이론·개념의 특징을 하나씩 공개합니다. 적은 힌트로 맞힐수록 점수가 높습니다. 혼동 모드는 헷갈리기 쉬운 짝을 나란히 보여 줍니다.'),
+    ir ? pageHead('이론 맞히기', '이론·학파의 특징(핵심 가정, 대표 학자, 핵심 개념, 협력에 대한 관점, 역사적 배경)을 하나씩 공개합니다. 적은 힌트로 맞힐수록 점수가 높습니다.')
+      : pageHead('개념 맞히기', '이론·개념의 특징을 하나씩 공개합니다. 적은 힌트로 맞힐수록 점수가 높습니다. 혼동 모드는 헷갈리기 쉬운 짝을 나란히 보여 줍니다.'),
     h('div', { class: 'card settings-card' }, h('div', { class: 'grid-3' },
-      field('모드', h('div', { class: 'seg' }, segBtn('normal', '일반', () => opts.mode, (v) => { opts.mode = v; }), segBtn('confusion', '혼동 모드', () => opts.mode, (v) => { opts.mode = v; }))),
-      field('문항 수(혼동 모드는 쌍의 수)', select([[3, '3'], [5, '5'], [8, '8']], opts.count, (v) => { opts.count = +v; })),
+      !ir && field('모드', h('div', { class: 'seg' }, segBtn('normal', '일반', () => opts.mode, (v) => { opts.mode = v; }), segBtn('confusion', '혼동 모드', () => opts.mode, (v) => { opts.mode = v; }))),
+      field(ir ? '문항 수' : '문항 수(혼동 모드는 쌍의 수)', select([[3, '3'], [5, '5'], [8, '8']], opts.count, (v) => { opts.count = +v; })),
       h('div', { class: 'row end' }, go))),
     area);
 
   function run() {
-    runJob('concept', { label: '개념 맞히기 문제', page: 'concept' }, async (signal) => {
+    runJob('concept', { label: ir ? '이론 맞히기 문제' : '개념 맞히기 문제', page: 'concept' }, async (signal) => {
     area.replaceChildren(loadingBox('특징 카드를 만들고 있습니다…'));
     try {
       let skipped = 0;
       if (opts.mode === 'normal') {
         // 생성 → 자체 검증 → 실패분만 다시 생성 → 또 실패하면 건너뜀
         const r = await generateVerified(opts.count, async (n) => {
-          const { data } = await askJSON({ signal, schema: NORMAL, task: [
+          const { data } = await askJSON({ signal, schema: NORMAL, task: (ir ? [
+            `학습 범위에서 국제정치 이론 또는 학파 ${n}개를 골라 "특징만 보고 맞히기" 문제를 만들어라. 자료에 하위 학파(예: 고전적 현실주의, 신현실주의, 방어적/공격적 현실주의, 신자유제도주의, 구성주의 등)가 나오면 그 수준까지 구분해 낸다. 자료에 없는 이론·학파는 내지 않는다.`,
+            '- answer: 자료에 쓰인 이름. aliases: 같은 것을 가리키는 다른 표기(원어 포함).',
+            '- clues: 특징 5개를 막연한 것부터 구체적인 것 순서로. 핵심 가정, 핵심 개념, 협력·국제제도에 대한 관점, 등장한 역사적 배경, 대표 학자를 고루 쓰되 대표 학자 이름은 마지막 단서에만 쓴다. 단서 안에 answer나 aliases를 쓰지 않는다. 모두 자료에 근거한다.',
+            '- category: "이론" 또는 "학파". sociologist: 대표 학자(없으면 빈 문자열). explanation: 2~3문장 설명. sources: 자료 위치.',
+          ] : [
             `학습 범위에서 이론 또는 개념 ${n}개를 골라 "특징만 보고 맞히기" 문제를 만들어라.`,
             '- answer: 자료에 쓰인 이름. aliases: 같은 것을 가리키는 다른 표기(원어 포함).',
             '- clues: 특징 5개를 막연한 것부터 구체적인 것 순서로. 단서 안에 answer나 aliases를 쓰지 않는다. 모두 자료에 근거한다.',
             '- category: "이론" 또는 "개념". sociologist: 관련 학자(없으면 빈 문자열). explanation: 2~3문장 설명. sources: 자료 위치.',
+          ]).concat([
             used.length && `- 다음은 이미 나왔으니 제외: ${used.slice(-30).join(', ')}`,
-          ].filter(Boolean).join('\n') });
+          ]).filter(Boolean).join('\n') });
           const items = (data.items || []).map(clean).filter(Boolean);
           used.push(...items.map((x) => x.answer));
           return items;

@@ -33,6 +33,24 @@ const CHECKS = {
     '3) 단서에 정답 이름이 드러나지 않고 표현이 명확한가? (unambiguous)',
     '4) explanation이 answer와 모순되지 않는가? (explanation_consistent)',
   ],
+  lens: [
+    '1) in_material이 true인 사건은 sources에 적힌 쪽에 실제로 나오는가? in_material이 false인 사건은 실제로 있었던 잘 알려진 국제 사건으로 서술이 사실과 맞는가? (answer_matches_source)',
+    '2) theories의 각 이론이 학습 범위 자료에 나오고, core가 sources에 적힌 쪽의 내용과 맞는가? (single_answer)',
+    '3) situation이 특정 이론의 결론을 미리 말하지 않고 중립적으로 서술되었는가? (unambiguous)',
+    '4) 이 사건을 theories의 이론들로 의미 있게 해석할 수 있는가? (explanation_consistent)',
+  ],
+  history: [
+    '1) 항목(사건·시기·이론·논쟁)이 sources에 적힌 쪽의 자료에 실제로 나오는가? (answer_matches_source)',
+    '2) 사건/시기와 이론의 연결(link)이 자료에서 확인되는가(그 시기에 등장했거나 영향력이 커졌다고 자료가 말하는가)? year가 있으면 실제 연도와 맞는가? (single_answer)',
+    '3) why와 description이 명확하고 다른 해석의 여지가 적은가? (unambiguous)',
+    '4) why·description이 자료 내용과 모순되지 않는가? (explanation_consistent)',
+  ],
+  confuse: [
+    '1) 각 개념의 definition·example이 sources에 적힌 쪽의 자료 내용과 맞는가? (answer_matches_source)',
+    '2) 묶인 개념들이 실제로 서로 다른 개념이고, key_difference가 둘을 정확히 구분하는가? (single_answer)',
+    '3) 정의와 차이 설명이 명확한가? (unambiguous)',
+    '4) related_theories와 example이 정의와 모순되지 않는가? (explanation_consistent)',
+  ],
   quote: [
     '1) 인용(또는 주장)이 sources에 적힌 쪽에 실제로 그 학자의 말/주장으로 나오는가? (answer_matches_source)',
     '2) 이 말을 한 사람이 speaker 한 명으로 정해지는가? (single_answer)',

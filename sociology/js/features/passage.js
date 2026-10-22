@@ -8,6 +8,7 @@ import { verifyItems } from '../verify.js';
 import { saveToBank, similarity } from '../bank.js';
 import { reportButton } from '../report.js';
 import { persistentArea, runJob, jobControls, isCancel } from '../jobs.js';
+import { subject } from '../subjects.js';
 
 const GEN = T.obj({
   original: T.str,
@@ -62,10 +63,10 @@ async function generatePassage(signal) {
   let verifyFails = 0;
   for (let attempt = 0; attempt < 5; attempt++) {
     const task = [
-      '학습 범위 자료에서 사회학 개념·이론 설명이 담긴 한 문단(150~400자)을 골라 original에 원문 그대로(띄어쓰기 포함, 글자 하나 바꾸지 말고) 옮겨라. 슬라이드 글머리표라면 이어지는 문장들을 문단처럼 이어 붙여도 된다(내용은 그대로).',
+      `학습 범위 자료에서 ${subject().passageItems}이 담긴 한 문단(150~400자)을 골라 original에 원문 그대로(띄어쓰기 포함, 글자 하나 바꾸지 말고) 옮겨라. 슬라이드 글머리표라면 이어지는 문장들을 문단처럼 이어 붙여도 된다(내용은 그대로).`,
       n === 0
         ? '이번에는 단어를 바꾸지 않는다. modified는 original과 완전히 같게, changes는 빈 배열로 둔다.'
-        : `original에서 정확히 ${n}개의 단어(또는 짧은 어구)를 뜻이 틀린 다른 단어로 바꿔 modified를 만든다. 바꾼 단어는 문법적으로 자연스러워서 내용을 이해해야만 찾을 수 있어야 한다(예: 기계적↔유기적, 계급↔지위, 증가↔감소, 학자 이름 바꾸기). 바뀐 부분 외에는 original과 글자 하나 다르지 않아야 한다. changes에 각 변경을 {wrong: modified 안의 틀린 단어, correct: original의 원래 단어, reason: 왜 틀린지}로 적는다. 같은 단어를 두 번 바꾸지 않는다.`,
+        : `original에서 정확히 ${n}개의 단어(또는 짧은 어구)를 뜻이 틀린 다른 단어로 바꿔 modified를 만든다. 바꾼 단어는 문법적으로 자연스러워서 내용을 이해해야만 찾을 수 있어야 한다(${subject().passageSwap}). 바뀐 부분 외에는 original과 글자 하나 다르지 않아야 한다. changes에 각 변경을 {wrong: modified 안의 틀린 단어, correct: original의 원래 단어, reason: 왜 틀린지}로 적는다. 같은 단어를 두 번 바꾸지 않는다.`,
       'sources에 문단 위치를 적는다. concepts, sociologists에 문단이 다루는 개념·학자를 적는다.',
       recent.length && `최근에 쓴 문단과 다른 문단을 고른다: ${recent.join(' / ')}`,
     ].filter(Boolean).join('\n');

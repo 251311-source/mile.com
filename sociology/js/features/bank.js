@@ -1,10 +1,12 @@
 // 문제 은행 화면: 유형별·개념별 저장 문제 수와 문제 목록
+import { subject } from '../subjects.js';
 import { h, add, clear, pageHead, select, fmtDate, pct } from '../ui.js';
 import { S } from '../store.js';
 import { TYPES, DIFF, answerText } from '../questions.js';
 import { inScopeCopy } from '../bank.js';
 
 const KIND = { quiz: '퀴즈·시험', passage: '비판적 읽기', concept: '개념 맞히기', quote: '발화자 맞히기' };
+if (subject().id === 'ir') Object.assign(KIND, { quiz: '퀴즈·연표·개념 구별', concept: '이론 맞히기' });
 const STATUS = { active: '검증됨', reported: '신고됨', excluded: '제외됨' };
 const filt = { type: 'all', status: 'all', q: '', limit: 50 };
 
@@ -12,7 +14,7 @@ export function render(root) {
   const bank = S().bank;
   const inScope = bank.filter((e) => e.status === 'active' && inScopeCopy(e)).length;
   add(root,
-    pageHead('문제 은행', 'AI가 만들고 자체 검증을 통과한 문제가 모두 저장됩니다. 새 문제를 요청하면 이곳에서 조건에 맞는 문제를 먼저 꺼내 쓰고, 모자란 만큼만 새로 만듭니다.'),
+    pageHead(`문제 은행 · ${subject().name}`, '이 과목에서 AI가 만들고 자체 검증을 통과한 문제가 모두 저장됩니다. 새 문제를 요청하면 이곳에서 조건에 맞는 문제를 먼저 꺼내 쓰고, 모자란 만큼만 새로 만듭니다.'),
     h('div', { class: 'stat-row' },
       stat(String(bank.length), '저장된 문제'),
       stat(String(bank.filter((e) => e.status === 'active').length), '검증됨(출제 가능)'),

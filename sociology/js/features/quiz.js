@@ -1,30 +1,33 @@
 // 1. 종합 퀴즈
 import { h, add, clear, pageHead, field, select, loadingBox, errorBox, pct } from '../ui.js';
-import { TYPES, QUIZ_TYPES, DIFF, getQuestions, renderQuestion } from '../questions.js';
+import { TYPES, DIFF, getQuestions, renderQuestion, quizTypes } from '../questions.js';
+import { subject } from '../subjects.js';
 import { persistentArea, runJob, jobControls, isCancel } from '../jobs.js';
 
-const opts = { difficulty: 'medium', count: 5, mode: 'mixed', single: 'mc', mixed: new Set(QUIZ_TYPES), focus: '', freshOnly: false };
+const opts = { difficulty: 'medium', count: 5, mode: 'mixed', single: 'mc', mixed: null, focus: '', freshOnly: false };
 const recentStems = [];
 
 export function render(root, params) {
   if (params.get('focus')) opts.focus = params.get('focus');
+  const QUIZ_TYPES = quizTypes();
+  opts.mixed ||= new Set(QUIZ_TYPES);
   const area = persistentArea('quiz'); // 다른 화면에 다녀와도 생성·풀이가 이어진다
   const typeBox = h('div');
 
   const drawTypes = () => {
     clear(typeBox);
     if (opts.mode === 'single') {
-      typeBox.appendChild(field('문제 유형', select(QUIZ_TYPES.map((t) => [t, TYPES[t]]), opts.single, (v) => { opts.single = v; })));
+      typeBox.appendChild(field('문제 유형', select(QUIZ_TYPES.map((t) => [t, typeName(t)]), opts.single, (v) => { opts.single = v; })));
     } else {
       typeBox.appendChild(h('div', { class: 'field' }, h('span', { class: 'field-label' }, '섞을 유형 (혼합 모드)'),
         h('div', { class: 'chip-row' }, QUIZ_TYPES.map((t) => h('button', {
           class: 'chip toggle' + (opts.mixed.has(t) ? ' on' : ''), 'aria-pressed': String(opts.mixed.has(t)),
           onclick: (e) => { opts.mixed.has(t) ? opts.mixed.delete(t) : opts.mixed.add(t); e.currentTarget.classList.toggle('on'); e.currentTarget.setAttribute('aria-pressed', String(opts.mixed.has(t))); },
-        }, TYPES[t])))));
+        }, typeName(t))))));
     }
   };
 
-  const focusInput = h('input', { class: 'input', type: 'text', value: opts.focus, placeholder: '예: 베버, 아노미 (비우면 범위 전체)', oninput: (e) => { opts.focus = e.target.value; } });
+  const focusInput = h('input', { class: 'input', type: 'text', value: opts.focus, placeholder: subject().focusExample, oninput: (e) => { opts.focus = e.target.value; } });
   const start = jobControls('quiz', { start: () => run(), label: '문제 만들기', running: '문제를 만드는 중… 다른 화면에 다녀와도 계속 만들어요.' });
 
   const settingsCard = h('div', { class: 'card settings-card' },
@@ -75,6 +78,8 @@ export function render(root, params) {
     });
   }
 }
+
+const typeName = (t) => subject().typeLabels?.[t] || TYPES[t];
 
 export function segBtn(value, label, get, setv) {
   const b = h('button', { type: 'button', class: get() === value ? 'on' : '', 'aria-pressed': String(get() === value), onclick: () => {

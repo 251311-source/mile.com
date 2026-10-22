@@ -5,16 +5,20 @@ import { S, removeWrong } from '../store.js';
 import { hasScope } from '../docs.js';
 import { renderPassage } from './passage.js';
 import { showSet } from './quiz.js';
+import { subject, featureLabels } from '../subjects.js';
 
-const FEATURE = { quiz: '종합 퀴즈', passage: '비판적 읽기', speaker: '발화자 맞히기', concept: '개념 맞히기', realworld: '현실 사례', critique: '이론 비판', cards: '플래시카드', exam: '시험 모드', similar: '유사 문제' };
+let FEATURE = {};
+
+
 const filt = { status: 'open', feature: 'all', q: '' };
 
 export function render(root) {
+  FEATURE = featureLabels();
   const list = h('div', { class: 'wrong-list' });
   const work = h('div');
   const counts = () => ({ open: S().wrong.filter((w) => !w.mastered).length, done: S().wrong.filter((w) => w.mastered).length });
   const head = h('div', { class: 'row wrap' });
-  add(root, pageHead('오답노트', '모든 기능에서 틀린 문제가 자동으로 모입니다. 다시 풀어 맞히면 「완전 정복」으로 표시됩니다.'), head, work, list);
+  add(root, pageHead(`오답노트 · ${subject().name}`, '이 과목의 모든 기능에서 틀린 문제가 자동으로 모입니다. 다시 풀어 맞히면 「완전 정복」으로 표시됩니다.'), head, work, list);
 
   const drawHead = () => {
     const c = counts();

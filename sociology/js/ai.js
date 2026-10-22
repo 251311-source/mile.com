@@ -1,5 +1,6 @@
 // AI 호출. [설정]에서 고른 제공자(Anthropic Claude 또는 Google Gemini)를 사용자의 API 키로 브라우저에서 직접 호출한다.
 import { settings } from './store.js';
+import { subject } from './subjects.js';
 import { buildMaterial, hasScope } from './docs.js';
 import { geminiJSON, geminiChat } from './gemini.js';
 import { CancelledError } from './jobs.js';
@@ -53,7 +54,7 @@ async function client() {
 // API가 거부한 선택 기능은 이번 세션 동안 끈다.
 const off = { fallbacks: false, format: false, autoCache: false };
 
-const RULES = `너는 대학 사회학 학습 프로그램의 출제·채점·설명 엔진이다.
+const rules = () => `너는 ${subject().role}의 출제·채점·설명 엔진이다.${subject().id === 'ir' ? ' 학교 내신 대비용이므로 문제는 반드시 <자료>와 선택한 학습 범위 안에서만 낸다.' : ''}
 
 [근거 원칙]
 - 모든 문제, 정답, 해설, 채점은 <자료> 안의 내용만 근거로 한다. 자료에 없는 학자·이론·개념·사실·인용을 만들어 내지 않는다.
@@ -68,7 +69,7 @@ const RULES = `너는 대학 사회학 학습 프로그램의 출제·채점·�
 - JSON을 요구받으면 설명이나 코드 블록 없이 JSON 객체 하나만 출력한다.`;
 
 function system(useMaterial, materialText) {
-  const blocks = [{ type: 'text', text: RULES }];
+  const blocks = [{ type: 'text', text: rules() }];
   if (materialText) {
     blocks.push({ type: 'text', text: `다음은 분석할 자료다.\n\n${materialText}` });
   } else if (useMaterial) {
@@ -171,7 +172,7 @@ export async function askJSON({ task, schema, material = true, web = false, maxT
     const sys = systemText(system(material, materialText));
     const r = await geminiJSON({ key, model, systemText: sys, prompt: content, schema, web, thinking: effort === 'low' ? 512 : speed().thinking, signal });
     let data = parseJSON(r.text);
-    if (!data) data = parseJSON((await geminiJSON({ key, model, signal, systemText: RULES, prompt: `아래 텍스트에 담긴 내용을 스키마에 맞는 유효한 JSON 객체 하나로만 다시 출력하라. 내용은 바꾸지 마라.\n\n스키마:\n${JSON.stringify(schema)}\n\n텍스트:\n${r.text.slice(0, 60000)}`, schema })).text);
+    if (!data) data = parseJSON((await geminiJSON({ key, model, signal, systemText: rules(), prompt: `아래 텍스트에 담긴 내용을 스키마에 맞는 유효한 JSON 객체 하나로만 다시 출력하라. 내용은 바꾸지 마라.\n\n스키마:\n${JSON.stringify(schema)}\n\n텍스트:\n${r.text.slice(0, 60000)}`, schema })).text);
     if (!data) throw new Error('AI 응답을 해석하지 못했습니다. 다시 시도해 주세요.');
     return { data, searchResults: r.searchResults };
   }
@@ -208,7 +209,7 @@ async function repairJSON(text, schema, signal) {
   const msg = await run({
     model: s.model,
     max_tokens: 32000,
-    system: [{ type: 'text', text: RULES }],
+    system: [{ type: 'text', text: rules() }],
     messages: [{ role: 'user', content: `아래 텍스트에 담긴 내용을 스키마에 맞는 유효한 JSON 객체 하나로만 다시 출력하라. 내용은 바꾸지 마라.\n\n스키마:\n${JSON.stringify(schema)}\n\n텍스트:\n${text.slice(0, 60000)}` }],
     output_config: { effort: 'low', format: { type: 'json_schema', schema } },
   }, { signal });
@@ -238,7 +239,7 @@ export async function testKey() {
   const s = settings();
   if (useGemini()) {
     const { key, model } = geminiAuth();
-    return geminiChat({ key, model, systemText: RULES, messages: [{ role: 'user', content: '연결 확인입니다. "연결됨"이라고만 답하세요.' }] });
+    return geminiChat({ key, model, systemText: rules(), messages: [{ role: 'user', content: '연결 확인입니다. "연결됨"이라고만 답하세요.' }] });
   }
   const msg = await run({
     model: s.model,

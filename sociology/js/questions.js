@@ -7,6 +7,7 @@ import { verifyItems } from './verify.js';
 import { pickFromBank, existingStems, isNearDuplicate, bankQuizQuestions, saveToBank } from './bank.js';
 import { reportButton } from './report.js';
 import { CancelledError } from './jobs.js';
+import { subject } from './subjects.js';
 
 export const TYPES = {
   mc: '5지선다',
@@ -24,6 +25,9 @@ export const TYPES = {
   passage: '비판적 읽기',
 };
 export const QUIZ_TYPES = Object.keys(TYPES).filter((t) => t !== 'passage');
+// 현재 과목에서 내는 유형
+export const quizTypes = () => subject().quizTypes;
+const typeSpec = (t) => subject().typeSpec[t] || TYPE_SPEC[t];
 export const DIFF = { easy: '쉬움', medium: '보통', hard: '어려움' };
 const LABELS = ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ'];
 
@@ -77,11 +81,11 @@ export async function generateQuestions({ types, difficulty = 'medium', focus = 
   const plan = types.map((t, i) => `${i + 1}번: ${t}`).join(', ');
   const used = [...new Set(types)];
   const task = [
-    `학습 범위 자료로 사회학 문제 ${types.length}개를 만들어라.`,
+    `학습 범위 자료로 ${subject().domain} 문제 ${types.length}개를 만들어라.`,
     `난이도 — ${DIFF_SPEC[difficulty]}`,
     `문항별 유형: ${plan}`,
     '유형별 작성 규칙:',
-    ...used.map((t) => '- ' + TYPE_SPEC[t]),
+    ...used.map((t) => '- ' + typeSpec(t)),
     '공통 규칙:',
     '- 사용하지 않는 필드는 빈 문자열, 빈 배열, answer_index -1, table은 빈 값으로 둔다.',
     '- explanation에 정답 근거와 오답이 틀린 이유를 자료에 기반해 쓴다.',
@@ -566,7 +570,7 @@ function buildInputs(q, view) {
       const rows = q.matching.map((r) => ({ r, t: sel(theories), c: sel(concepts) }));
       return {
         el: h('div', { class: 'match-table', role: 'table' },
-          h('div', { class: 'match-row head', role: 'row' }, h('span', null, '사회학자'), h('span', null, '이론'), h('span', null, '핵심 개념')),
+          h('div', { class: 'match-row head', role: 'row' }, h('span', null, subject().person), h('span', null, '이론'), h('span', null, '핵심 개념')),
           rows.map(({ r, t, c }) => h('div', { class: 'match-row', role: 'row' }, h('span', { class: 'who' }, r.sociologist), t, c))),
         get: () => rows.map(({ t, c }) => ({ theory: t.value, concept: c.value })),
         lock: (res) => rows.forEach(({ t, c }, i) => { t.disabled = c.disabled = true; if (res?.parts) { t.classList.add(res.parts[i] ? 'right' : 'wrong'); c.classList.add(res.parts[i] ? 'right' : 'wrong'); } }),

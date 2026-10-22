@@ -65,7 +65,7 @@ export function showLoginScreen() {
   btns.push(gBtn, lBtn, sBtn, rBtn);
   const screen = h('section', { id: 'auth-screen', class: 'auth-screen', 'aria-label': '로그인' },
     h('div', { class: 'auth-card' },
-      h('div', { class: 'auth-brand' }, h('span', { class: 'brand-mark', 'aria-hidden': 'true' }, '社'), h('h1', null, '사회학 학습')),
+      h('div', { class: 'auth-brand' }, h('span', { class: 'brand-mark', 'aria-hidden': 'true' }, '學'), h('h1', null, '사회학·국제정치 학습')),
       h('p', { class: 'muted' }, '로그인하면 오답노트·질문 기록·정답률·문제 은행이 계정에 저장되어, 어느 기기에서든 같은 기록으로 이어서 공부할 수 있어요.'),
       gBtn,
       h('div', { class: 'auth-or' }, h('span', null, '또는 이메일로')),

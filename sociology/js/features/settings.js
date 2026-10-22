@@ -5,7 +5,8 @@ import { testKey, providerLabel } from '../ai.js';
 import { downloadBackup, parseBackup, applyBackup, summarize, backupFileName } from '../backup.js';
 import { REASONS, reportedLabel, showReview } from '../report.js';
 import { TYPES } from '../questions.js';
-import { saveSecret } from '../cloud.js';
+import { saveSecret, waitSaved } from '../cloud.js';
+import { subject, SUBJECTS, SUBJECT_IDS } from '../subjects.js';
 import { listGeminiModels } from '../gemini.js';
 import { deleteAccount } from '../auth.js';
 import { fb } from '../firebase.js';
@@ -75,13 +76,14 @@ export function render(root) {
     e.target.value = '';
     let obj;
     try { obj = parseBackup(await f.text()); } catch (err) { toast(err.message + ' 기존 기록은 그대로입니다.', 'error'); return; }
-    const apply = (mode) => {
-      try { applyBackup(obj, mode); } catch (err) { toast('불러오기에 실패했습니다: ' + err.message, 'error'); return; }
+    const apply = async (mode) => {
+      toast('백업을 적용하는 중이에요…');
+      try { await applyBackup(obj, mode); await waitSaved(15000); } catch (err) { toast('불러오기에 실패했습니다: ' + err.message, 'error'); return; }
       toast(mode === 'overwrite' ? '백업으로 기록을 덮어썼습니다.' : '백업과 현재 기록을 합쳤습니다.');
       setTimeout(() => location.reload(), 600);
     };
     modal('백업 파일 불러오기', h('div', null,
-      h('p', null, h('b', null, '현재 기록이 변경됩니다.')),
+      h('p', null, h('b', null, `백업에 든 과목(${Object.keys(obj.subjects).map((k) => SUBJECTS[k].name).join(', ')})의 기록이 변경됩니다.`)),
       h('p', { class: 'muted small' }, `백업 내용: ${summarize(obj)}${obj.exportedAt ? ` (${new Date(obj.exportedAt).toLocaleString('ko-KR')} 저장)` : ''}`),
       h('ul', { class: 'muted small' },
         h('li', null, '덮어쓰기: 현재 기록을 모두 지우고 백업으로 바꿉니다.'),
@@ -91,6 +93,9 @@ export function render(root) {
       { label: '합치기', primary: true, onclick: () => apply('merge') },
     ]);
   } });
+  let exportWhich = 'all';
+  const exportSel = select([['all', '모든 과목'], ...SUBJECT_IDS.map((k) => [k, `${SUBJECTS[k].name}만`])], exportWhich, (v) => { exportWhich = v; });
+  exportSel.setAttribute('aria-label', '내보낼 과목');
   const legacyBtn = h('span');
   legacySummary().then((sum) => {
     if (sum) legacyBtn.replaceWith(h('button', { class: 'btn', onclick: () => askMigration(fb.auth.currentUser.uid, sum) }, '이 브라우저의 기존 기록을 계정으로 옮기기'));
@@ -128,10 +133,17 @@ export function render(root) {
         field('AI에 보낼 자료 최대 길이', h('input', { class: 'input', type: 'number', min: 20000, step: 10000, value: s.maxChars, oninput: (e) => { s.maxChars = Math.max(20000, +e.target.value || 400000); save(); } }), '글자 수. 범위가 이보다 길면 뒷부분은 빠집니다.'))),
     h('section', { class: 'card' },
       h('h2', null, '학습 기록'),
-      h('p', { class: 'muted' }, `오답 ${S().wrong.length}개 · 질문 기록 ${S().qlog.length}개 · 채점 기록 ${S().attempts.length}개 · 플래시카드 ${S().cards.length}장 · 문제 은행 ${S().bank.length}개. 기록은 로그인한 계정에 자동 저장되어 어느 기기·브라우저에서 로그인해도 이어집니다.`),
-      h('p', { class: 'muted small' }, `백업 파일에는 오답노트·질문 기록·정답률·플래시카드 진도·문제 은행·신고 기록·학습 범위가 들어갑니다. 올린 PDF/PPT 원본은 용량 때문에 넣지 않고 파일 이름만 기록합니다. 파일 이름 예: ${backupFileName()} · 마지막 백업: ${S().lastBackup ? fmtDate(S().lastBackup) : '없음'}`),
+      h('p', { class: 'muted' }, `[${subject().name}] 오답 ${S().wrong.length}개 · 질문 기록 ${S().qlog.length}개 · 채점 기록 ${S().attempts.length}개 · 플래시카드 ${S().cards.length}장 · 문제 은행 ${S().bank.length}개. 기록은 로그인한 계정에 자동 저장되어 어느 기기·브라우저에서 로그인해도 이어집니다.`),
+      h('p', { class: 'muted small' }, `백업 파일에는 과목별 오답노트·질문 기록·정답률·플래시카드 진도·문제 은행·신고 기록·학습 범위가 들어갑니다. 올린 PDF/PPT 원본은 용량 때문에 넣지 않고 파일 이름만 기록합니다. 파일 이름 예: ${backupFileName()} · 마지막 백업: ${S().lastBackup ? fmtDate(S().lastBackup) : '없음'}`),
       h('div', { class: 'row wrap' },
-        h('button', { class: 'btn', onclick: () => { downloadBackup(); toast('백업 파일을 내보냈습니다.'); document.getElementById('backup-banner')?.remove(); } }, '⬇ 백업 파일 내보내기'),
+        exportSel,
+        h('button', { class: 'btn', onclick: async (e) => {
+          const btn = e.currentTarget;
+          btn.disabled = true;
+          try { await downloadBackup(exportWhich === 'all' ? null : exportWhich); toast('백업 파일을 내보냈습니다.'); document.getElementById('backup-banner')?.remove(); }
+          catch (err) { toast('내보내지 못했습니다: ' + err.message, 'error'); }
+          finally { btn.disabled = false; }
+        } }, '⬇ 백업 파일 내보내기'),
         h('button', { class: 'btn', onclick: () => fileIn.click() }, '⬆ 백업 파일 불러오기'), fileIn,
         legacyBtn)),
     h('section', { class: 'card' },
@@ -139,12 +151,12 @@ export function render(root) {
       h('p', { class: 'muted' }, `로그인한 계정: ${fb?.auth?.currentUser?.email || ''}`),
       h('div', { class: 'row wrap' },
         h('button', { class: 'btn danger', onclick: async () => {
-          if (!(await confirmBox('오답노트, 질문 기록, 정답률, 플래시카드 진도, 문제 은행, 신고 기록을 모두 삭제할까요? (올린 자료와 API 키, 학습 범위는 남습니다)'))) return;
+          if (!(await confirmBox(`[${subject().name}] 과목의 오답노트, 질문 기록, 정답률, 플래시카드 진도, 문제 은행, 신고 기록을 모두 삭제할까요? (올린 자료와 API 키, 학습 범위, 다른 과목의 기록은 남습니다)`))) return;
           if (!(await confirmBox('정말 삭제할까요? 모든 기기에서 사라지며 되돌릴 수 없습니다. (필요하면 먼저 백업 파일을 내보내세요)'))) return;
           resetRecords();
-          toast('모든 학습 기록을 삭제했어요.');
+          toast(`${subject().name} 학습 기록을 삭제했어요.`);
           setTimeout(() => location.reload(), 1500);
-        } }, '모든 학습 기록 삭제'),
+        } }, `${subject().name} 학습 기록 삭제`),
         h('button', { class: 'btn danger', onclick: async () => {
           if (!(await confirmBox('계정을 탈퇴할까요? 이 계정의 모든 학습 기록, 자료 분석 결과, API 키가 삭제됩니다.'))) return;
           if (!(await confirmBox('정말 탈퇴할까요? 되돌릴 수 없습니다. 마지막 확인입니다.'))) return;
@@ -158,6 +170,6 @@ export function render(root) {
       h('h2', null, '이 프로그램에 대해'),
       h('ul', { class: 'muted' },
         h('li', null, '모든 문제·해설·채점은 [자료·범위]에서 고른 자료만 근거로 하며, 근거가 된 쪽/슬라이드 번호를 표시합니다.'),
-        h('li', null, '웹을 쓰는 기능(발화자 맞히기의 [추가], 현실 사례 연결)은 출처 링크와 검증 여부를 함께 표시합니다.'),
+        h('li', null, '웹을 쓰는 기능(발화자 맞히기의 [추가], 현실 사례 연결, 이론 렌즈 분석의 [교과서 밖 사례])은 출처 링크와 검증 여부를 함께 표시합니다.'),
         h('li', null, '「⚠ 확인 불가」 출처 표시는 AI가 적은 위치가 자료에 없을 때 나타납니다. 그 내용은 자료와 대조해 보세요.'))));
 }

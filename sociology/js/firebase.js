@@ -51,3 +51,6 @@ export async function initFirebase() {
 // 사용자 데이터 경로: users/{uid}/{컬렉션}/{문서}
 export const userCol = (uid, name) => fb.F.collection(fb.db, 'users', uid, name);
 export const userDoc = (uid, name, id) => fb.F.doc(fb.db, 'users', uid, name, id);
+// 과목별 데이터 경로: users/{uid}/subjects/{과목}/{컬렉션}/{문서}
+export const subjCol = (uid, sid, name) => fb.F.collection(fb.db, 'users', uid, 'subjects', sid, name);
+export const subjDoc = (uid, sid, name, id) => fb.F.doc(fb.db, 'users', uid, 'subjects', sid, name, id);

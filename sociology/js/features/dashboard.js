@@ -2,9 +2,9 @@
 import { h, pageHead, pct } from '../ui.js';
 import { TYPES } from '../questions.js';
 import { S } from '../store.js';
+import { subject, featureLabels } from '../subjects.js';
 
-const FEATURE = { quiz: '종합 퀴즈', passage: '비판적 읽기', speaker: '발화자 맞히기', concept: '개념 맞히기', realworld: '현실 사례', critique: '이론 비판', cards: '플래시카드', exam: '시험 모드', similar: '유사 문제' };
-const TYPE_LABEL = { ...TYPES, speaker: '발화자 맞히기', concept: '개념 맞히기', flashcard: '플래시카드', realworld: '현실 사례 분석', critique: '이론 비판' };
+const TYPE_LABEL = { ...TYPES, speaker: '발화자 맞히기', concept: '개념 맞히기', flashcard: '플래시카드', realworld: '현실 사례 분석', critique: '이론 비판', lens: '이론 렌즈 분석', history_why: '"왜 그때?" 서술', history_match: '사건↔이론 연결', history_order: '연대순 배열', distinguish: '개념 구별', difference: '차이 설명' };
 const MIN_N = 3;     // 이 정도는 풀어야 판단한다
 const WEAK = 0.6;    // 정답률 기준
 
@@ -23,8 +23,10 @@ function group(attempts, keyFn) {
 }
 
 export function render(root) {
+  const FEATURE = featureLabels();
+  if (subject().id === 'ir') TYPE_LABEL.concept = '이론 맞히기';
   const at = S().attempts;
-  root.appendChild(pageHead('취약점 분석', '모든 기능의 채점 기록으로 개념별·학자별·유형별 정답률을 보여 주고, 약한 부분을 짚어 줍니다.'));
+  root.appendChild(pageHead(`취약점 분석 · ${subject().name}`, `${subject().name} 과목의 모든 기능 채점 기록으로 개념별·학자별·유형별 정답률을 보여 주고, 약한 부분을 짚어 줍니다. 다른 과목의 기록은 섞이지 않습니다.`));
   if (!at.length) {
     root.appendChild(h('div', { class: 'notice' }, '아직 채점 기록이 없습니다. 퀴즈나 시험을 풀면 여기에 분석이 나타납니다.'));
     return;
@@ -80,7 +82,7 @@ export function render(root) {
 
   root.appendChild(h('div', { class: 'grid-2' },
     barCard('개념별 정답률', byConcept, (k) => k),
-    barCard('사회학자별 정답률', bySoc, (k) => k),
+    barCard(`${subject().person}별 정답률`, bySoc, (k) => k),
     barCard('문제 유형별 정답률', byType, (k) => TYPE_LABEL[k] || k),
     barCard('기능별 정답률', byFeature, (k) => FEATURE[k] || k)));
 
@@ -96,7 +98,7 @@ export function render(root) {
 }
 
 const QUIZ_TYPE = (t) => Object.keys(TYPES).includes(t) && t !== 'passage';
-const FEATURE_ROUTE = { passage: 'passage', speaker: 'speaker', concept: 'concept', flashcard: 'cards', realworld: 'realworld', critique: 'critique' };
+const FEATURE_ROUTE = { passage: 'passage', speaker: 'speaker', concept: 'concept', flashcard: 'cards', realworld: 'realworld', critique: 'critique', lens: 'lens', history_why: 'history', history_match: 'history', history_order: 'history', distinguish: 'confuse', difference: 'confuse' };
 
 function recommend(weak, openWrong, due) {
   const names = weak.filter((g) => g.what !== 'type').slice(0, 2).map((g) => g.key);
