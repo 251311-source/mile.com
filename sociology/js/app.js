@@ -8,6 +8,7 @@ import { startSync, loadPrivate } from './cloud.js';
 import { showLoginScreen, hideLoginScreen, showAccount, authMessage } from './auth.js';
 import { maybeAskMigration } from './migrate.js';
 import { backupOverdue, downloadBackup, BACKUP_REMIND_DAYS } from './backup.js';
+import { hasAIKey } from './ai.js';
 
 const ROUTES = [
   ['scope', '📚', '자료·범위', () => import('./features/scope.js')],
@@ -78,8 +79,8 @@ async function route() {
       h('a', { class: 'btn primary', href: '#/scope' }, '📚 자료 올리고 범위 선택하기')));
     return;
   }
-  if (!settings().apiKey && !NO_SCOPE_OK.has(r[0])) {
-    root.appendChild(h('div', { class: 'notice' }, 'AI 기능을 쓰려면 ', h('a', { href: '#/settings' }, '설정'), '에서 Anthropic API 키를 먼저 입력해 주세요.'));
+  if (!hasAIKey() && !NO_SCOPE_OK.has(r[0])) {
+    root.appendChild(h('div', { class: 'notice' }, 'AI 기능을 쓰려면 ', h('a', { href: '#/settings' }, '설정'), '에서 Claude 또는 Gemini API 키를 먼저 입력해 주세요.'));
   }
   const mod = await r[3]();
   if (token !== renderToken) return;

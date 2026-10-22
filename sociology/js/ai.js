@@ -3,7 +3,21 @@ import { settings } from './store.js';
 import { buildMaterial, hasScope } from './docs.js';
 import { geminiJSON, geminiChat } from './gemini.js';
 
-const useGemini = () => settings().provider === 'gemini';
+// 실제로 쓸 AI: 고른 AI의 키가 있으면 그것, 없고 다른 AI의 키만 있으면 그쪽을 쓴다.
+export function activeProvider() {
+  const s = settings();
+  const has = { anthropic: !!(s.apiKey || '').trim(), gemini: !!(s.geminiKey || '').trim() };
+  const chosen = s.provider === 'gemini' ? 'gemini' : 'anthropic';
+  if (has[chosen]) return chosen;
+  const other = chosen === 'gemini' ? 'anthropic' : 'gemini';
+  return has[other] ? other : chosen;
+}
+export const hasAIKey = () => {
+  const s = settings();
+  return !!((s.apiKey || '').trim() || (s.geminiKey || '').trim());
+};
+export const providerLabel = () => (activeProvider() === 'gemini' ? 'Gemini' : 'Claude');
+const useGemini = () => activeProvider() === 'gemini';
 function geminiAuth() {
   const s = settings();
   const key = (s.geminiKey || '').trim();
@@ -21,7 +35,7 @@ export class NeedKeyError extends Error {
 let clientP = null, clientKey = null;
 async function client() {
   const key = (settings().apiKey || '').trim();
-  if (!key) throw new NeedKeyError('먼저 [설정]에서 Anthropic API 키를 입력해 주세요.');
+  if (!key) throw new NeedKeyError('먼저 [설정]에서 사용할 AI(Claude 또는 Gemini)의 API 키를 입력해 주세요.');
   if (!clientP || clientKey !== key) {
     clientKey = key;
     clientP = import(SDK).then((m) => {

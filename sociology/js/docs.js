@@ -46,7 +46,7 @@ export async function adoptLegacyDocs(list) {
 export async function syncAnalysis(doc, { analyze = true } = {}) {
   const { structureOf, analyzeDoc } = await import('./analysis.js');
   let m = doc.analysis?.analyzed ? doc.analysis : structureOf(doc);
-  if (analyze && !m.analyzed && settings().apiKey) {
+  if (analyze && !m.analyzed && (settings().apiKey || settings().geminiKey)) {
     if (!doc.analysis) { m.tag = doc.tag; saveMaterial(m).catch(() => {}); } // 구조부터 먼저 올려 둔다
     doc.analyzing = true;
     document.dispatchEvent(new CustomEvent('docanalysis', { detail: doc }));

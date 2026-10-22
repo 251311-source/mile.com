@@ -1,7 +1,7 @@
 // 설정: API 키, 모델, 데이터 백업
 import { h, add, pageHead, field, select, toast, confirmBox, busy, modal, fmtDate, clear } from '../ui.js';
 import { settings, save, resetRecords, S } from '../store.js';
-import { testKey } from '../ai.js';
+import { testKey, providerLabel } from '../ai.js';
 import { downloadBackup, parseBackup, applyBackup, summarize, backupFileName } from '../backup.js';
 import { REASONS, reportedLabel, showReview } from '../report.js';
 import { TYPES } from '../questions.js';
@@ -21,11 +21,14 @@ export function render(root) {
       s[field] = v;
       clearTimeout(t);
       t = setTimeout(() => saveSecret(field, v).then(() => toast(v ? `${name} 키를 계정에 저장했어요.` : `${name} 키를 지웠어요.`)).catch((err) => toast(`${name} 키 저장 실패: ` + err.message, 'error')), 600);
+      // 키가 하나뿐이면 그 AI를 자동으로 고른다
+      const other = field === 'apiKey' ? 'geminiKey' : 'apiKey';
+      if (v && !(s[other] || '').trim()) selectProvider(field === 'apiKey' ? 'anthropic' : 'gemini', false);
     } });
   };
   const key = keyInput('apiKey', 'API 키 입력', 'sk-ant-...', 'API');
   const gKey = keyInput('geminiKey', 'Gemini API 키 입력', 'AIza...', 'Gemini API');
-  const testBtn = h('button', { class: 'btn', onclick: () => busy(testBtn, async () => { await testKey(); toast(`${s.provider === 'gemini' ? 'Gemini' : 'Claude'}에 연결되었습니다. ✔`); }) }, '연결 확인');
+  const testBtn = h('button', { class: 'btn', onclick: () => busy(testBtn, async () => { await testKey(); toast(`${providerLabel()}에 연결되었습니다. ✔`); }) }, '연결 확인');
 
   // Gemini 모델: 기본 목록 + 직접 입력 + 키로 사용 가능한 모델 불러오기
   const G_DEFAULT = [['gemini-2.5-pro', 'Gemini 2.5 Pro (정확)'], ['gemini-2.5-flash', 'Gemini 2.5 Flash (빠르고 저렴)'], ['gemini-2.5-flash-lite', 'Gemini 2.5 Flash-Lite (가장 저렴)']];
@@ -58,16 +61,16 @@ export function render(root) {
     geminiBox.classList.toggle('dim', s.provider !== 'gemini');
   };
   showProvider();
+  const PROVIDERS = [['anthropic', 'Anthropic Claude'], ['gemini', 'Google Gemini']];
   const providerSeg = h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'AI 제공자' },
-    [['anthropic', 'Anthropic Claude'], ['gemini', 'Google Gemini']].map(([v, l]) => {
-      const b = h('button', { type: 'button', class: (s.provider || 'anthropic') === v ? 'on' : '', 'aria-pressed': String((s.provider || 'anthropic') === v), onclick: () => {
-        s.provider = v; save();
-        providerSeg.querySelectorAll('button').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b)); });
-        showProvider();
-        toast(`${l}를 사용합니다.`);
-      } }, l);
-      return b;
-    }));
+    PROVIDERS.map(([v, l]) => h('button', { type: 'button', 'data-provider': v, class: (s.provider || 'anthropic') === v ? 'on' : '', 'aria-pressed': String((s.provider || 'anthropic') === v), onclick: () => selectProvider(v, true) }, l)));
+  function selectProvider(v, announce) {
+    if (s.provider === v && !announce) return;
+    s.provider = v; save();
+    providerSeg.querySelectorAll('button').forEach((x) => { const on = x.dataset.provider === v; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); });
+    showProvider();
+    toast(`${PROVIDERS.find((p) => p[0] === v)[1]}를 사용합니다.`);
+  }
   const fileIn = h('input', { type: 'file', accept: 'application/json,.json', hidden: true, onchange: async (e) => {
     const f = e.target.files[0];
     if (!f) return;
