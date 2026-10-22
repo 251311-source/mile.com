@@ -47,9 +47,7 @@ export function render(root) {
 
   const claudeBox = h('div', { class: 'provider-box' },
     field('API 키 입력 (Anthropic Claude)', key, '키 발급: console.anthropic.com'),
-    h('div', { class: 'grid-2' },
-      field('Claude 모델', select([['claude-opus-5-5', 'Claude Opus 5.5 (기본·가장 정확)'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5 (빠르고 저렴)'], ['claude-haiku-5-5', 'Claude Haiku 5.5 (가장 저렴)']], s.model, (v) => { s.model = v; save(); })),
-      field('사고 깊이(effort)', select([['low', '낮음 (빠름)'], ['medium', '보통'], ['high', '높음 (정확, 느림)']], s.effort, (v) => { s.effort = v; save(); }))));
+    field('Claude 모델', select([['claude-opus-5-5', 'Claude Opus 5.5 (기본·가장 정확)'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5 (더 빠르고 저렴)'], ['claude-haiku-5-5', 'Claude Haiku 5.5 (가장 빠르고 저렴)']], s.model, (v) => { s.model = v; save(); })));
   const geminiBox = h('div', { class: 'provider-box' },
     field('Gemini API 키 입력 (Google)', gKey, '키 발급: aistudio.google.com → Get API key'),
     h('div', { class: 'grid-2' },
@@ -125,6 +123,8 @@ export function render(root) {
       claudeBox,
       geminiBox,
       h('div', { class: 'grid-3' },
+        field('속도', select([['fast', '빠르게 (기본)'], ['balanced', '보통'], ['accurate', '정확하게 (느림)']], s.speed || 'fast', (v) => { s.speed = v; save(); }),
+          'AI가 생각하는 깊이입니다. 빠르게: 문제가 빨리 나옵니다. 정확하게: 더 오래 걸리지만 어려운 문제·서술형 채점에 유리합니다.'),
         field('AI에 보낼 자료 최대 길이', h('input', { class: 'input', type: 'number', min: 20000, step: 10000, value: s.maxChars, oninput: (e) => { s.maxChars = Math.max(20000, +e.target.value || 400000); save(); } }), '글자 수. 범위가 이보다 길면 뒷부분은 빠집니다.'))),
     h('section', { class: 'card' },
       h('h2', null, '학습 기록'),

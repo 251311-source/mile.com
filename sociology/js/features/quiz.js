@@ -49,11 +49,17 @@ export function render(root, params) {
     const pool = opts.mode === 'single' ? [opts.single] : [...opts.mixed];
     if (!pool.length) return;
     start.disabled = true;
-    area.replaceChildren(loadingBox(`문제 ${opts.count}개를 만들고 있습니다…`));
+    area.replaceChildren(loadingBox(`문제 ${opts.count}개를 만들고 있습니다… 준비되는 대로 먼저 보여 드릴게요.`));
+    let set = null;
+    // 묶음이 준비되는 대로 바로 보여 준다
+    const onReady = (qs) => {
+      if (!set) set = showSet(area, [], { waiting: opts.count });
+      set.add(qs);
+    };
     try {
-      const r = await getQuestions({ count: opts.count, typePool: pool, difficulty: opts.difficulty, focus: opts.focus, avoid: recentStems, freshOnly: opts.freshOnly });
+      const r = await getQuestions({ count: opts.count, typePool: pool, difficulty: opts.difficulty, focus: opts.focus, avoid: recentStems, freshOnly: opts.freshOnly, onReady });
       recentStems.push(...r.questions.map((q) => q.stem));
-      showSet(area, r.questions);
+      if (!set) set = showSet(area, r.questions); else set.finish();
       area.prepend(h('div', { class: 'notice bank-note' },
         `문제 은행에서 ${r.fromBank}개, 새로 만든 문제 ${r.generated}개 (모두 자체 검증 통과)`,
         r.skipped ? ` · 검증을 두 번 통과하지 못한 ${r.skipped}개는 건너뛰었습니다.` : ''));
@@ -75,22 +81,35 @@ export function segBtn(value, label, get, setv) {
 }
 
 // 문제 세트를 순서대로 보여 주고 점수를 집계한다.
-export function showSet(area, qs, { feature = 'quiz', retry = false, onDone } = {}) {
+// 문제 세트를 순서대로 보여 주고 점수를 집계한다. 문제가 나중에 더 도착하면 add()로 이어 붙인다.
+export function showSet(area, qs, { feature = 'quiz', retry = false, onDone, waiting = 0 } = {}) {
   clear(area);
+  const list = [...qs];
   const done = [];
+  let expected = Math.max(waiting, list.length);
+  let finished = waiting === 0;
   const score = h('div', { class: 'score-bar' });
+  const more = h('div', { class: 'loading more-loading' }, h('span', { class: 'spinner', 'aria-hidden': 'true' }), h('span'));
   const drawScore = () => {
     const right = done.filter((r) => r.correct).length;
-    score.textContent = `진행 ${done.length}/${qs.length} · 정답 ${right}${done.length ? ` (${pct(right / done.length)})` : ''}`;
-    if (done.length === qs.length) {
+    score.textContent = `진행 ${done.length}/${finished ? list.length : expected} · 정답 ${right}${done.length ? ` (${pct(right / done.length)})` : ''}`;
+    more.hidden = finished;
+    more.lastChild.textContent = `나머지 문제를 만드는 중… (${list.length}/${expected} 준비됨)`;
+    if (finished && done.length === list.length && list.length) {
       score.classList.add('final');
       onDone && onDone(done);
     }
   };
-  drawScore();
-  area.appendChild(score);
-  qs.forEach((q, i) => {
-    const v = renderQuestion(q, { index: i, feature, retry, onResult: (res) => { done.push(res); drawScore(); } });
-    area.appendChild(v.el);
+  const addCards = (items) => items.forEach((q) => {
+    const v = renderQuestion(q, { index: list.indexOf(q), feature, retry, onResult: (res) => { done.push(res); drawScore(); } });
+    area.insertBefore(v.el, more);
   });
+  area.appendChild(score);
+  area.appendChild(more);
+  addCards(list);
+  drawScore();
+  return {
+    add(items) { list.push(...items); addCards(items); drawScore(); },
+    finish() { finished = true; drawScore(); },
+  };
 }

@@ -18,6 +18,9 @@ export const hasAIKey = () => {
 };
 export const providerLabel = () => (activeProvider() === 'gemini' ? 'Gemini' : 'Claude');
 const useGemini = () => activeProvider() === 'gemini';
+// [설정 → 속도]: 빠르게(기본) / 보통 / 정확하게 → AI가 생각하는 깊이
+const SPEED = { fast: { effort: 'low', thinking: 512 }, balanced: { effort: 'medium', thinking: -1 }, accurate: { effort: 'high', thinking: -1 } };
+const speed = () => SPEED[settings().speed] || SPEED.fast;
 function geminiAuth() {
   const s = settings();
   const key = (s.geminiKey || '').trim();
@@ -161,7 +164,7 @@ export async function askJSON({ task, schema, material = true, web = false, maxT
   if (useGemini()) {
     const { key, model } = geminiAuth();
     const sys = systemText(system(material, materialText));
-    const r = await geminiJSON({ key, model, systemText: sys, prompt: content, schema, web });
+    const r = await geminiJSON({ key, model, systemText: sys, prompt: content, schema, web, thinking: effort === 'low' ? 512 : speed().thinking });
     let data = parseJSON(r.text);
     if (!data) data = parseJSON((await geminiJSON({ key, model, systemText: RULES, prompt: `아래 텍스트에 담긴 내용을 스키마에 맞는 유효한 JSON 객체 하나로만 다시 출력하라. 내용은 바꾸지 마라.\n\n스키마:\n${JSON.stringify(schema)}\n\n텍스트:\n${r.text.slice(0, 60000)}`, schema })).text);
     if (!data) throw new Error('AI 응답을 해석하지 못했습니다. 다시 시도해 주세요.');
@@ -172,7 +175,7 @@ export async function askJSON({ task, schema, material = true, web = false, maxT
     max_tokens: maxTokens,
     system: system(material, materialText),
     messages: [{ role: 'user', content }],
-    output_config: { effort: effort || s.effort },
+    output_config: { effort: effort || speed().effort },
   };
   if (web) params.tools = [{ type: 'web_search_20260209', name: 'web_search', max_uses: 6 }];
   else params.output_config.format = { type: 'json_schema', schema };
@@ -212,14 +215,14 @@ export async function chat({ messages, onText }) {
   const s = settings();
   if (useGemini()) {
     const { key, model } = geminiAuth();
-    return geminiChat({ key, model, systemText: systemText(system(hasScope())), messages, onText });
+    return geminiChat({ key, model, systemText: systemText(system(hasScope())), messages, onText, thinking: speed().thinking });
   }
   const msg = await run({
     model: s.model,
     max_tokens: 16000,
     system: system(hasScope()),
     messages,
-    output_config: { effort: s.effort },
+    output_config: { effort: speed().effort },
   }, { onText });
   if (msg.stop_reason === 'refusal') throw new Error('AI가 이 질문에 답하지 않았습니다.');
   return textOf(msg);

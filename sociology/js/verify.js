@@ -50,7 +50,7 @@ export async function verifyItems(kind, items) {
     '네 항목 중 하나라도 false이면 pass는 false다. 문제가 있으면 problems에 구체적으로(한 문장씩) 적는다. index는 0부터.',
     JSON.stringify(items.map((it, index) => ({ index, ...strip(it) }))),
   ].join('\n');
-  const { data } = await askJSON({ task, schema: SCHEMA, effort: 'medium' });
+  const { data } = await askJSON({ task, schema: SCHEMA, effort: 'low' });
   const byIndex = new Map((data.results || []).map((r) => [r.index, r]));
   return items.map((_, i) => {
     const r = byIndex.get(i);

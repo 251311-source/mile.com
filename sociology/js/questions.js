@@ -129,29 +129,30 @@ async function generateChunkVerified({ types, difficulty, focus, avoid, similarT
 }
 
 // 문제 은행에서 먼저 찾고, 모자란 만큼만 새로 만든다(검증 통과분만 은행에 저장).
-export async function getQuestions({ count, typePool, difficulty, focus = '', freshOnly = false, avoid = [], feature = 'quiz' }) {
+export async function getQuestions({ count, typePool, difficulty, focus = '', freshOnly = false, avoid = [], feature = 'quiz', onReady }) {
   const types = Array.from({ length: count }, (_, i) => typePool[i % typePool.length]);
   const slots = typePool.length > 1 ? shuffle(types) : types;
   const fromBank = freshOnly ? slots.map(() => null) : pickFromBank({ slots, difficulty, focus });
   const missing = slots.filter((_, i) => !fromBank[i]);
-  let generated = [], skipped = 0;
+  const bankQs = fromBank.filter(Boolean);
+  if (bankQs.length && onReady) onReady(bankQs); // 은행 문제는 바로 보여 준다
+  const uniq = [];
+  let skipped = 0, firstErr = null;
   if (missing.length) {
     const seen = bankQuizQuestions();
     const avoidAll = [...existingStems({ focus, types: [...new Set(missing)] }), ...avoid];
+    // 2문항씩 나눠 동시에 만들고, 검증을 통과한 묶음부터 바로 내보낸다
     const chunks = [];
-    for (let i = 0; i < missing.length; i += 4) chunks.push(missing.slice(i, i + 4));
-    const results = await Promise.allSettled(chunks.map((c) => generateChunkVerified({ types: c, difficulty, focus, avoid: avoidAll, seen })));
-    for (const r of results) {
-      if (r.status === 'fulfilled') { generated.push(...r.value.qs); skipped += r.value.skipped; }
-    }
-    if (!generated.length && !fromBank.some(Boolean)) throw results.find((r) => r.status === 'rejected')?.reason || new Error('검증을 통과한 문제를 만들지 못했습니다. 다시 시도해 주세요.');
-    skipped += results.reduce((acc, r, i) => (r.status === 'rejected' ? acc + chunks[i].length : acc), 0);
+    for (let i = 0; i < missing.length; i += 2) chunks.push(missing.slice(i, i + 2));
+    await Promise.all(chunks.map((c) => generateChunkVerified({ types: c, difficulty, focus, avoid: avoidAll, seen }).then((r) => {
+      const fresh = r.qs.filter((q) => !isNearDuplicate(q, uniq)); // 묶음끼리 겹친 문제 제거
+      skipped += r.skipped + (r.qs.length - fresh.length);
+      uniq.push(...fresh);
+      fresh.forEach((q) => saveToBank(q, { feature }));
+      if (fresh.length && onReady) onReady(fresh);
+    }).catch((e) => { firstErr = firstErr || e; skipped += c.length; })));
+    if (!uniq.length && !bankQs.length) throw firstErr || new Error('검증을 통과한 문제를 만들지 못했습니다. 다시 시도해 주세요.');
   }
-  // 묶음끼리 겹친 문제 제거 후 은행에 저장
-  const uniq = [];
-  for (const q of generated) if (!isNearDuplicate(q, uniq)) uniq.push(q);
-  skipped += generated.length - uniq.length;
-  uniq.forEach((q) => saveToBank(q, { feature }));
   // 계획한 순서대로 배치 (은행 문제 자리는 그대로, 빈자리는 새 문제로)
   const pool = [...uniq];
   const ordered = [];
@@ -165,7 +166,7 @@ export async function getQuestions({ count, typePool, difficulty, focus = '', fr
     if (q && !used.has(q.id)) { used.add(q.id); ordered.push(q); }
   });
   pool.forEach((q) => { if (!used.has(q.id)) { used.add(q.id); ordered.push(q); } });
-  return { questions: ordered, fromBank: fromBank.filter(Boolean).length, generated: uniq.length, skipped };
+  return { questions: ordered, fromBank: bankQs.length, generated: uniq.length, skipped };
 }
 
 // 유사 문제 등: 은행을 거치지 않고 새로 만들되 검증과 저장은 똑같이 한다.

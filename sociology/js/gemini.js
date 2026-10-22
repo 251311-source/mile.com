@@ -2,7 +2,7 @@
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
 // 요청이 거부된 선택 기능은 이번 세션 동안 끈다(구형 모델 등).
-const off = { jsonSchema: false };
+const off = { jsonSchema: false, thinking: false };
 
 function friendly(status, msg) {
   let text = msg || 'Gemini 요청에 실패했습니다.';
@@ -14,6 +14,7 @@ function friendly(status, msg) {
   else if (status === 400 && /token|too long|exceeds/i.test(msg)) text = '선택한 범위의 자료가 너무 깁니다. 범위를 줄이거나 [설정]의 자료 최대 길이를 낮춰 주세요.';
   const err = new Error(text);
   err.status = status;
+  err.raw = msg;
   return err;
 }
 
@@ -35,6 +36,20 @@ async function call(key, model, method, body, { stream = false } = {}) {
   return res;
 }
 
+// 생각 예산(thinkingBudget)을 지원하지 않는 모델이면 빼고 다시 요청한다
+async function callThinking(key, model, method, body, opts) {
+  try {
+    return await call(key, model, method, body, opts);
+  } catch (e) {
+    if (e.status === 400 && body.generationConfig.thinkingConfig && /thinking/i.test(e.raw || e.message)) {
+      off.thinking = true;
+      delete body.generationConfig.thinkingConfig;
+      return call(key, model, method, body, opts);
+    }
+    throw e;
+  }
+}
+
 function partsText(cand) {
   return (cand?.content?.parts || []).filter((p) => p.text && !p.thought).map((p) => p.text).join('');
 }
@@ -51,12 +66,13 @@ function grounding(data) {
 }
 
 // JSON 응답. web이면 Google 검색 근거(grounding)를 켠다(이때는 JSON 형식 강제를 쓰지 않는다).
-export async function geminiJSON({ key, model, systemText, prompt, schema, web = false, maxTokens = 32768 }) {
+export async function geminiJSON({ key, model, systemText, prompt, schema, web = false, maxTokens = 32768, thinking = -1 }) {
   const body = {
     systemInstruction: { parts: [{ text: systemText }] },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     generationConfig: { maxOutputTokens: maxTokens },
   };
+  if (thinking >= 0 && !off.thinking) body.generationConfig.thinkingConfig = { thinkingBudget: thinking };
   if (web) body.tools = [{ google_search: {} }];
   else {
     body.generationConfig.responseMimeType = 'application/json';
@@ -64,12 +80,12 @@ export async function geminiJSON({ key, model, systemText, prompt, schema, web =
   }
   let res;
   try {
-    res = await call(key, model, 'generateContent', body);
+    res = await callThinking(key, model, 'generateContent', body);
   } catch (e) {
     if (e.status === 400 && !web && !off.jsonSchema) {
       off.jsonSchema = true; // 스키마 강제를 지원하지 않는 모델: 프롬프트의 스키마 설명만으로 진행
       delete body.generationConfig.responseJsonSchema;
-      res = await call(key, model, 'generateContent', body);
+      res = await callThinking(key, model, 'generateContent', body);
     } else throw e;
   }
   const data = await res.json();
@@ -78,13 +94,14 @@ export async function geminiJSON({ key, model, systemText, prompt, schema, web =
 }
 
 // 대화(스트리밍). messages: [{role:'user'|'assistant', content}]
-export async function geminiChat({ key, model, systemText, messages, onText }) {
+export async function geminiChat({ key, model, systemText, messages, onText, thinking = -1 }) {
   const body = {
     systemInstruction: { parts: [{ text: systemText }] },
     contents: messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
     generationConfig: { maxOutputTokens: 16384 },
   };
-  const res = await call(key, model, 'streamGenerateContent', body, { stream: true });
+  if (thinking >= 0 && !off.thinking) body.generationConfig.thinkingConfig = { thinkingBudget: thinking };
+  const res = await callThinking(key, model, 'streamGenerateContent', body, { stream: true });
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = '', full = '';

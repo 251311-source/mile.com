@@ -27,7 +27,9 @@ export function render(root) {
     start.disabled = true;
     area.replaceChildren(loadingBox(`시험지 ${opts.count}문항을 만들고 있습니다… (조금 걸릴 수 있습니다)`));
     try {
-      const { questions: qs } = await getQuestions({ count: opts.count, typePool: QUIZ_TYPES, difficulty: opts.difficulty, feature: 'exam' });
+      let ready = 0;
+      const onReady = (list) => { ready += list.length; const t = area.querySelector('.loading span:last-child'); if (t) t.textContent = `시험지를 만들고 있습니다… (${Math.min(ready, opts.count)}/${opts.count}문항 준비됨)`; };
+      const { questions: qs } = await getQuestions({ count: opts.count, typePool: QUIZ_TYPES, difficulty: opts.difficulty, feature: 'exam', onReady });
       runExam(root, area, qs);
     } catch (e) {
       area.replaceChildren(errorBox(e, begin));

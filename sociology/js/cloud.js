@@ -39,7 +39,7 @@ let pending = 0;
 let failed = false;
 
 const day = (ts) => { const d = new Date(ts || 0); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-const metaOf = (st) => ({ scope: st.scope, recent: st.recent, lastBackup: st.lastBackup || 0, firstUse: st.firstUse, settings: { model: st.settings.model, effort: st.settings.effort, maxChars: st.settings.maxChars, provider: st.settings.provider, geminiModel: st.settings.geminiModel } });
+const metaOf = (st) => ({ scope: st.scope, recent: st.recent, lastBackup: st.lastBackup || 0, firstUse: st.firstUse, settings: { model: st.settings.model, effort: st.settings.effort, maxChars: st.settings.maxChars, provider: st.settings.provider, geminiModel: st.settings.geminiModel, speed: st.settings.speed } });
 // API 키는 meta가 아니라 private 문서에만 둔다
 export const SECRET_FIELDS = ['apiKey', 'geminiKey'];
 const secretsOf = (settings) => Object.fromEntries(SECRET_FIELDS.map((k) => [k, settings[k] || '']));
