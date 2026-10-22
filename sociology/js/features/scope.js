@@ -1,5 +1,6 @@
 // 공통 설정: 자료 업로드와 학습 범위 선택
 import { h, add, clear, pageHead, toast, confirmBox } from '../ui.js';
+import { hasAIKey } from '../ai.js';
 import { syncAnalysis, allDocs, addFile, removeDoc, unitName, parseRanges, formatRanges, scopeSummary, buildMaterial } from '../docs.js';
 import { S, save, settings } from '../store.js';
 
@@ -52,13 +53,17 @@ export function render(root) {
   async function upload(files) {
     for (const f of files) {
       const bar = h('div', { class: 'bar' }, h('i'));
-      const row = h('div', { class: 'up-row' }, h('span', null, f.name), bar);
+      const label = h('span', { class: 'muted small' });
+      const row = h('div', { class: 'up-row' }, h('span', null, f.name), bar, label);
       progress.appendChild(row);
       try {
-        const doc = await addFile(f, (p) => { bar.firstChild.style.width = Math.round(p * 100) + '%'; });
+        const doc = await addFile(f, (p, what) => { bar.firstChild.style.width = Math.round(p * 100) + '%'; if (what) label.textContent = what; });
         const empty = doc.units.filter((u) => !u.text.trim()).length;
         toast(doc.linked ? `${f.name}: 계정에 있던 같은 이름의 자료에 원본을 연결했어요.` : `${f.name}: ${doc.units.length}${unitName(doc)} 읽음 · 분석 결과를 계정에 저장합니다`);
-        if (empty) toast(`${f.name}: 글자가 없는 ${unitName(doc)} ${empty}개는 범위에서 제외했습니다(스캔 이미지일 수 있음).`, 'warn');
+        const o = doc.ocr;
+        if (o?.done) toast(`${f.name}: 글자 정보가 없던 ${unitName(doc)} ${o.done}개를 AI 글자 인식으로 읽었어요.`, 'info', 6000);
+        if (o?.noKey) toast(`${f.name}: 스캔 이미지로 된 ${unitName(doc)} ${o.needed}개가 있어요. [설정]에서 API 키를 넣고 같은 파일을 다시 올리면 AI가 글자를 읽어 옵니다.`, 'warn', 9000);
+        else if (empty) toast(`${f.name}: 글자를 읽지 못한 ${unitName(doc)} ${empty}개는 범위에서 제외했습니다.${o?.failed ? ' 같은 파일을 다시 올리면 다시 시도합니다.' : ''}`, 'warn', 7000);
       } catch (e) {
         console.error(e);
         toast(e.message || `${f.name}을(를) 읽지 못했습니다.`, 'error');
@@ -76,6 +81,14 @@ export function render(root) {
 }
 
 function analysisLine(d, redraw) {
+  const line = analysisInfo(d, redraw);
+  const empty = d.analysisOnly ? 0 : d.units.filter((u) => !u.text.trim()).length;
+  if (!empty) return line;
+  return h('div', null, line, h('p', { class: 'small notice warn' },
+    `글자를 읽지 못한 ${unitName(d)} ${empty}개가 있어요(스캔한 이미지일 수 있음). ${hasAIKey() ? '같은 파일을 다시 올리면 AI가 그림 속 글자를 읽어 옵니다(학습 범위·기록은 그대로).' : '[설정]에서 API 키를 넣은 뒤 같은 파일을 다시 올리면 AI가 그림 속 글자를 읽어 옵니다.'}`));
+}
+
+function analysisInfo(d, redraw) {
   const a = d.analysis;
   if (d.analyzing) return h('p', { class: 'muted small' }, '⏳ 자료를 분석해 계정에 저장하는 중…');
   if (d.analysisOnly) {

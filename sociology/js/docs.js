@@ -111,7 +111,15 @@ export async function addFile(file, onProgress = () => {}) {
     const doc = { ...parsed, id: same.id, tag: same.tag, name: file.name, addedAt: same.addedAt || Date.now(), owner: currentUid(), subject: currentSubject(), analysis: same.analysis, textSaved: false };
     await docsDB.put(doc);
     docs[docs.indexOf(same)] = doc;
-    ensureText(doc).then(() => { if (!doc.analysis?.analyzed) syncAnalysis(doc); });
+    // 이전에 글자를 못 읽어 범위가 비어 있었다면(스캔본 등) 이번에 읽은 쪽을 선택한다
+    const sel = S().scope[doc.id] || [];
+    if (!sel.length) S().scope[doc.id] = doc.units.filter((u) => u.text.trim()).map((u) => u.n);
+    // 글자가 없어 빠졌던 쪽을 이번에 읽었으면 범위에 넣는다
+    else S().scope[doc.id] = [...new Set([...sel, ...doc.units.filter((u) => u.ocr && u.text.trim()).map((u) => u.n)])].sort((a, b) => a - b);
+    // 글자를 새로 읽었으면 분석을 다시 한다
+    const reanalyze = !doc.analysis?.analyzed || doc.units.some((u) => u.ocr);
+    if (reanalyze && doc.analysis) doc.analysis = { ...doc.analysis, analyzed: false };
+    ensureText(doc).then(() => { if (reanalyze) syncAnalysis(doc); });
     save();
     doc.linked = true;
     return doc;
@@ -139,6 +147,11 @@ export async function removeDoc(id) {
 // ---------- PDF ----------
 let pdfjsP = null;
 async function pdfjs() {
+  // pdf.js가 쪽을 그릴 때 쓰는 최신 기능을 아직 지원하지 않는 브라우저용(Safari 등)
+  for (const C of [Map, WeakMap]) {
+    if (!C.prototype.getOrInsertComputed) C.prototype.getOrInsertComputed = function (k, f) { if (!this.has(k)) this.set(k, f(k)); return this.get(k); };
+    if (!C.prototype.getOrInsert) C.prototype.getOrInsert = function (k, v) { if (!this.has(k)) this.set(k, v); return this.get(k); };
+  }
   if (!pdfjsP) {
     pdfjsP = import(`${PDFJS}/build/pdf.min.mjs`).then((lib) => {
       lib.GlobalWorkerOptions.workerSrc = `${PDFJS}/build/pdf.worker.min.mjs`;
@@ -183,11 +196,56 @@ async function parsePdf(file, onProgress) {
     text = text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
     const firstLine = text.split('\n').find((l) => l.trim().length > 1) || '';
     units.push({ n: i, text, title: firstLine.slice(0, 60) });
-    onProgress(i / pdf.numPages);
+    onProgress((i / pdf.numPages) * 0.3, '글자 읽는 중');
   }
+  // 글자 정보가 (거의) 없는 쪽은 스캔 이미지일 수 있다 → 쪽을 그림으로 그려 AI 글자 인식
+  const ocr = await ocrMissing(units, async (u) => [await renderPdfPage(await pdf.getPage(u.n))], onProgress, '쪽');
   const chapters = await pdfChapters(pdf, units.length);
   await task.destroy();
-  return { kind: 'pdf', units, chapters };
+  return { kind: 'pdf', units, chapters, ocr };
+}
+
+const needsOCR = (u) => u.text.replace(/\s/g, '').length < 30;
+
+// 글자가 없는 단위를 AI로 읽는다. getImages(unit) → [{data, mediaType}]
+async function ocrMissing(units, getImages, onProgress, kindLabel) {
+  const targets = units.filter(needsOCR);
+  if (!targets.length) { onProgress(1); return null; }
+  const { canOCR, ocrUnits } = await import('./ocr.js');
+  if (!canOCR()) { onProgress(1); return { needed: targets.length, done: 0, failed: 0, noKey: true }; }
+  const items = [];
+  for (let k = 0; k < targets.length; k++) {
+    const images = (await getImages(targets[k]).catch((e) => { console.warn('쪽 이미지를 만들지 못했습니다', e); return []; })).filter(Boolean);
+    if (images.length) items.push({ n: targets[k].n, images });
+    onProgress(0.3 + 0.1 * ((k + 1) / targets.length), '쪽 이미지 준비 중');
+  }
+  if (!items.length) { onProgress(1); return { needed: targets.length, done: 0, failed: 0 }; }
+  const { texts, failed } = await ocrUnits(items, { kindLabel, onProgress: (p) => onProgress(0.4 + 0.6 * p, `AI 글자 인식 중 (${Math.round(p * items.length)}/${items.length}${kindLabel})`) });
+  for (const u of units) {
+    const t = texts.get(u.n);
+    if (!t) continue;
+    u.text = u.text.trim() ? `${t}\n${u.text}` : t; // 원래 있던 몇 글자(쪽 번호 등)는 뒤에 둔다
+    u.ocr = true;
+    if (!u.title || u.title.length < 2) u.title = (t.split('\n').find((l) => l.trim().length > 1) || '').slice(0, 60);
+  }
+  return { needed: targets.length, done: texts.size, failed };
+}
+
+// PDF 한 쪽을 JPEG로 (긴 변 약 1600px)
+async function renderPdfPage(page) {
+  const base = page.getViewport({ scale: 1 });
+  const scale = Math.min(3, 1600 / Math.max(base.width, base.height));
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+  const data = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+  canvas.width = canvas.height = 0;
+  return { data, mediaType: 'image/jpeg' };
 }
 
 async function pdfChapters(pdf, total) {
@@ -290,9 +348,25 @@ async function parsePptx(file, onProgress) {
         if (body.length) lines.push('[발표자 노트] ' + body.join(' '));
       }
     }
-    units.push({ n: i + 1, text: lines.join('\n').trim(), title: (title || lines[0] || '').slice(0, 60) });
-    onProgress((i + 1) / slidePaths.length);
+    const imgs = x ? [...x.getElementsByTagNameNS('*', 'blip')].map((b) => sr[b.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'embed') || b.getAttribute('r:embed')]?.target).filter(Boolean) : [];
+    units.push({ n: i + 1, text: lines.join('\n').trim(), title: (title || lines[0] || '').slice(0, 60), _imgs: imgs });
+    onProgress(((i + 1) / slidePaths.length) * 0.3, '글자 읽는 중');
   }
+  // 글자가 그림으로만 들어 있는 슬라이드 → 슬라이드 속 그림을 AI 글자 인식
+  const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
+  const ocr = await ocrMissing(units, async (u) => {
+    const out = [];
+    for (const path of u._imgs.slice(0, 4)) {
+      const ext = path.split('.').pop().toLowerCase();
+      const f = zip.file(path);
+      if (!MIME[ext] || !f) continue;
+      const data = await f.async('base64');
+      if (data.length > 4.5 * 1024 * 1024) continue; // 너무 큰 그림은 건너뜀
+      out.push({ data, mediaType: MIME[ext] });
+    }
+    return out;
+  }, onProgress, '슬라이드');
+  units.forEach((u) => { delete u._imgs; });
 
   // PowerPoint 구역(section)을 단원으로 사용
   const chapters = [];
@@ -303,7 +377,7 @@ async function parsePptx(file, onProgress) {
       if (nums.length) chapters.push({ title: sec.getAttribute('name') || '구역', start: Math.min(...nums), end: Math.max(...nums) });
     }
   }
-  return { kind: 'pptx', units, chapters };
+  return { kind: 'pptx', units, chapters, ocr };
 }
 
 function resolvePath(dir, target) {

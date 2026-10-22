@@ -70,10 +70,10 @@ function grounding(data) {
 }
 
 // JSON 응답. web이면 Google 검색 근거(grounding)를 켠다(이때는 JSON 형식 강제를 쓰지 않는다).
-export async function geminiJSON({ key, model, systemText, prompt, schema, web = false, maxTokens = 32768, thinking = -1, signal }) {
+export async function geminiJSON({ key, model, systemText, prompt, schema, web = false, maxTokens = 32768, thinking = -1, images = [], signal }) {
   const body = {
     systemInstruction: { parts: [{ text: systemText }] },
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts: [...images.map((im) => ({ inline_data: { mime_type: im.mediaType, data: im.data } })), { text: prompt }] }],
     generationConfig: { maxOutputTokens: maxTokens },
   };
   if (thinking >= 0 && !off.thinking) body.generationConfig.thinkingConfig = { thinkingBudget: thinking };
