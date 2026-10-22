@@ -7,6 +7,7 @@ import { openChatAbout } from '../panels.js';
 import { verifyItems } from '../verify.js';
 import { saveToBank, similarity } from '../bank.js';
 import { reportButton } from '../report.js';
+import { persistentArea, runJob, jobControls, isCancel } from '../jobs.js';
 
 const GEN = T.obj({
   original: T.str,
@@ -30,28 +31,31 @@ export function render(root) {
       h('a', { class: 'btn primary', href: '#/scope' }, '📚 자료 올리기')));
     return;
   }
-  const area = h('div');
-  const btn = h('button', { class: 'btn primary', onclick: () => next() }, '새 문단 받기');
-  add(root, 
-    pageHead('비판적 읽기', '자료의 한 문단에서 일부 단어가 뜻이 틀린 단어로 바뀌어 있을 수 있습니다. 바뀐 단어가 몇 개인지는 알려 주지 않습니다. 찾은 오류를 "틀린 단어 → 올바른 단어" 형식으로 적어 제출하세요.', h('div', { class: 'row' }, btn)),
-    area);
+  // 화면을 떠나도 유지되는 영역. [생성]을 눌렀을 때만 새 문단을 만든다.
+  const area = persistentArea('passage');
+  if (!area.childNodes.length) area.appendChild(h('p', { class: 'muted empty' }, '아래 [생성]을 누르면 학습 범위에서 문단을 하나 골라 문제를 만듭니다.'));
+  add(root,
+    pageHead('비판적 읽기', '자료의 한 문단에서 일부 단어가 뜻이 틀린 단어로 바뀌어 있을 수 있습니다. 바뀐 단어가 몇 개인지는 알려 주지 않습니다. 찾은 오류를 "틀린 단어 → 올바른 단어" 형식으로 적어 제출하세요.'),
+    area,
+    jobControls('passage', { start: () => next(), label: '생성', running: '문단을 만드는 중… 다른 화면에 다녀와도 계속 만들어요.' }));
 
-  async function next() {
-    btn.disabled = true;
-    area.replaceChildren(loadingBox('자료에서 문단을 고르고 있습니다…'));
-    try {
-      const data = await generatePassage();
-      area.replaceChildren(renderPassage(data, { onNext: next }));
-    } catch (e) {
-      area.replaceChildren(errorBox(e, next));
-    } finally {
-      btn.disabled = false;
-    }
+  function next() {
+    runJob('passage', { label: '비판적 읽기 문단', page: 'passage' }, async (signal) => {
+      const prev = [...area.childNodes];
+      area.replaceChildren(loadingBox('자료에서 문단을 고르고 있습니다…'));
+      try {
+        const data = await generatePassage(signal);
+        area.replaceChildren(renderPassage(data, { onNext: next }));
+      } catch (e) {
+        if (isCancel(e)) area.replaceChildren(...prev); // 취소하면 보던 화면으로 되돌린다
+        else area.replaceChildren(errorBox(e, next));
+        throw e;
+      }
+    });
   }
-  next();
 }
 
-async function generatePassage() {
+async function generatePassage(signal) {
   const n = Math.floor(Math.random() * 5); // 0~4개, 사용자에게 알리지 않는다
   const recent = (S().recent.passage || []).slice(-10);
   const isRecent = (text) => recent.some((r) => text.startsWith(r.slice(0, 25)) || similarity(r, text.slice(0, r.length)) > 0.7);
@@ -65,7 +69,7 @@ async function generatePassage() {
       'sources에 문단 위치를 적는다. concepts, sociologists에 문단이 다루는 개념·학자를 적는다.',
       recent.length && `최근에 쓴 문단과 다른 문단을 고른다: ${recent.join(' / ')}`,
     ].filter(Boolean).join('\n');
-    const { data } = await askJSON({ task, schema: GEN });
+    const { data } = await askJSON({ task, schema: GEN, signal });
     const original = String(data.original || '').trim();
     let modified = n === 0 ? original : String(data.modified || '').trim();
     let changes = n === 0 ? [] : (data.changes || []).filter((c) => c.wrong && c.correct && modified.includes(c.wrong) && original.includes(c.correct) && c.wrong !== c.correct);
@@ -76,7 +80,7 @@ async function generatePassage() {
     if (!found && attempt < 2) continue; // 원문이 자료에 없으면 다시 생성
     const sources = data.sources?.length ? data.sources : found ? [{ doc: found.doc.tag, page: found.unit.n }] : [];
     // 자체 검증: 바뀐 단어가 실제로 틀린 의미가 되었는지, 원래 단어 목록이 정확한지
-    const [v] = await verifyItems('passage', [{ original, modified, changes, sources }]);
+    const [v] = await verifyItems('passage', [{ original, modified, changes, sources }], { signal });
     if (!v.pass) {
       if (++verifyFails >= 2) throw new Error('검증을 통과한 문단을 만들지 못했습니다. [새 문단 받기]로 다시 시도해 주세요.');
       continue;

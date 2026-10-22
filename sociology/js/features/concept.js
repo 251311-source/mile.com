@@ -3,6 +3,7 @@ import { h, add, pageHead, loadingBox, errorBox, sourceChips, setCurrent, field,
 import { askJSON, T, SOURCES } from '../ai.js';
 import { uid, recordAttempt, addWrong } from '../store.js';
 import { openChatAbout } from '../panels.js';
+import { persistentArea, runJob, jobControls, isCancel } from '../jobs.js';
 import { segBtn } from './quiz.js';
 import { verifyItems, generateVerified } from '../verify.js';
 import { saveToBank } from '../bank.js';
@@ -17,8 +18,8 @@ const opts = { mode: 'normal', count: 5 };
 const used = [];
 
 export function render(root) {
-  const area = h('div');
-  const go = h('button', { class: 'btn primary', onclick: () => run() }, '시작');
+  const area = persistentArea('concept'); // 화면을 떠나도 생성·풀이가 유지된다
+  const go = jobControls('concept', { start: () => run(), label: '시작', running: '생성 중… 다른 화면에 다녀와도 계속 만들어요.' });
   add(root, 
     pageHead('개념 맞히기', '이론·개념의 특징을 하나씩 공개합니다. 적은 힌트로 맞힐수록 점수가 높습니다. 혼동 모드는 헷갈리기 쉬운 짝을 나란히 보여 줍니다.'),
     h('div', { class: 'card settings-card' }, h('div', { class: 'grid-3' },
@@ -27,15 +28,15 @@ export function render(root) {
       h('div', { class: 'row end' }, go))),
     area);
 
-  async function run() {
-    go.disabled = true;
+  function run() {
+    runJob('concept', { label: '개념 맞히기 문제', page: 'concept' }, async (signal) => {
     area.replaceChildren(loadingBox('특징 카드를 만들고 있습니다…'));
     try {
       let skipped = 0;
       if (opts.mode === 'normal') {
         // 생성 → 자체 검증 → 실패분만 다시 생성 → 또 실패하면 건너뜀
         const r = await generateVerified(opts.count, async (n) => {
-          const { data } = await askJSON({ schema: NORMAL, task: [
+          const { data } = await askJSON({ signal, schema: NORMAL, task: [
             `학습 범위에서 이론 또는 개념 ${n}개를 골라 "특징만 보고 맞히기" 문제를 만들어라.`,
             '- answer: 자료에 쓰인 이름. aliases: 같은 것을 가리키는 다른 표기(원어 포함).',
             '- clues: 특징 5개를 막연한 것부터 구체적인 것 순서로. 단서 안에 answer나 aliases를 쓰지 않는다. 모두 자료에 근거한다.',
@@ -45,14 +46,14 @@ export function render(root) {
           const items = (data.items || []).map(clean).filter(Boolean);
           used.push(...items.map((x) => x.answer));
           return items;
-        }, (items) => verifyItems('concept', items.map(forCheck)));
+        }, (items) => verifyItems('concept', items.map(forCheck), { signal }));
         if (!r.items.length) throw new Error('검증을 통과한 문제를 만들지 못했습니다. 다시 시도해 주세요.');
         skipped = r.skipped;
         r.items.forEach((x) => saveToBank(conceptQ(x), { feature: 'concept', kind: 'concept' }));
         sequence(area, r.items.map((x) => ({ kind: 'single', item: x })));
       } else {
         const r = await generateVerified(opts.count, async (n) => {
-          const { data } = await askJSON({ schema: PAIRS, task: [
+          const { data } = await askJSON({ signal, schema: PAIRS, task: [
             `학습 범위에서 서로 헷갈리기 쉬운 이론/개념 짝 ${n}쌍을 골라라(예: 계급과 지위집단, 기계적 연대와 유기적 연대처럼 자료에 함께 나오는 것).`,
             '- 각 a, b에 대해 answer, aliases, category, sociologist, clues(특징 5개, 막연한→구체적, 정답 이름 금지), explanation, sources.',
             '- 두 항목의 같은 순번 단서는 같은 관점(예: 1번은 사회 유형, 2번은 결속 근거)을 다뤄 비교가 되게 한다.',
@@ -64,7 +65,7 @@ export function render(root) {
           used.push(...pairs.map((p) => `${p.a.answer}/${p.b.answer}`));
           return pairs;
         }, async (pairs) => {
-          const v = await verifyItems('concept', pairs.flatMap((p) => [forCheck(p.a), forCheck(p.b)]));
+          const v = await verifyItems('concept', pairs.flatMap((p) => [forCheck(p.a), forCheck(p.b)]), { signal });
           return pairs.map((_, i) => ({ pass: v[2 * i].pass && v[2 * i + 1].pass }));
         });
         if (!r.items.length) throw new Error('학습 범위에서 검증을 통과한 혼동 쌍을 찾지 못했습니다. 범위를 넓혀 보세요.');
@@ -74,10 +75,10 @@ export function render(root) {
       }
       if (skipped) area.prepend(h('div', { class: 'notice' }, `검증을 두 번 통과하지 못한 ${skipped}개는 건너뛰었습니다.`));
     } catch (e) {
-      area.replaceChildren(errorBox(e, run));
-    } finally {
-      go.disabled = false;
+      area.replaceChildren(isCancel(e) ? h('div', { class: 'notice' }, '생성을 취소했어요.') : errorBox(e, run));
+      throw e;
     }
+    });
   }
 }
 

@@ -3,6 +3,7 @@ import { h, add, clear, pageHead, loadingBox, errorBox, sourceChips, setCurrent,
 import { askJSON, T, SOURCES } from '../ai.js';
 import { hasScope, resolveSource } from '../docs.js';
 import { S, save, uid, recordAttempt, addWrong } from '../store.js';
+import { runJob, jobControls, onJobs, isRunning, getJob } from '../jobs.js';
 
 const SCHEMA = T.obj({ cards: T.arr(T.obj({ front: T.str, definition: T.str, features: T.arr(T.str), sociologist: T.str, sources: SOURCES })) });
 const MIN = 60 * 1000, DAY = 24 * 60 * MIN;
@@ -42,7 +43,7 @@ function inScope(card) {
 export function render(root) {
   const stats = h('div', { class: 'stat-row' });
   const area = h('div');
-  const genBtn = h('button', { class: 'btn primary', disabled: !hasScope(), onclick: () => busy(genBtn, generate) }, '➕ 범위에서 카드 만들기');
+  const genBtn = jobControls('cards', { start: () => generate(), label: '➕ 범위에서 카드 만들기', running: '카드를 만드는 중… 다른 화면에 다녀와도 계속 만들어요.' });
   const filter = h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: onlyScope, onchange: (e) => { onlyScope = e.target.checked; draw(); } }), h('span', null, '현재 학습 범위의 카드만'));
   add(root, 
     pageHead('플래시카드', '핵심 개념 카드를 자동으로 만듭니다. [알았음 / 애매함 / 몰랐음]에 따라 다음 복습 시점이 조정됩니다.'),
@@ -51,11 +52,18 @@ export function render(root) {
 
   const deck = () => S().cards.filter((c) => !onlyScope || inScope(c));
 
-  async function generate() {
-    area.replaceChildren(loadingBox('핵심 개념 카드를 만들고 있습니다…'));
-    try {
+  // 카드 생성은 백그라운드 작업: 다른 화면에 다녀와도 계속되고, 끝나면 이 화면을 다시 그린다
+  let lastStatus = getJob('cards')?.status;
+  const off = onJobs(() => {
+    if (!area.isConnected) return off();
+    const st = getJob('cards')?.status;
+    if (st !== lastStatus) { lastStatus = st; draw(); } // 카드 작업 상태가 바뀔 때만 (다른 화면의 작업은 무시)
+  });
+  function generate() {
+    if (!hasScope()) return toast('[자료·범위]에서 학습 범위를 먼저 선택해 주세요.', 'warn');
+    runJob('cards', { label: '플래시카드', page: 'cards' }, async (signal) => {
       const existing = S().cards.map((c) => c.front);
-      const { data } = await askJSON({ schema: SCHEMA, task: [
+      const { data } = await askJSON({ signal, schema: SCHEMA, task: [
         '학습 범위 자료의 핵심 개념/이론으로 플래시카드 12~20장을 만들어라.',
         '- front: 개념 이름. definition: 자료에 근거한 정의(1~2문장). features: 핵심 특징 2~4개(짧게). sociologist: 관련 학자(없으면 빈 문자열). sources: 자료 위치.',
         existing.length && `- 이미 있는 카드는 제외: ${existing.slice(-80).join(', ')}`,
@@ -69,14 +77,12 @@ export function render(root) {
       }
       save();
       toast(`새 카드 ${n}장을 만들었습니다.`);
-    } catch (e) {
-      area.replaceChildren(errorBox(e));
-      return;
-    }
+    }).promise.then(() => { const j = getJob('cards'); if (j.status === 'error' && area.isConnected) area.replaceChildren(errorBox(j.error)); });
     draw();
   }
 
   function draw() {
+    if (isRunning('cards') && !deck().some((c) => (c.due || 0) <= Date.now())) { stats.replaceChildren(); area.replaceChildren(loadingBox('핵심 개념 카드를 만들고 있습니다…')); return; }
     const all = deck();
     const due = all.filter((c) => (c.due || 0) <= Date.now()).sort((a, b) => (a.due || 0) - (b.due || 0));
     const learned = all.filter((c) => (c.reps || 0) >= 2).length;

@@ -39,13 +39,13 @@ export function shuffle(arr) {
 }
 
 // ---------- 토스트 ----------
-export function toast(msg, kind = 'info') {
+export function toast(msg, kind = 'info', ms = 4000) {
   let box = $('#toasts');
   if (!box) { box = h('div', { id: 'toasts', 'aria-live': 'polite' }); document.body.appendChild(box); }
   const t = h('div', { class: `toast ${kind}` }, msg);
   box.appendChild(t);
-  setTimeout(() => t.classList.add('out'), 3600);
-  setTimeout(() => t.remove(), 4000);
+  setTimeout(() => t.classList.add('out'), ms - 400);
+  setTimeout(() => t.remove(), ms);
 }
 
 // ---------- 로딩 ----------

@@ -1,5 +1,6 @@
 // 자체 검증: AI가 만든 문제를 사용자에게 보여 주기 전에 별도의 호출로 다시 확인한다.
 import { askJSON, T } from './ai.js';
+import { isCancel } from './jobs.js';
 
 const SCHEMA = T.obj({
   results: T.arr(T.obj({
@@ -41,7 +42,7 @@ const CHECKS = {
 };
 
 // items: 검증할 객체 배열 → 같은 순서의 [{pass, problems}]
-export async function verifyItems(kind, items) {
+export async function verifyItems(kind, items, { signal } = {}) {
   if (!items.length) return [];
   const task = [
     '너는 출제 검토위원이다. 아래 문항들을 학습 자료와 대조해 하나씩 검증하라. 출제자를 믿지 말고 자료를 직접 확인한다.',
@@ -50,7 +51,7 @@ export async function verifyItems(kind, items) {
     '네 항목 중 하나라도 false이면 pass는 false다. 문제가 있으면 problems에 구체적으로(한 문장씩) 적는다. index는 0부터.',
     JSON.stringify(items.map((it, index) => ({ index, ...strip(it) }))),
   ].join('\n');
-  const { data } = await askJSON({ task, schema: SCHEMA, effort: 'low' });
+  const { data } = await askJSON({ task, schema: SCHEMA, effort: 'low', signal });
   const byIndex = new Map((data.results || []).map((r) => [r.index, r]));
   return items.map((_, i) => {
     const r = byIndex.get(i);
@@ -81,7 +82,7 @@ export async function generateVerified(n, gen, check) {
     try {
       cands = (await gen(need, round)) || [];
     } catch (e) {
-      if (round === 0) throw e;
+      if (round === 0 || isCancel(e)) throw e;
       break;
     }
     const verdicts = cands.length ? await check(cands) : [];

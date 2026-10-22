@@ -3,6 +3,7 @@ import { h, add, pageHead, loadingBox, errorBox, sourceChips, setCurrent, toast 
 import { askJSON, T, SOURCES } from '../ai.js';
 import { S, uid, pushRecent, recordAttempt, addWrong } from '../store.js';
 import { openChatAbout } from '../panels.js';
+import { persistentArea, runJob, jobControls, isCancel } from '../jobs.js';
 
 const THEORY = T.obj({ theory: T.str, sociologist: T.str, summary: T.str, sources: SOURCES });
 const FEEDBACK = T.obj({
@@ -15,30 +16,32 @@ const FEEDBACK = T.obj({
 });
 
 export function render(root) {
-  const area = h('div');
-  const go = h('button', { class: 'btn primary', onclick: () => run() }, '다른 이론');
-  add(root, pageHead('이론 비판하기', '학습 범위의 이론 하나를 제시합니다. 그 이론의 한계나 반론을 써 보세요. AI가 학계에서 실제로 제기된 비판과 비교해 피드백합니다.', h('div', { class: 'row' }, go)), area);
+  const area = persistentArea('critique'); // 화면을 떠나도 생성·작성 중인 내용이 유지된다
+  if (!area.childNodes.length) area.appendChild(h('p', { class: 'muted empty' }, '아래 [생성]을 누르면 학습 범위에서 비판해 볼 이론을 하나 고릅니다.'));
+  add(root, pageHead('이론 비판하기', '학습 범위의 이론 하나를 제시합니다. 그 이론의 한계나 반론을 써 보세요. AI가 학계에서 실제로 제기된 비판과 비교해 피드백합니다.'),
+    area, jobControls('critique', { start: () => run(), label: '생성', running: '이론을 고르는 중… 다른 화면에 다녀와도 계속 만들어요.' }));
 
-  async function run() {
-    go.disabled = true;
-    area.replaceChildren(loadingBox('이론을 고르고 있습니다…'));
-    try {
-      const recent = S().recent.critique || [];
-      const { data } = await askJSON({ schema: THEORY, task: [
-        '학습 범위 자료에서 비판적으로 검토할 만한 이론 하나를 골라라.',
-        '- theory: 이론 이름, sociologist: 대표 학자, summary: 자료에 근거한 이론의 핵심 내용 4~6문장(비판은 쓰지 않는다), sources: 자료 위치.',
-        recent.length && `- 최근에 다룬 이론은 제외: ${recent.join(', ')}`,
-      ].filter(Boolean).join('\n') });
-      if (!data.theory) throw new Error('이론을 고르지 못했습니다.');
-      pushRecent('critique', data.theory, 10);
-      area.replaceChildren(view({ ...data, id: uid() }, run));
-    } catch (e) {
-      area.replaceChildren(errorBox(e, run));
-    } finally {
-      go.disabled = false;
-    }
+  function run() {
+    runJob('critique', { label: '이론 비판 문제', page: 'critique' }, async (signal) => {
+      const prev = [...area.childNodes];
+      area.replaceChildren(loadingBox('이론을 고르고 있습니다…'));
+      try {
+        const recent = S().recent.critique || [];
+        const { data } = await askJSON({ signal, schema: THEORY, task: [
+          '학습 범위 자료에서 비판적으로 검토할 만한 이론 하나를 골라라.',
+          '- theory: 이론 이름, sociologist: 대표 학자, summary: 자료에 근거한 이론의 핵심 내용 4~6문장(비판은 쓰지 않는다), sources: 자료 위치.',
+          recent.length && `- 최근에 다룬 이론은 제외: ${recent.join(', ')}`,
+        ].filter(Boolean).join('\n') });
+        if (!data.theory) throw new Error('이론을 고르지 못했습니다.');
+        pushRecent('critique', data.theory, 10);
+        area.replaceChildren(view({ ...data, id: uid() }, run));
+      } catch (e) {
+        if (isCancel(e)) area.replaceChildren(...prev);
+        else area.replaceChildren(errorBox(e, run));
+        throw e;
+      }
+    });
   }
-  run();
 }
 
 function view(t, again) {

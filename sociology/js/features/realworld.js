@@ -3,6 +3,7 @@ import { h, add, pageHead, loadingBox, errorBox, sourceChips, setCurrent, toast,
 import { askJSON, T, SOURCES, seenInSearch } from '../ai.js';
 import { S, uid, pushRecent, recordAttempt, addWrong } from '../store.js';
 import { openChatAbout } from '../panels.js';
+import { persistentArea, runJob, jobControls, isCancel } from '../jobs.js';
 
 const CASE = T.obj({
   title: T.str, summary: T.str, url: T.str, publisher: T.str, published: T.str,
@@ -15,29 +16,29 @@ const FEEDBACK = T.obj({
 });
 
 export function render(root) {
-  const area = h('div');
+  const area = persistentArea('realworld'); // 화면을 떠나도 생성·풀이가 유지된다
   const topic = h('input', { class: 'input', type: 'text', placeholder: '예: 청년 고용, 저출생, 플랫폼 노동 (비우면 자동)' });
-  const go = h('button', { class: 'btn primary', onclick: () => run() }, '사례 찾기');
+  const go = jobControls('realworld', { start: () => run(), label: '사례 찾기', running: '생성 중… 다른 화면에 다녀와도 계속 만들어요.' });
   add(root, 
     pageHead('현실 사례 연결', '최근 뉴스나 사회 현상을 웹에서 찾아 출처와 함께 보여 줍니다. 학습 범위의 이론으로 분석해 보세요.'),
     h('div', { class: 'card settings-card' }, h('div', { class: 'row wrap' }, field('관심 분야 (선택)', topic), h('div', { class: 'row end grow' }, go))),
     area);
 
-  async function run() {
-    go.disabled = true;
+  function run() {
+    runJob('realworld', { label: '현실 사례', page: 'realworld' }, async (signal) => {
     area.replaceChildren(loadingBox('최근 사례를 검색하고 있습니다…'));
     try {
-      const c = await findCase(topic.value.trim());
+      const c = await findCase(topic.value.trim(), signal);
       area.replaceChildren(caseView(c, run));
     } catch (e) {
-      area.replaceChildren(errorBox(e, run));
-    } finally {
-      go.disabled = false;
+      area.replaceChildren(isCancel(e) ? h('div', { class: 'notice' }, '생성을 취소했어요.') : errorBox(e, run));
+      throw e;
     }
+    });
   }
 }
 
-async function findCase(topic) {
+async function findCase(topic, signal) {
   const recent = S().recent.realworld || [];
   const task = [
     '웹 검색으로 최근(가능하면 최근 1~2년) 뉴스 기사나 사회 현상 하나를 찾아, 학습 범위 자료의 이론으로 분석하는 과제를 만들어라.',
@@ -49,7 +50,7 @@ async function findCase(topic) {
     '- theories: 이 사례에 적용할 만한 학습 범위의 이론들(채점용, 학습자에게는 숨김). concepts, sociologists: 관련 개념·학자.',
     '- 최종 답은 아래 스키마의 JSON 객체 하나로만 출력한다.',
   ].filter(Boolean).join('\n');
-  const { data, searchResults } = await askJSON({ task, schema: CASE, web: true });
+  const { data, searchResults } = await askJSON({ task, schema: CASE, web: true, signal });
   if (!data.title || !data.summary) throw new Error('사례를 찾지 못했습니다. 다시 시도해 주세요.');
   const verified = /^https?:\/\//.test(data.url) && seenInSearch(data.url, searchResults);
   pushRecent('realworld', data.title.slice(0, 40), 10);

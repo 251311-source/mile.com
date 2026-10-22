@@ -2,6 +2,7 @@
 import { settings } from './store.js';
 import { buildMaterial, hasScope } from './docs.js';
 import { geminiJSON, geminiChat } from './gemini.js';
+import { CancelledError } from './jobs.js';
 
 // 실제로 쓸 AI: 고른 AI의 키가 있으면 그것, 없고 다른 AI의 키만 있으면 그쪽을 쓴다.
 export function activeProvider() {
@@ -95,7 +96,7 @@ function friendly(e) {
   return err;
 }
 
-async function run(params, { onText } = {}) {
+async function run(params, { onText, signal } = {}) {
   const c = await client();
   for (let attempt = 0; attempt < 4; attempt++) {
     const req = { ...params };
@@ -109,7 +110,8 @@ async function run(params, { onText } = {}) {
       delete req.output_config.format;
     }
     try {
-      const stream = c.beta.messages.stream(req);
+      if (signal?.aborted) throw new CancelledError();
+      const stream = c.beta.messages.stream(req, signal ? { signal } : undefined);
       if (onText) stream.on('text', onText);
       return await stream.finalMessage();
     } catch (e) {
@@ -117,6 +119,7 @@ async function run(params, { onText } = {}) {
       if (e?.status === 400 && !off.fallbacks && /fallback|anthropic-beta|beta/i.test(msg)) { off.fallbacks = true; continue; }
       if (e?.status === 400 && !off.autoCache && req.cache_control && /cache_control/i.test(msg)) { off.autoCache = true; continue; }
       if (e?.status === 400 && !off.format && req.output_config?.format && /output_config|format|schema/i.test(msg)) { off.format = true; continue; }
+      if (signal?.aborted || e?.name === 'APIUserAbortError') throw new CancelledError();
       throw friendly(e);
     }
   }
@@ -159,16 +162,16 @@ export function parseJSON(text) {
 
 // JSON 결과를 받는 호출.
 // web: true면 웹 검색 도구를 허용한다(이때는 출력 형식 강제를 쓰지 않는다).
-export async function askJSON({ task, schema, material = true, web = false, maxTokens = 32000, effort, materialText = '' }) {
+export async function askJSON({ task, schema, material = true, web = false, maxTokens = 32000, effort, materialText = '', signal }) {
   if (material && !materialText && !hasScope()) throw new Error('먼저 [자료·범위]에서 자료를 올리고 학습 범위를 선택해 주세요.');
   const s = settings();
   const content = `${task}\n\n출력은 다음 JSON 스키마를 따르는 JSON 객체 하나다:\n${JSON.stringify(schema)}`;
   if (useGemini()) {
     const { key, model } = geminiAuth();
     const sys = systemText(system(material, materialText));
-    const r = await geminiJSON({ key, model, systemText: sys, prompt: content, schema, web, thinking: effort === 'low' ? 512 : speed().thinking });
+    const r = await geminiJSON({ key, model, systemText: sys, prompt: content, schema, web, thinking: effort === 'low' ? 512 : speed().thinking, signal });
     let data = parseJSON(r.text);
-    if (!data) data = parseJSON((await geminiJSON({ key, model, systemText: RULES, prompt: `아래 텍스트에 담긴 내용을 스키마에 맞는 유효한 JSON 객체 하나로만 다시 출력하라. 내용은 바꾸지 마라.\n\n스키마:\n${JSON.stringify(schema)}\n\n텍스트:\n${r.text.slice(0, 60000)}`, schema })).text);
+    if (!data) data = parseJSON((await geminiJSON({ key, model, signal, systemText: RULES, prompt: `아래 텍스트에 담긴 내용을 스키마에 맞는 유효한 JSON 객체 하나로만 다시 출력하라. 내용은 바꾸지 마라.\n\n스키마:\n${JSON.stringify(schema)}\n\n텍스트:\n${r.text.slice(0, 60000)}`, schema })).text);
     if (!data) throw new Error('AI 응답을 해석하지 못했습니다. 다시 시도해 주세요.');
     return { data, searchResults: r.searchResults };
   }
@@ -183,24 +186,24 @@ export async function askJSON({ task, schema, material = true, web = false, maxT
   else params.output_config.format = { type: 'json_schema', schema };
 
   const turns = [];
-  let msg = await run(params);
+  let msg = await run(params, { signal });
   turns.push(msg);
   // 웹 검색이 길어지면 pause_turn으로 멈출 수 있으므로 이어서 진행한다.
   for (let i = 0; i < 4 && msg.stop_reason === 'pause_turn'; i++) {
     params.messages = [...params.messages, { role: 'assistant', content: msg.content }];
-    msg = await run(params);
+    msg = await run(params, { signal });
     turns.push(msg);
   }
   if (msg.stop_reason === 'refusal') throw new Error('AI가 이 요청을 처리하지 않았습니다. 범위나 조건을 바꿔 다시 시도해 주세요.');
   if (msg.stop_reason === 'max_tokens') throw new Error('응답이 너무 길어 잘렸습니다. 문항 수를 줄여 다시 시도해 주세요.');
 
   let data = parseJSON(textOf(msg));
-  if (!data) data = await repairJSON(textOf(msg), schema);
+  if (!data) data = await repairJSON(textOf(msg), schema, signal);
   if (!data) throw new Error('AI 응답을 해석하지 못했습니다. 다시 시도해 주세요.');
   return { data, searchResults: searchResultsOf(turns) };
 }
 
-async function repairJSON(text, schema) {
+async function repairJSON(text, schema, signal) {
   const s = settings();
   const msg = await run({
     model: s.model,
@@ -208,7 +211,7 @@ async function repairJSON(text, schema) {
     system: [{ type: 'text', text: RULES }],
     messages: [{ role: 'user', content: `아래 텍스트에 담긴 내용을 스키마에 맞는 유효한 JSON 객체 하나로만 다시 출력하라. 내용은 바꾸지 마라.\n\n스키마:\n${JSON.stringify(schema)}\n\n텍스트:\n${text.slice(0, 60000)}` }],
     output_config: { effort: 'low', format: { type: 'json_schema', schema } },
-  });
+  }, { signal });
   return parseJSON(textOf(msg));
 }
 

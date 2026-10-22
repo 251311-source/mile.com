@@ -1,4 +1,6 @@
 // Google Gemini API 호출 (REST). 사용자의 Gemini API 키로 브라우저에서 직접 호출한다.
+import { CancelledError } from './jobs.js';
+
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
 // 요청이 거부된 선택 기능은 이번 세션 동안 끈다(구형 모델 등).
@@ -18,15 +20,17 @@ function friendly(status, msg) {
   return err;
 }
 
-async function call(key, model, method, body, { stream = false } = {}) {
+async function call(key, model, method, body, { stream = false, signal } = {}) {
   let res;
   try {
     res = await fetch(`${BASE}/models/${encodeURIComponent(model)}:${method}${stream ? '?alt=sse' : ''}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify(body),
+      signal,
     });
   } catch (e) {
+    if (signal?.aborted) throw new CancelledError();
     throw new Error('네트워크 연결을 확인해 주세요. (' + e.message + ')');
   }
   if (!res.ok) {
@@ -66,7 +70,7 @@ function grounding(data) {
 }
 
 // JSON 응답. web이면 Google 검색 근거(grounding)를 켠다(이때는 JSON 형식 강제를 쓰지 않는다).
-export async function geminiJSON({ key, model, systemText, prompt, schema, web = false, maxTokens = 32768, thinking = -1 }) {
+export async function geminiJSON({ key, model, systemText, prompt, schema, web = false, maxTokens = 32768, thinking = -1, signal }) {
   const body = {
     systemInstruction: { parts: [{ text: systemText }] },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -80,12 +84,12 @@ export async function geminiJSON({ key, model, systemText, prompt, schema, web =
   }
   let res;
   try {
-    res = await callThinking(key, model, 'generateContent', body);
+    res = await callThinking(key, model, 'generateContent', body, { signal });
   } catch (e) {
     if (e.status === 400 && !web && !off.jsonSchema) {
       off.jsonSchema = true; // 스키마 강제를 지원하지 않는 모델: 프롬프트의 스키마 설명만으로 진행
       delete body.generationConfig.responseJsonSchema;
-      res = await callThinking(key, model, 'generateContent', body);
+      res = await callThinking(key, model, 'generateContent', body, { signal });
     } else throw e;
   }
   const data = await res.json();

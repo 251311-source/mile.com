@@ -473,3 +473,6 @@ body.signed-out:has(#auth-screen) main { display: none; }
 }
 .provider-box { border: 1px solid var(--line); border-radius: 10px; padding: 4px 14px 8px; margin: 10px 0; }
 .provider-box.dim { opacity: .55; }
+.job-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 12px 0; }
+.job-controls .job-status { margin-left: 4px; }
+.toast-link { color: inherit; font-weight: 700; text-decoration: underline; }

@@ -7,6 +7,7 @@ import { openChatAbout } from '../panels.js';
 import { verifyItems } from '../verify.js';
 import { saveToBank } from '../bank.js';
 import { reportButton } from '../report.js';
+import { persistentArea, runJob, jobControls, isCancel, CancelledError } from '../jobs.js';
 
 const EXTRACT = T.obj({
   quotes: T.arr(T.obj({ quote_ko: T.str, original: T.str, original_lang: T.str, speaker: T.str, topic: T.str, kind: T.oneOf('direct', 'claim'), sources: SOURCES })),
@@ -24,39 +25,48 @@ function sameName(a, b) {
 }
 function bank() { return S().quoteBank[scopeKey()]; }
 
+const seen = new Set(); // 이번 세션에서 이미 낸 인용(다른 화면에 다녀와도 유지)
+
 export async function render(root) {
-  const area = h('div');
-  const toolbar = h('div', { class: 'row wrap' });
-  const seen = new Set(); // 이번 세션에서 이미 낸 인용
-  add(root, pageHead('발화자 맞히기', '자료 속 사회학자의 말을 무작위 순서로 보여 줍니다. 누가 한 말인지 맞혀 보세요.'), toolbar, area);
+  // 화면을 떠나도 유지되는 영역: 생성이 계속되고 풀던 인용도 그대로 남는다
+  const area = persistentArea('speaker');
+  const toolbar = persistentArea('speaker-toolbar');
+  const controls = jobControls('speaker', {
+    start: () => generate('material'), label: '생성',
+    extra: [{ label: '➕ 웹에서 추가', onclick: () => generate('web') }],
+    running: '생성 중… 다른 화면에 다녀와도 계속 만들어요.',
+  });
+  add(root, pageHead('발화자 맞히기', '자료 속 사회학자의 말을 무작위 순서로 보여 줍니다. 누가 한 말인지 맞혀 보세요. [생성]은 자료에서 학자의 말을 새로 찾고, [웹에서 추가]는 같은 학자·주제의 인용을 웹에서 더 찾습니다.'), toolbar, area, controls);
 
   const drawToolbar = () => {
     clear(toolbar);
     const b = bank();
     const counts = { material: 0, verified: 0, unverified: 0 };
     (b?.quotes || []).forEach((q) => counts[q.origin]++);
-    const addBtn = h('button', { class: 'btn', onclick: () => busy(addBtn, async () => { await addFromWeb(); drawToolbar(); start(false); }) }, '➕ 추가 (웹 검색)');
-    add(toolbar, 
-      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: showOriginal, onchange: (e) => { showOriginal = e.target.checked; area.querySelectorAll('.q-original').forEach((x) => { x.hidden = !showOriginal; }); } }), h('span', null, '원문 함께 보기')),
-      h('span', { class: 'grow' }),
-      b && h('span', { class: 'muted small' }, `자료 ${counts.material} · 웹 검증 ${counts.verified} · 웹 미검증 ${counts.unverified}`),
-      h('button', { class: 'btn', onclick: () => start(true) }, '🔀 다시 섞기'),
-      addBtn,
-      h('button', { class: 'btn ghost', onclick: async () => { delete S().quoteBank[scopeKey()]; save(); await load(); } }, '자료에서 다시 추출'));
+    add(toolbar,
+      h('div', { class: 'row wrap' },
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: showOriginal, onchange: (e) => { showOriginal = e.target.checked; area.querySelectorAll('.q-original').forEach((x) => { x.hidden = !showOriginal; }); } }), h('span', null, '원문 함께 보기')),
+        h('span', { class: 'grow' }),
+        b && h('span', { class: 'muted small' }, `자료 ${counts.material} · 웹 검증 ${counts.verified} · 웹 미검증 ${counts.unverified}`),
+        b && h('button', { class: 'btn small', onclick: () => start(true) }, '🔀 다시 섞기')));
   };
 
-  async function load() {
-    if (!bank()) {
-      area.replaceChildren(loadingBox('자료에서 사회학자의 말을 찾고 있습니다…'));
+  // [생성](자료에서 찾기) / [웹에서 추가]를 눌렀을 때만 AI를 부른다
+  function generate(kind) {
+    if (kind === 'web' && !bank()) return toast('먼저 [생성]으로 자료에서 학자의 말을 찾아 주세요.', 'warn');
+    runJob('speaker', { label: '발화자 맞히기 인용', page: 'speaker' }, async (signal) => {
+      const prev = [...area.childNodes];
+      if (kind === 'material') area.replaceChildren(loadingBox('자료에서 사회학자의 말을 찾고 있습니다…'));
       try {
-        await extract();
+        if (kind === 'material') { await extract(signal); drawToolbar(); start(true); }
+        else { await addFromWeb(signal); drawToolbar(); start(false); }
       } catch (e) {
-        area.replaceChildren(errorBox(e, load));
-        return;
+        if (isCancel(e)) area.replaceChildren(...prev);
+        else if (kind === 'material') area.replaceChildren(errorBox(e, () => generate(kind)));
+        else toast(e.message, 'error');
+        throw e;
       }
-    }
-    drawToolbar();
-    start();
+    });
   }
 
   // reset이 true면 새 세션(처음부터 다시 섞기), false면 이번 세션에서 안 나온 인용만
@@ -64,7 +74,7 @@ export async function render(root) {
     if (reset) seen.clear();
     const b = bank();
     if (!b?.quotes.length) {
-      area.replaceChildren(h('div', { class: 'notice' }, '학습 범위에서 학자의 말을 찾지 못했습니다. 범위를 넓히거나 [추가] 버튼으로 웹에서 찾아보세요.'));
+      area.replaceChildren(h('div', { class: 'notice' }, '학습 범위에서 학자의 말을 찾지 못했습니다. 범위를 넓히거나 [웹에서 추가]로 웹에서 찾아보세요.'));
       return;
     }
     const order = shuffle(b.quotes.filter((q) => !seen.has(q.id)));
@@ -85,10 +95,14 @@ export async function render(root) {
     next();
   }
 
-  await load();
+  drawToolbar();
+  if (!area.childNodes.length) {
+    if (bank()) start(true); // 이미 찾아 둔 인용이 있으면 AI 호출 없이 바로 시작
+    else area.appendChild(h('p', { class: 'muted empty' }, '아래 [생성]을 누르면 학습 범위 자료에서 사회학자의 말을 찾아 문제를 만듭니다.'));
+  }
 }
 
-async function extract() {
+async function extract(signal) {
   const task = [
     '학습 범위 자료에서 사회학자가 한 말을 찾아라. 직접 인용문(kind: "direct")을 우선하고, 직접 인용이 적으면 자료에 특정 학자의 주장으로 명시된 대표 문장(kind: "claim")도 포함한다. 최대 20개.',
     '- quote_ko: 한국어 문장. 문장 안에 학자 이름을 넣지 않는다(정답이 드러나지 않게 "나는", "그는" 등으로 바꾸거나 생략).',
@@ -100,21 +114,22 @@ async function extract() {
     id: uid(), text: q.quote_ko, original: q.original || '', lang: q.original_lang || '', speaker: q.speaker, topic: q.topic, kind: q.kind,
     origin: 'material', sources: q.sources || [],
   }));
-  const check = (list) => verifyItems('quote', list.map((q) => ({ quote: q.text, original: q.original, speaker: q.speaker, topic: q.topic, kind: q.kind, sources: q.sources })));
-  const { data } = await askJSON({ task, schema: EXTRACT });
+  const check = (list) => verifyItems('quote', list.map((q) => ({ quote: q.text, original: q.original, speaker: q.speaker, topic: q.topic, kind: q.kind, sources: q.sources })), { signal });
+  const { data } = await askJSON({ task, schema: EXTRACT, signal });
   let first = toQuotes(data);
   // 자체 검증: 자료의 그 쪽에 실제로 그 학자의 말로 나오는지
   const v1 = await check(first);
   const quotes = first.filter((_, i) => v1[i].pass);
   const failed = first.length - quotes.length;
   if (failed) {
-    const again = await askJSON({ schema: EXTRACT, task: task + `\n- 최대 ${failed}개만 찾는다. 다음 문장들은 제외한다: ${first.map((q) => q.text.slice(0, 30)).join(' / ')}` }).catch(() => null);
+    const again = await askJSON({ schema: EXTRACT, signal, task: task + `\n- 최대 ${failed}개만 찾는다. 다음 문장들은 제외한다: ${first.map((q) => q.text.slice(0, 30)).join(' / ')}` }).catch(() => null);
     if (again) {
       const second = toQuotes(again.data);
       const v2 = await check(second);
       quotes.push(...second.filter((_, i) => v2[i].pass));
     }
   }
+  if (signal?.aborted) throw new CancelledError(); // 취소하면 아무것도 저장하지 않는다
   quotes.forEach((q) => saveToBank(quoteQ(q), { feature: 'speaker', kind: 'quote' }));
   const sociologists = [...new Set([...(data.sociologists || []), ...quotes.map((q) => q.speaker)])];
   S().quoteBank[scopeKey()] = { quotes, sociologists, topics: data.topics || [] };
@@ -126,7 +141,7 @@ function quoteQ(q) {
     explanation: `${q.speaker}의 말입니다.${q.note ? ' (' + q.note + ')' : ''}${q.url ? ' 출처: ' + q.url : ''}`, sources: q.sources || [], concepts: [q.topic].filter(Boolean), sociologists: [q.speaker], verified: true };
 }
 
-async function addFromWeb() {
+async function addFromWeb(signal) {
   const b = bank();
   if (!b) return;
   if (!b.sociologists.length) return toast('학습 범위에서 사회학자를 찾지 못해 검색할 수 없습니다.', 'warn');
@@ -140,7 +155,7 @@ async function addFromWeb() {
     '- 5~8개를 찾는다. 최종 답은 아래 스키마의 JSON 객체 하나로만 출력한다.',
   ].join('\n');
   const schema = T.obj({ quotes: T.arr(T.obj({ original: T.str, original_lang: T.str, quote_ko: T.str, speaker: T.str, topic: T.str, source_url: T.str, source_title: T.str, verification: T.oneOf('verified', 'unverified', 'misattributed'), note: T.str })) });
-  const { data, searchResults } = await askJSON({ task, schema, web: true });
+  const { data, searchResults } = await askJSON({ task, schema, web: true, signal });
   let added = 0, filtered = 0;
   for (const q of data.quotes || []) {
     const inScope = b.sociologists.some((s) => sameName(s, q.speaker));

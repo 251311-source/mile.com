@@ -4,6 +4,7 @@ import { askJSON, T, SOURCES } from '../ai.js';
 import { scopeKey } from '../docs.js';
 import { S, save } from '../store.js';
 import { openChatAbout } from '../panels.js';
+import { persistentArea, runJob, jobControls, isCancel, isRunning } from '../jobs.js';
 
 const SCHEMA = T.obj({
   nodes: T.arr(T.obj({ id: T.str, label: T.str, kind: T.oneOf('sociologist', 'theory', 'concept'), description: T.str, sources: SOURCES })),
@@ -14,18 +15,18 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 const svg = (tag, attrs = {}) => { const el = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); return el; };
 
 export function render(root) {
-  const area = h('div');
-  const regen = h('button', { class: 'btn', onclick: () => build(true) }, '다시 만들기');
-  add(root, pageHead('개념 지도', '학습 범위의 사회학자·이론·개념 사이의 관계를 그래프로 보여 줍니다. 노드를 누르면 설명과 출처 쪽수가 나옵니다. 끌어서 옮기고, 휠/버튼으로 확대할 수 있습니다.', h('div', { class: 'row' }, regen)), area);
+  const area = persistentArea('map'); // 화면을 떠나도 생성이 계속된다
+  add(root, pageHead('개념 지도', '학습 범위의 사회학자·이론·개념 사이의 관계를 그래프로 보여 줍니다. 노드를 누르면 설명과 출처 쪽수가 나옵니다. 끌어서 옮기고, 휠/버튼으로 확대할 수 있습니다.'),
+    area, jobControls('map', { start: () => build(), label: '생성', running: '개념 지도를 만드는 중… 다른 화면에 다녀와도 계속 만들어요.' }));
 
-  async function build(force = false) {
-    const key = scopeKey();
-    let graph = S().maps[key];
-    if (!graph || force) {
-      regen.disabled = true;
+  // [생성]을 눌렀을 때만 AI로 만든다
+  function build() {
+    runJob('map', { label: '개념 지도', page: 'map' }, async (signal) => {
+      const key = scopeKey();
+      const prev = [...area.childNodes];
       area.replaceChildren(loadingBox('자료에서 관계를 정리하고 있습니다…'));
       try {
-        const { data } = await askJSON({ schema: SCHEMA, task: [
+        const { data } = await askJSON({ signal, schema: SCHEMA, task: [
           '학습 범위 자료에 나오는 사회학자, 이론, 핵심 개념을 노드로, 그 관계를 엣지로 하는 개념 지도를 만들어라.',
           '- 노드 15~40개. id는 짧은 영문/숫자. label은 자료에 쓰인 이름. kind: sociologist/theory/concept.',
           '- description: 자료에 근거한 2~3문장 설명. sources: 근거 위치.',
@@ -33,20 +34,27 @@ export function render(root) {
           '- 자료에 없는 학자나 개념은 넣지 않는다.',
         ].join('\n') });
         const ids = new Set((data.nodes || []).map((n) => n.id));
-        graph = { nodes: data.nodes || [], edges: (data.edges || []).filter((e) => ids.has(e.source) && ids.has(e.target) && e.source !== e.target) };
+        const graph = { nodes: data.nodes || [], edges: (data.edges || []).filter((e) => ids.has(e.source) && ids.has(e.target) && e.source !== e.target) };
         if (!graph.nodes.length) throw new Error('개념 지도를 만들지 못했습니다.');
         S().maps[key] = graph;
         save();
+        area.dataset.scope = key;
+        area.replaceChildren(graphView(graph));
       } catch (e) {
-        area.replaceChildren(errorBox(e, () => build(true)));
-        return;
-      } finally {
-        regen.disabled = false;
+        if (isCancel(e)) area.replaceChildren(...prev);
+        else area.replaceChildren(errorBox(e, build));
+        throw e;
       }
-    }
-    area.replaceChildren(graphView(graph));
+    });
   }
-  build();
+
+  // 이미 만든 지도(현재 학습 범위)는 AI 호출 없이 바로 보여 준다
+  const key = scopeKey();
+  if (!isRunning('map') && area.dataset.scope !== key) {
+    const graph = S().maps[key];
+    area.dataset.scope = graph ? key : '';
+    area.replaceChildren(graph ? graphView(graph) : h('p', { class: 'muted empty' }, '아래 [생성]을 누르면 학습 범위의 학자·이론·개념 관계도를 만듭니다.'));
+  }
 }
 
 function layout(nodes, edges, W, H) {
