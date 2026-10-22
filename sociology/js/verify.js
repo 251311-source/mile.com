@@ -22,7 +22,7 @@ const CHECKS = {
     '4) 해설이 정답과 모순되지 않는가? (explanation_consistent)',
   ],
   passage: [
-    '1) original이 자료의 문장과 같은 내용인가? (answer_matches_source)',
+    '1) original의 내용이 sources에 적힌 쪽의 자료 내용과 같은가? 표현·띄어쓰기·문장 연결은 다듬어도 되지만, 자료에 없는 내용을 더하거나 개념·용어·학자 이름을 바꾸지 않았어야 한다. (answer_matches_source)',
     '2) changes의 각 wrong이 문맥상 실제로 틀린 의미가 되었는가(우연히 맞는 말이 되지 않았는가)? 각 correct가 original의 원래 단어와 정확히 같은가? changes 외에 modified와 original이 다른 곳이 없는가? (single_answer)',
     '3) 바뀐 단어가 자연스러워서 내용을 알아야 찾을 수 있는가? (unambiguous)',
     '4) reason 설명이 변경 내용과 모순되지 않는가? (explanation_consistent)',

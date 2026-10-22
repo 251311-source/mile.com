@@ -163,14 +163,22 @@ async function parsePdf(file, onProgress) {
     const page = await pdf.getPage(i);
     const tc = await page.getTextContent();
     let text = '';
-    let lastY = null;
+    let lastY = null, lastEnd = null;
     for (const it of tc.items) {
       if (!('str' in it)) continue;
       const y = it.transform ? it.transform[5] : null;
+      const x = it.transform ? it.transform[4] : null;
       if (lastY !== null && y !== null && Math.abs(y - lastY) > 2 && !text.endsWith('\n')) text += '\n';
+      // 같은 줄에서 글자 사이가 떨어져 있으면 띄어쓰기를 넣는다(슬라이드로 만든 PDF는 단어마다 따로 놓여 공백이 빠지는 경우가 많다)
+      else if (lastEnd !== null && x !== null && it.str && !/\s$/.test(text) && !/^\s/.test(it.str)) {
+        const gap = x - lastEnd;
+        const size = Math.abs(it.transform[3]) || it.height || 10;
+        if (gap > size * 0.15) text += ' ';
+      }
       text += it.str;
       if (it.hasEOL) text += '\n';
       lastY = y;
+      lastEnd = x !== null && typeof it.width === 'number' ? x + it.width : null;
     }
     text = text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
     const firstLine = text.split('\n').find((l) => l.trim().length > 1) || '';

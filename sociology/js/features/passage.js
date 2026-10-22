@@ -63,7 +63,9 @@ async function generatePassage(signal) {
   let verifyFails = 0;
   for (let attempt = 0; attempt < 5; attempt++) {
     const task = [
-      `학습 범위 자료에서 ${subject().passageItems}이 담긴 한 문단(150~400자)을 골라 original에 원문 그대로(띄어쓰기 포함, 글자 하나 바꾸지 말고) 옮겨라. 슬라이드 글머리표라면 이어지는 문장들을 문단처럼 이어 붙여도 된다(내용은 그대로).`,
+      `학습 범위 자료에서 ${subject().passageItems}이 담긴 부분을 하나 골라, 그 내용을 읽기 쉬운 한 문단(150~400자)으로 구성해 original에 써라.`,
+      '- 내용은 자료 그대로 반영한다: 자료에 없는 내용·예시·평가를 더하지 않고, 개념·이론·학자 이름과 핵심 용어는 자료 표기 그대로 쓴다.',
+      '- 표현은 자유롭게 다듬는다: 슬라이드 글머리표·요약식 조각(예: "~함", "~확인")은 완전한 문장으로 바꾸고, 앞뒤를 자연스럽게 이어 하나의 문단으로 만든다. 띄어쓰기와 문장부호를 바르게 하고 줄바꿈 없이 쓴다. 자료 텍스트에 띄어쓰기가 빠져 있어도 바르게 띄어 쓴다.',
       n === 0
         ? '이번에는 단어를 바꾸지 않는다. modified는 original과 완전히 같게, changes는 빈 배열로 둔다.'
         : `original에서 정확히 ${n}개의 단어(또는 짧은 어구)를 뜻이 틀린 다른 단어로 바꿔 modified를 만든다. 바꾼 단어는 문법적으로 자연스러워서 내용을 이해해야만 찾을 수 있어야 한다(${subject().passageSwap}). 바뀐 부분 외에는 original과 글자 하나 다르지 않아야 한다. changes에 각 변경을 {wrong: modified 안의 틀린 단어, correct: original의 원래 단어, reason: 왜 틀린지}로 적는다. 같은 단어를 두 번 바꾸지 않는다.`,
@@ -71,15 +73,16 @@ async function generatePassage(signal) {
       recent.length && `최근에 쓴 문단과 다른 문단을 고른다: ${recent.join(' / ')}`,
     ].filter(Boolean).join('\n');
     const { data } = await askJSON({ task, schema: GEN, signal });
-    const original = String(data.original || '').trim();
-    let modified = n === 0 ? original : String(data.modified || '').trim();
+    const oneLine = (t) => String(t || '').replace(/\s*\n+\s*/g, ' ').replace(/[ \t]{2,}/g, ' ').trim(); // 한 문단으로
+    const original = oneLine(data.original);
+    let modified = n === 0 ? original : oneLine(data.modified);
     let changes = n === 0 ? [] : (data.changes || []).filter((c) => c.wrong && c.correct && modified.includes(c.wrong) && original.includes(c.correct) && c.wrong !== c.correct);
     if (!original) continue;
     if (n > 0 && (!changes.length || modified === original)) continue;
     if (isRecent(original) && attempt < 4) continue; // 최근에 쓴 문단은 바로 다시 내지 않는다
     const found = findInScope(original);
-    if (!found && attempt < 2) continue; // 원문이 자료에 없으면 다시 생성
     const sources = data.sources?.length ? data.sources : found ? [{ doc: found.doc.tag, page: found.unit.n }] : [];
+    if (!sources.length) continue; // 근거 위치가 없으면 다시 생성
     // 자체 검증: 바뀐 단어가 실제로 틀린 의미가 되었는지, 원래 단어 목록이 정확한지
     const [v] = await verifyItems('passage', [{ original, modified, changes, sources }], { signal });
     if (!v.pass) {
@@ -89,7 +92,7 @@ async function generatePassage(signal) {
     pushRecent('passage', original.slice(0, 60));
     const passage = {
       id: uid(), original, modified, changes,
-      verified: !!found,
+      verified: true, // 자체 검증에서 자료 내용과 같은지 확인함
       sources,
       concepts: data.concepts || [], sociologists: data.sociologists || [],
     };
