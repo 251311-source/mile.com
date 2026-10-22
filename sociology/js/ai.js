@@ -50,7 +50,7 @@ async function client() {
 }
 
 // API가 거부한 선택 기능은 이번 세션 동안 끈다.
-const off = { fallbacks: false, format: false };
+const off = { fallbacks: false, format: false, autoCache: false };
 
 const RULES = `너는 대학 사회학 학습 프로그램의 출제·채점·설명 엔진이다.
 
@@ -103,6 +103,7 @@ async function run(params, { onText } = {}) {
       req.betas = ['server-side-fallback-2026-07-01'];
       req.fallbacks = 'default';
     }
+    if (off.autoCache) delete req.cache_control;
     if (off.format && req.output_config?.format) {
       req.output_config = { ...req.output_config };
       delete req.output_config.format;
@@ -114,6 +115,7 @@ async function run(params, { onText } = {}) {
     } catch (e) {
       const msg = String(e?.message || '');
       if (e?.status === 400 && !off.fallbacks && /fallback|anthropic-beta|beta/i.test(msg)) { off.fallbacks = true; continue; }
+      if (e?.status === 400 && !off.autoCache && req.cache_control && /cache_control/i.test(msg)) { off.autoCache = true; continue; }
       if (e?.status === 400 && !off.format && req.output_config?.format && /output_config|format|schema/i.test(msg)) { off.format = true; continue; }
       throw friendly(e);
     }
@@ -222,6 +224,7 @@ export async function chat({ messages, onText }) {
     max_tokens: 16000,
     system: system(hasScope()),
     messages,
+    cache_control: { type: 'ephemeral' }, // 대화가 이어질수록 앞부분을 재사용(답변 내용은 같고 비용·시간만 줄어듦)
     output_config: { effort: speed().effort },
   }, { onText });
   if (msg.stop_reason === 'refusal') throw new Error('AI가 이 질문에 답하지 않았습니다.');
