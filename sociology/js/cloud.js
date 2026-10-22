@@ -22,7 +22,7 @@ const SORT = {
 };
 const OBJ_COLS = ['quoteBank', 'maps'];        // { 키: 값 } → 키마다 문서
 const SYNC_COLS = [...Object.keys(ID_COLS), 'attempts', ...OBJ_COLS, 'meta'];
-export const ALL_COLS = [...SYNC_COLS, 'materials', 'private'];
+export const ALL_COLS = [...SYNC_COLS, 'materials', 'pages', 'private'];
 const ATTEMPT_CHUNK = 2000;                    // 채점 기록은 날짜별 문서(하루 2000개마다 나눔)
 const MAX_DOC = 900 * 1024;
 
@@ -309,6 +309,61 @@ export function saveMaterial(m) {
   setStatus();
   return F.setDoc(userDoc(uid, 'materials', m.id), { v, t: Date.now() }).finally(() => { pending--; setStatus(); });
 }
+// ---------- 자료 본문: users/{uid}/pages/{docId}_{n} (쪽 텍스트를 약 300KB씩 묶어 저장) ----------
+const PAGE_CHUNK = 300 * 1024;
+export async function saveDocText(doc) {
+  const { F, db } = fb;
+  const parts = [];
+  let cur = [], size = 0;
+  for (const u of doc.units) {
+    const s = JSON.stringify({ n: u.n, title: u.title || '', text: u.text });
+    if (cur.length && size + s.length > PAGE_CHUNK) { parts.push(cur); cur = []; size = 0; }
+    cur.push({ n: u.n, title: u.title || '', text: u.text });
+    size += s.length;
+  }
+  if (cur.length) parts.push(cur);
+  await deleteDocText(doc.id); // 같은 자료를 다시 올린 경우 이전 묶음 정리
+  pending++;
+  setStatus();
+  try {
+    for (let i = 0; i < parts.length; i += 20) {
+      const batch = F.writeBatch(db);
+      parts.slice(i, i + 20).forEach((units, k) => {
+        batch.set(userDoc(uid, 'pages', `${doc.id}_${i + k}`), { v: JSON.stringify({ docId: doc.id, part: i + k, units }), t: Date.now() });
+      });
+      await batch.commit();
+    }
+  } finally {
+    pending--;
+    setStatus();
+  }
+}
+// docId → units[] (계정에 저장된 모든 자료 본문)
+export async function loadAllDocText() {
+  const { F } = fb;
+  const out = new Map();
+  try {
+    const snap = await F.getDocs(userCol(uid, 'pages'));
+    const parts = snap.docs.map((d) => { try { return JSON.parse(d.data().v); } catch { return null; } }).filter(Boolean).sort((a, b) => a.part - b.part);
+    for (const p of parts) { if (!out.has(p.docId)) out.set(p.docId, []); out.get(p.docId).push(...p.units); }
+  } catch (e) {
+    console.warn('자료 본문을 불러오지 못했습니다', e);
+  }
+  return out;
+}
+export async function deleteDocText(docId) {
+  const { F, db } = fb;
+  try {
+    const snap = await F.getDocs(F.query(userCol(uid, 'pages'), F.where(F.documentId(), '>=', docId + '_'), F.where(F.documentId(), '<', docId + '_\uf8ff')));
+    if (!snap.docs.length) return;
+    const batch = F.writeBatch(db);
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  } catch (e) {
+    console.warn(e);
+  }
+}
+
 export function deleteMaterial(id) {
   const { F } = fb;
   return F.deleteDoc(userDoc(uid, 'materials', id)).catch((e) => console.warn(e));

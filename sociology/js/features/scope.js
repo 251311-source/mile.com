@@ -82,7 +82,10 @@ function analysisLine(d, redraw) {
     return h('p', { class: 'small' }, h('span', { class: 'tag label-original' }, '원본 없음 · 분석 결과로 동작'),
       ` 개념 ${a?.concepts?.length || 0}개 · 학자 ${a?.sociologists?.length || 0}명 · 핵심 문장 ${a?.keySentences?.length || 0}개. 비판적 읽기처럼 원문이 필요한 기능은 같은 파일을 다시 올리면 쓸 수 있어요.`);
   }
-  if (a?.analyzed) return h('p', { class: 'muted small' }, `☁ 계정에 분석 결과 저장됨 · 개념 ${a.concepts.length}개 · 학자 ${a.sociologists.length}명 · 핵심 문장 ${a.keySentences.length}개`);
+  const saved = d.textSaved ? '☁ 계정에 자료 저장됨 (다른 기기에서도 그대로 사용)' : '⏳ 자료를 계정에 저장하는 중…';
+  if (a?.analyzed) return h('p', { class: 'muted small' }, `${saved} · 개념 ${a.concepts.length}개 · 학자 ${a.sociologists.length}명`);
+  if (d.textSaved) return h('p', { class: 'muted small' }, saved, ' ',
+    h('button', { class: 'btn small', onclick: async (e) => { e.target.disabled = true; await syncAnalysis(d); redraw(); } }, '개념 분석하기'));
   return h('p', { class: 'small' }, h('span', { class: 'tag label-unverified' }, '분석 결과 미저장'),
     ' 다른 기기에서도 쓰려면 분석 결과를 계정에 저장해야 해요. ',
     h('button', { class: 'btn small', onclick: async (e) => { e.target.disabled = true; await syncAnalysis(d); redraw(); } }, '분석해서 저장'),

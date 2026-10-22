@@ -1,6 +1,6 @@
 // PDF/PPTX 파싱, 자료 목록, 학습 범위 관리.
 import { docsDB, S, save, uid, settings } from './store.js';
-import { loadMaterials, saveMaterial, deleteMaterial, currentUid } from './cloud.js';
+import { loadMaterials, saveMaterial, deleteMaterial, currentUid, saveDocText, loadAllDocText, deleteDocText } from './cloud.js';
 
 const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289';
 const JSZIP = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
@@ -17,13 +17,24 @@ export async function loadDocs() {
   const local = (await docsDB.all()).filter((d) => d.owner === owner);
   const materials = await loadMaterials();
   const { docFromAnalysis } = await import('./analysis.js');
+  // 이 기기에 없는 자료는 계정에 저장된 본문을 받아 이 기기에도 보관한다
+  const missing = materials.filter((m) => !local.some((d) => d.id === m.id));
+  const texts = missing.some((m) => m.textSaved) ? await loadAllDocText() : new Map();
   const out = [];
   for (const m of materials) {
-    const full = local.find((d) => d.id === m.id);
-    out.push(full ? { ...full, tag: m.tag, analysis: m } : docFromAnalysis(m));
+    let full = local.find((d) => d.id === m.id);
+    if (!full && texts.get(m.id)?.length) {
+      full = { id: m.id, tag: m.tag, name: m.name, kind: m.kind, addedAt: m.addedAt || 0, chapters: m.chapters || [], units: texts.get(m.id).sort((a, b) => a.n - b.n), owner, textSaved: true };
+      docsDB.put(full).catch(() => {});
+    }
+    if (full) {
+      const doc = { ...full, tag: m.tag, analysis: m, textSaved: !!m.textSaved };
+      out.push(doc);
+      if (!m.textSaved) ensureText(doc); // 이전에 올린 자료는 본문을 계정에 올려 둔다
+    } else out.push(docFromAnalysis(m));
   }
   // 분석 결과를 아직 못 올린 원본(오프라인 등)도 보여 주고 다시 올린다
-  for (const d of local) if (!materials.some((m) => m.id === d.id)) { out.push(d); syncAnalysis(d); }
+  for (const d of local) if (!materials.some((m) => m.id === d.id)) { out.push(d); ensureText(d).then(() => syncAnalysis(d)); }
   docs = out.sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
   return docs;
 }
@@ -42,18 +53,32 @@ export async function adoptLegacyDocs(list) {
   }
 }
 
+// 자료 본문(쪽 텍스트)을 계정에 올린다. 다른 기기에서도 원본 없이 모든 기능을 쓸 수 있게 된다.
+export async function ensureText(doc) {
+  if (doc.textSaved || doc.analysisOnly) return;
+  try {
+    await saveDocText(doc);
+    doc.textSaved = true;
+    if (doc.analysis) { doc.analysis.textSaved = true; await saveMaterial(doc.analysis); }
+    document.dispatchEvent(new CustomEvent('docanalysis', { detail: doc }));
+  } catch (e) {
+    console.warn('자료 본문 저장 실패', e);
+  }
+}
+
 // 분석 결과를 계정에 올린다. API 키가 없거나 실패하면 구조만 올리고 나중에 다시 분석할 수 있게 둔다.
 export async function syncAnalysis(doc, { analyze = true } = {}) {
   const { structureOf, analyzeDoc } = await import('./analysis.js');
   let m = doc.analysis?.analyzed ? doc.analysis : structureOf(doc);
   if (analyze && !m.analyzed && (settings().apiKey || settings().geminiKey)) {
-    if (!doc.analysis) { m.tag = doc.tag; saveMaterial(m).catch(() => {}); } // 구조부터 먼저 올려 둔다
+    if (!doc.analysis) { m.tag = doc.tag; m.textSaved = !!doc.textSaved; saveMaterial(m).catch(() => {}); } // 구조부터 먼저 올려 둔다
     doc.analyzing = true;
     document.dispatchEvent(new CustomEvent('docanalysis', { detail: doc }));
     try { m = await analyzeDoc(doc); } catch (e) { console.warn('자료 분석 실패', e); m.analysisError = e.message; }
     doc.analyzing = false;
   }
   m.tag = doc.tag;
+  m.textSaved = !!doc.textSaved;
   doc.analysis = m;
   try { await saveMaterial(m); } catch (e) { console.warn('분석 결과 저장 실패', e); }
   document.dispatchEvent(new CustomEvent('docanalysis', { detail: doc }));
@@ -82,10 +107,10 @@ export async function addFile(file, onProgress = () => {}) {
   // 같은 이름의 자료가 계정에 있으면 그 분석 결과에 연결한다(다른 기기에서 다시 올린 경우).
   const same = docs.find((d) => d.name === file.name);
   if (same) {
-    const doc = { ...parsed, id: same.id, tag: same.tag, name: file.name, addedAt: same.addedAt || Date.now(), owner: currentUid(), analysis: same.analysis };
+    const doc = { ...parsed, id: same.id, tag: same.tag, name: file.name, addedAt: same.addedAt || Date.now(), owner: currentUid(), analysis: same.analysis, textSaved: false };
     await docsDB.put(doc);
     docs[docs.indexOf(same)] = doc;
-    if (!doc.analysis?.analyzed) syncAnalysis(doc);
+    ensureText(doc).then(() => { if (!doc.analysis?.analyzed) syncAnalysis(doc); });
     save();
     doc.linked = true;
     return doc;
@@ -96,13 +121,15 @@ export async function addFile(file, onProgress = () => {}) {
   // 새 자료는 기본적으로 전체 범위 선택
   S().scope[doc.id] = doc.units.filter((u) => u.text.trim()).map((u) => u.n);
   save();
-  syncAnalysis(doc); // 분석은 뒤에서 진행 (끝나면 docanalysis 이벤트)
+  await ensureText(doc); // 본문을 계정에 저장
+  syncAnalysis(doc); // 개념 분석은 뒤에서 진행 (끝나면 docanalysis 이벤트)
   return doc;
 }
 
 export async function removeDoc(id) {
   await docsDB.remove(id);
   await deleteMaterial(id);
+  await deleteDocText(id);
   docs = docs.filter((d) => d.id !== id);
   delete S().scope[id];
   save();
