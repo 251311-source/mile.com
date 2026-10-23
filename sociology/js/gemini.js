@@ -1,5 +1,7 @@
 // Google Gemini API 호출 (REST). 사용자의 Gemini API 키로 브라우저에서 직접 호출한다.
 import { CancelledError } from './jobs.js';
+import { settings, save } from './store.js';
+import { toast } from './ui.js';
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
@@ -20,7 +22,46 @@ function friendly(status, msg) {
   return err;
 }
 
-async function call(key, model, method, body, { stream = false, signal } = {}) {
+// 모델 이름을 찾을 수 없으면(지원이 끝난 옛 모델 등) 이 키로 쓸 수 있는 같은 종류의 최신 모델로 바꿔 다시 요청한다
+const remap = new Map();
+const famOf = (id) => (/flash-lite/.test(id) ? 'flash-lite' : /flash/.test(id) ? 'flash' : /pro/.test(id) ? 'pro' : '');
+const verOf = (id) => parseFloat((id.match(/gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+export function pickModel(list, wanted = '') {
+  const ok = list.map((m) => m.id).filter((id) => /^gemini-/.test(id) && !/(embed|tts|image|live|audio|native|aqa|learnlm|robotics|computer|thinking)/i.test(id));
+  const stable = ok.filter((id) => !/(preview|exp|latest|\d{3,}$)/i.test(id));
+  const pool = (stable.length ? stable : ok).sort((a, b) => verOf(b) - verOf(a) || a.length - b.length);
+  const fam = famOf(wanted) || 'flash';
+  return pool.find((id) => famOf(id) === fam) || pool.find((id) => famOf(id) === 'flash') || pool[0] || null;
+}
+async function replacementFor(key, model) {
+  if (remap.has(model)) return remap.get(model);
+  let next = null;
+  try { next = pickModel(await listGeminiModels(key), model); } catch {}
+  remap.set(model, next);
+  return next;
+}
+
+export const cleanModelId = (id) => String(id || '').trim().replace(/^models\//, '');
+
+async function call(key, model, method, body, opts = {}) {
+  model = cleanModelId(model);
+  try {
+    return await callOnce(key, model, method, body, opts);
+  } catch (e) {
+    if (e.status !== 404) throw e;
+    const next = await replacementFor(key, model);
+    if (!next || next === model) throw e;
+    if (cleanModelId(settings().geminiModel) === model || !settings().geminiModel) {
+      settings().geminiModel = next;
+      save();
+      document.dispatchEvent(new CustomEvent('geminimodel', { detail: next }));
+    }
+    toast(`'${model}' 모델은 더 이상 쓸 수 없어서 '${next}' 모델로 바꿨어요. ([설정]에 저장됨)`, 'info', 7000);
+    return callOnce(key, next, method, body, opts);
+  }
+}
+
+async function callOnce(key, model, method, body, { stream = false, signal } = {}) {
   let res;
   try {
     res = await fetch(`${BASE}/models/${encodeURIComponent(model)}:${method}${stream ? '?alt=sse' : ''}`, {

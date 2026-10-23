@@ -7,7 +7,7 @@ import { REASONS, reportedLabel, showReview } from '../report.js';
 import { TYPES } from '../questions.js';
 import { saveSecret, waitSaved } from '../cloud.js';
 import { subject, SUBJECTS, SUBJECT_IDS } from '../subjects.js';
-import { listGeminiModels } from '../gemini.js';
+import { listGeminiModels, pickModel, cleanModelId } from '../gemini.js';
 import { deleteAccount } from '../auth.js';
 import { fb } from '../firebase.js';
 import { legacySummary, askMigration } from '../migrate.js';
@@ -33,7 +33,10 @@ export function render(root) {
 
   // Gemini 모델: 기본 목록 + 직접 입력 + 키로 사용 가능한 모델 불러오기
   const G_DEFAULT = [['gemini-2.5-pro', 'Gemini 2.5 Pro (정확)'], ['gemini-2.5-flash', 'Gemini 2.5 Flash (빠르고 저렴)'], ['gemini-2.5-flash-lite', 'Gemini 2.5 Flash-Lite (가장 저렴)']];
-  const gModelInput = h('input', { class: 'input', type: 'text', value: s.geminiModel || 'gemini-2.5-pro', 'aria-label': 'Gemini 모델 ID', oninput: (e) => { s.geminiModel = e.target.value.trim(); save(); } });
+  const gModelInput = h('input', { class: 'input', type: 'text', value: s.geminiModel || 'gemini-2.5-pro', 'aria-label': 'Gemini 모델 ID', oninput: (e) => { s.geminiModel = cleanModelId(e.target.value); save(); } });
+  // 지원이 끝난 모델이라 자동으로 바뀌면 입력란도 바꾼다
+  const onModel = (e) => { if (!gModelInput.isConnected) return document.removeEventListener('geminimodel', onModel); gModelInput.value = e.detail; fillModels(G_DEFAULT); };
+  document.addEventListener('geminimodel', onModel);
   const gModelList = h('select', { class: 'input', 'aria-label': 'Gemini 모델 선택', onchange: (e) => { if (e.target.value) { s.geminiModel = e.target.value; gModelInput.value = e.target.value; save(); } } });
   const fillModels = (list) => {
     gModelList.replaceChildren(h('option', { value: '' }, '목록에서 고르기'), ...list.map(([id, l]) => h('option', { value: id, selected: id === s.geminiModel }, l)));
@@ -42,8 +45,15 @@ export function render(root) {
   const loadModelsBtn = h('button', { class: 'btn small', onclick: () => busy(loadModelsBtn, async () => {
     if (!s.geminiKey) return toast('먼저 Gemini API 키를 입력해 주세요.', 'warn');
     const list = await listGeminiModels(s.geminiKey);
+    // 지금 적힌 모델을 이 키로 쓸 수 없으면 같은 종류의 최신 모델로 바꾼다
+    const cur = cleanModelId(s.geminiModel);
+    let note = '';
+    if (!list.some((m) => m.id === cur)) {
+      const next = pickModel(list, cur);
+      if (next) { s.geminiModel = next; gModelInput.value = next; save(); note = ` '${cur || '(비어 있음)'}'은(는) 쓸 수 없는 모델이라 '${next}'(으)로 바꿨어요.`; }
+    }
     fillModels(list.map((m) => [m.id, `${m.label} (${m.id})`]));
-    toast(`사용할 수 있는 Gemini 모델 ${list.length}개를 불러왔어요.`);
+    toast(`사용할 수 있는 Gemini 모델 ${list.length}개를 불러왔어요.${note}`, note ? 'warn' : 'info', note ? 8000 : 4000);
   }) }, '사용 가능한 모델 불러오기');
 
   const claudeBox = h('div', { class: 'provider-box' },
