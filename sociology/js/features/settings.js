@@ -37,20 +37,30 @@ export function render(root) {
   const oModelList = h('select', { class: 'input', 'aria-label': 'OpenRouter 모델 선택', onchange: (e) => { if (e.target.value) { s.openrouterModel = e.target.value; oModelInput.value = e.target.value; save(); } } }, h('option', { value: '' }, '목록을 불러와 고르기'));
   const onORModel = (e) => { if (!oModelInput.isConnected) return document.removeEventListener('openroutermodel', onORModel); oModelInput.value = e.detail; };
   document.addEventListener('openroutermodel', onORModel);
-  const loadORBtn = h('button', { class: 'btn small', onclick: () => busy(loadORBtn, async () => {
-    const list = await listORModels();
+  const loadORBtn = h('button', { class: 'btn small', onclick: () => busy(loadORBtn, () => loadOR(true)) }, '모델 목록 불러오기');
+  const freeBox = h('input', { type: 'checkbox', checked: !!s.openrouterFree, onchange: (e) => { s.openrouterFree = e.target.checked; save(); busy(loadORBtn, () => loadOR(true)); } });
+  const orNote = h('p', { class: 'muted small' });
+  async function loadOR(announce) {
+    const all = await listORModels();
+    const list = all.filter((m) => (s.openrouterFree ? m.free : true));
     // 많이 쓰는 회사 순서로 보기 좋게
-    const rank = (id) => ['anthropic/', 'google/', 'openai/', 'deepseek/', 'x-ai/', 'meta-llama/', 'mistralai/', 'qwen/'].findIndex((p) => id.startsWith(p));
-    const sorted = [...list].sort((a, b) => ((rank(a.id) + 99) % 99) - ((rank(b.id) + 99) % 99) || a.id.localeCompare(b.id));
-    oModelList.replaceChildren(h('option', { value: '' }, '목록에서 고르기'), ...sorted.map((m) => h('option', { value: m.id, selected: m.id === s.openrouterModel }, `${m.label} (${m.id})${m.images ? '' : ' · 그림 인식 안 됨'}`)));
+    const rank = (id) => { const k = ['google/', 'openai/', 'anthropic/', 'deepseek/', 'qwen/', 'meta-llama/', 'mistralai/', 'x-ai/'].findIndex((p) => id.startsWith(p)); return k < 0 ? 99 : k; };
+    const sorted = [...list].sort((a, b) => rank(a.id) - rank(b.id) || a.id.localeCompare(b.id));
+    oModelList.replaceChildren(h('option', { value: '' }, s.openrouterFree ? `무료 모델 ${list.length}개 중 고르기` : '목록에서 고르기'),
+      ...sorted.map((m) => h('option', { value: m.id, selected: m.id === s.openrouterModel }, `${m.label} (${m.id})${m.free ? ' · 무료' : ''}${m.images ? '' : ' · 그림 인식 안 됨'}`)));
     let note = '';
     const cur = cleanORModel(s.openrouterModel);
     if (!cur || !list.some((m) => m.id === cur)) {
-      const next = pickORModel(list, cur);
-      if (next) { s.openrouterModel = next; oModelInput.value = next; oModelList.value = next; save(); note = cur ? ` '${cur}'은(는) 없는 모델이라 '${next}'(으)로 바꿨어요.` : ` 기본 모델로 '${next}'을(를) 골랐어요.`; }
+      const next = pickORModel(all, cur, { free: !!s.openrouterFree });
+      if (next) {
+        s.openrouterModel = next; oModelInput.value = next; oModelList.value = next; save();
+        note = cur ? ` '${cur}'은(는) ${s.openrouterFree ? '무료 목록에 없는' : '없는'} 모델이라 '${next}'(으)로 바꿨어요.` : ` '${next}'을(를) 골랐어요.`;
+      }
     }
-    toast(`OpenRouter 모델 ${list.length}개를 불러왔어요.${note}`, 'info', note ? 7000 : 4000);
-  }) }, '모델 목록 불러오기');
+    orNote.textContent = s.openrouterFree ? `지금 OpenRouter에서 무료로 쓸 수 있는 모델 ${list.length}개입니다. 무료 모델은 분당·하루 요청 수 제한이 있고, 그림(스캔본 글자 인식)을 못 읽는 모델도 있어요.` : '';
+    if (announce) toast(`OpenRouter ${s.openrouterFree ? '무료 ' : ''}모델 ${list.length}개를 불러왔어요.${note}`, 'info', note ? 7000 : 4000);
+  }
+  if (s.openrouterKey || s.openrouterFree) loadOR(false).catch(() => {});
   const testBtn = h('button', { class: 'btn', onclick: () => busy(testBtn, async () => { await testKey(); toast(`${providerLabel()}에 연결되었습니다. ✔`); }) }, '연결 확인');
 
   // Gemini 모델: 기본 목록 + 직접 입력 + 키로 사용 가능한 모델 불러오기
@@ -92,7 +102,8 @@ export function render(root) {
     h('div', { class: 'grid-2' },
       field('OpenRouter 모델', oModelList),
       field('모델 ID (직접 입력 가능)', oModelInput)),
-    h('div', { class: 'row' }, loadORBtn, h('span', { class: 'muted small' }, '스캔본 글자 인식에는 그림을 읽을 수 있는 모델(예: Claude, Gemini, GPT)이 필요합니다.')));
+    h('div', { class: 'row wrap' }, h('label', { class: 'check' }, freeBox, h('span', null, '무료 모델만 (:free)')), loadORBtn, h('span', { class: 'muted small' }, '스캔본 글자 인식에는 그림을 읽을 수 있는 모델이 필요합니다.')),
+    orNote);
   const showProvider = () => {
     const p = s.provider || 'anthropic';
     claudeBox.classList.toggle('dim', p !== 'anthropic');

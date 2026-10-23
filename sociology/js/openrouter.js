@@ -8,7 +8,7 @@ const BASE = 'https://openrouter.ai/api/v1';
 const TIMEOUT_MS = 240000;
 
 // 모델이 거부한 선택 기능은 이번 세션 동안 끈다
-const off = { schema: false, jsonObject: false, reasoning: false };
+const off = { schema: false, jsonObject: false, reasoning: false, system: false };
 
 export class TimeoutError extends Error {
   constructor() { super('OpenRouter가 제시간에 응답하지 않았습니다. 잠시 후 다시 시도하거나 [설정]에서 더 빠른 모델을 골라 보세요.'); this.name = 'TimeoutError'; }
@@ -20,7 +20,7 @@ function friendly(status, msg) {
   else if (status === 402) text = 'OpenRouter 크레딧이 부족합니다. openrouter.ai에서 크레딧을 충전하거나, [설정]에서 이름이 ":free"로 끝나는 무료 모델을 골라 주세요.';
   else if (status === 403) text = '이 요청은 OpenRouter에서 거부되었습니다(키 권한 또는 모델 제한).';
   else if (status === 404 || (status === 400 && /not a valid model|model.*not (found|exist)|no endpoints/i.test(msg))) text = 'OpenRouter 모델 이름을 찾을 수 없습니다. [설정]에서 모델을 다시 골라 주세요.';
-  else if (status === 429) text = 'OpenRouter 요청 한도를 넘었습니다. 잠시 후 다시 시도해 주세요.';
+  else if (status === 429) text = /:free/.test(String(settings().openrouterModel)) ? '무료 모델의 요청 한도(분당·하루 횟수)를 넘었습니다. 잠시 후 다시 시도하거나 [설정]에서 다른 무료 모델을 골라 주세요.' : 'OpenRouter 요청 한도를 넘었습니다. 잠시 후 다시 시도해 주세요.';
   else if (status >= 500) text = 'OpenRouter 또는 모델 서버가 혼잡합니다. 잠시 후 다시 시도해 주세요.';
   else if (status === 400 && /context|too long|maximum.*tokens/i.test(msg)) text = '선택한 범위의 자료가 너무 깁니다. 범위를 줄이거나 [설정]의 자료 최대 길이를 낮춰 주세요.';
   const err = new Error(text);
@@ -76,21 +76,26 @@ export async function listORModels() {
       try { res = await fetch(`${BASE}/models`, { signal: AbortSignal.timeout(20000) }); } catch (e) { throw new Error('OpenRouter 모델 목록을 받지 못했습니다. 인터넷 연결을 확인해 주세요.'); }
       if (!res.ok) throw friendly(res.status, res.statusText);
       const j = await res.json();
-      return (j.data || []).map((m) => ({ id: m.id, label: m.name || m.id, images: (m.architecture?.input_modalities || []).includes('image') }));
+      const zero = (v) => v != null && Number(v) === 0;
+      return (j.data || []).map((m) => ({ id: m.id, label: m.name || m.id, images: (m.architecture?.input_modalities || []).includes('image'), free: /:free$/.test(m.id) || (zero(m.pricing?.prompt) && zero(m.pricing?.completion)) }));
     })();
     modelsP.catch(() => { modelsP = null; });
   }
   return modelsP;
 }
 const verOf = (id) => { const m = id.match(/(\d+(?:\.\d+)?)(?!.*\d)/); return m ? parseFloat(m[1]) : 0; };
-// 기본으로 쓸 모델: Claude Sonnet 최신 → Gemini Flash 최신 → GPT 최신 → 아무거나
-export function pickORModel(list, wanted = '') {
-  const ids = list.map((m) => m.id).filter((id) => !/(:free|:beta|preview|exp|image|audio|tts|embed|search|online|thinking)/i.test(id));
+// 기본으로 쓸 모델. 유료: Claude Sonnet 최신 → Gemini Flash → GPT. 무료(free): Gemini Flash → GPT → DeepSeek → Qwen → Llama
+export function pickORModel(list, wanted = '', { free = /:free$/.test(wanted) || !!settings().openrouterFree } = {}) {
+  const SKIP = /(:beta|preview|exp|image|audio|tts|embed|search|online|thinking|vision-only)/i;
+  const ids = list.filter((m) => (free ? m.free : !m.free) && !SKIP.test(m.id)).map((m) => m.id);
   const newest = (re) => ids.filter((id) => re.test(id)).sort((a, b) => verOf(b) - verOf(a) || a.length - b.length)[0];
   // 원래 고른 모델과 같은 회사·종류가 있으면 그것의 최신판
   const fam = (wanted.match(/^([\w-]+)\/([a-z]+(?:-[a-z]+)?)/) || []);
-  return (fam[0] && newest(new RegExp('^' + fam[1] + '/' + fam[2].split('-')[0]))) ||
-    newest(/^anthropic\/claude-sonnet/) || newest(/^anthropic\/claude/) || newest(/^google\/gemini.*flash/) || newest(/^openai\/gpt/) || ids[0] || null;
+  const same = fam[0] && newest(new RegExp('^' + fam[1] + '/' + fam[2].split('-')[0]));
+  const order = free
+    ? [/^google\/gemini.*flash/, /^google\/gemini/, /^openai\/gpt/, /^deepseek\//, /^qwen\//, /^meta-llama\/llama/, /^mistralai\//]
+    : [/^anthropic\/claude-sonnet/, /^anthropic\/claude/, /^google\/gemini.*flash/, /^openai\/gpt/];
+  return same || order.map(newest).find(Boolean) || ids[0] || null;
 }
 
 // 모델이 비어 있거나 찾을 수 없으면 최신 모델로 정해 설정에 저장한다
@@ -110,6 +115,7 @@ async function request(key, model, body, opts) {
   for (let attempt = 0; attempt < 5; attempt++) {
     const b = { ...body, model };
     if (off.reasoning) delete b.reasoning;
+    if (off.system) b.messages = mergeSystem(b.messages);
     if (b.response_format?.type === 'json_schema' && off.schema) b.response_format = off.jsonObject ? undefined : { type: 'json_object' };
     try {
       return await post(key, b, opts);
@@ -117,12 +123,22 @@ async function request(key, model, body, opts) {
       const raw = String(e.raw || '');
       if (e.badModel && attempt === 0) { model = await resolveModel(model); continue; }
       if (e.status === 400 && b.reasoning && /reasoning/i.test(raw)) { off.reasoning = true; continue; }
+      if (e.status === 400 && !off.system && /system|developer instruction/i.test(raw)) { off.system = true; continue; }
       if (e.status === 400 && b.response_format?.type === 'json_schema' && /response_format|json_schema|structured/i.test(raw)) { off.schema = true; continue; }
       if (e.status === 400 && b.response_format?.type === 'json_object' && /response_format|json/i.test(raw)) { off.jsonObject = true; continue; }
       throw e;
     }
   }
   throw new Error('OpenRouter 요청에 실패했습니다.');
+}
+
+function mergeSystem(messages) {
+  const sys = messages.filter((m) => m.role === 'system').map((m) => m.content).join('\n\n');
+  const rest = messages.filter((m) => m.role !== 'system');
+  if (!sys || !rest.length) return rest;
+  const first = rest[0];
+  const content = typeof first.content === 'string' ? `${sys}\n\n${first.content}` : [{ type: 'text', text: sys }, ...first.content];
+  return [{ ...first, content }, ...rest.slice(1)];
 }
 
 const userContent = (prompt, images = []) => (images.length
