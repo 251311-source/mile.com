@@ -1128,10 +1128,11 @@ const TYPES = {
 };
 
 // 영업 일정: 2일
-// customers: 손님 수, patience: 손님이 기다려 주는 시간(초), difficult: 그날 올 수 있는 진상 손님 최대 수
+// customers: 손님 수, patience: 손님이 기다려 주는 시간(초)
+// minDifficult / difficult: 그날 꼭 오는 진상 손님 수 / 올 수 있는 최대 수
 const ROUNDS = [
-  { label: "1일차", customers: 7, patience: 30, difficult: 2 },
-  { label: "2일차", customers: 8, patience: 26, difficult: 3 }
+  { label: "1일차", customers: 7, patience: 30, minDifficult: 1, difficult: 2 },
+  { label: "2일차", customers: 8, patience: 26, minDifficult: 1, difficult: 3 }
 ];
 
 // 손님 요청: needs에 적힌 물건을 정확히 건네면 성공
@@ -1654,6 +1655,14 @@ const DEFAULT_TITLE = { name: "새내기 점장", desc: "누구나 처음은 있
       if (event) hard++;
       queue.push({ ...req, look: makeLook(), name: makeName(), event, eventDone: false, drain: event?.drain || 1 });
     }
+    // 진상 손님이 하루에 최소 minDifficult명은 오도록 보장
+    const spots = queue.map((c, i) => i).filter(i => !queue[i].strange && !queue[i].event && !(roundIndex === 0 && i === 0));
+    while (hard < (round.minDifficult || 0) && spots.length) {
+      const i = spots.splice(Math.floor(Math.random() * spots.length), 1)[0];
+      queue[i].event = pick(DIFFICULT);
+      queue[i].drain = queue[i].event.drain || 1;
+      hard++;
+    }
     if (Math.random() < CAT.chance) {
       const at = 2 + Math.floor(Math.random() * (queue.length - 2));
       queue.splice(at, 0, { cat: true, text: pick(CAT.lines), name: `<small>${CAT.title}</small>${CAT.name}`, drain: 1 });
@@ -1901,6 +1910,8 @@ const DEFAULT_TITLE = { name: "새내기 점장", desc: "누구나 처음은 있
         { title: "이 손님은 다른 가게를 찾고 있었어요.", detail: `MILE ${sign(-SCORE.mileStrangeWrong)}` }, "wrong", "worry");
     }
 
+    // 말 바꾸는 손님은 바꾸기 전에 건네려 하면 그때 말을 바꿔요
+    if (c.event?.timing === "mid" && !c.eventDone) return triggerMidEvent(c);
     if (c.event?.timing === "serve" && !c.eventDone) {
       showBubble(c.event.line, "", { react: true });
       setMood("worry");
