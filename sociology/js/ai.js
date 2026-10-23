@@ -22,6 +22,8 @@ export const hasAIKey = () => {
 export const providerLabel = () => ({ gemini: 'Gemini', openrouter: 'OpenRouter' }[activeProvider()] || 'Claude');
 const useGemini = () => activeProvider() === 'gemini';
 const useOR = () => activeProvider() === 'openrouter';
+// 무료 모델(요청 횟수 제한이 빡빡함)을 쓰는 중이면 요청 수를 줄인다
+export const economyMode = () => useOR() && /:free$/.test((settings().openrouterModel || '').trim());
 function orAuth() {
   const s = settings();
   const key = (s.openrouterKey || '').trim();

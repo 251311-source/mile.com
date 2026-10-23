@@ -1,10 +1,10 @@
 // 문제 생성·렌더링·채점 공통 엔진. 종합 퀴즈, 시험 모드, 오답노트가 함께 쓴다.
-import { askJSON, T, SOURCES } from './ai.js';
+import { askJSON, T, SOURCES, economyMode } from './ai.js';
 import { h, clear, CIRC, shuffle, sourceChips, setCurrent, loadingBox } from './ui.js';
 import { uid, recordAttempt, addWrong, markMastered } from './store.js';
 import { openChatAbout } from './panels.js';
 import { verifyItems } from './verify.js';
-import { pickFromBank, existingStems, isNearDuplicate, bankQuizQuestions, saveToBank } from './bank.js';
+import { pickFromBank, existingStems, coverage, isNearDuplicate, bankQuizQuestions, saveToBank } from './bank.js';
 import { reportButton } from './report.js';
 import { CancelledError } from './jobs.js';
 import { subject } from './subjects.js';
@@ -78,6 +78,7 @@ const GEN_SCHEMA = T.obj({ questions: T.arr(Q_SCHEMA) });
 // ---------- 생성 ----------
 // types: 각 문항의 유형 배열 (길이 = 문항 수)
 export async function generateQuestions({ types, difficulty = 'medium', focus = '', avoid = [], similarTo = null, signal }) {
+  const covered = similarTo ? [] : coverage();
   const plan = types.map((t, i) => `${i + 1}번: ${t}`).join(', ');
   const used = [...new Set(types)];
   const task = [
@@ -94,7 +95,8 @@ export async function generateQuestions({ types, difficulty = 'medium', focus = 
     '- 문항끼리 같은 내용을 반복하지 않는다. 범위 전체에 고르게 출제한다.',
     focus && `- 다음 주제를 중심으로 출제한다: ${focus}`,
     similarTo && `- 다음 문제와 같은 개념을 묻되 표현·사례·선지가 다른 새 문제를 만든다:\n${JSON.stringify(similarTo)}`,
-    avoid.length && `- 아래는 이미 있는 문제들이다. 같은 개념을 묻더라도 표현만 살짝 바꾼 사실상 같은 문제는 만들지 말고, 다른 측면·다른 사례·다른 선지로 출제한다:\n${avoid.slice(-40).map((s) => '  · ' + s.slice(0, 90)).join('\n')}`,
+    avoid.length && `- 아래는 문제 은행에 이미 있는 문제들이다(유형 무관, "→" 뒤는 정답). 이것과 중복되면 안 된다: 표현만 바꾼 문제, 유형만 바꿔 같은 사실·같은 정답을 묻는 문제도 중복이다. 다른 개념·다른 측면·다른 사례·다른 정답으로 출제한다:\n${avoid.slice(0, economyMode() ? 50 : 120).map((s) => '  · ' + s.slice(0, 100)).join('\n')}`,
+    covered.length && `- 기존 문제가 이미 많이 다룬 개념(괄호는 문제 수): ${covered.join(', ')}. 범위 안에서 아직 덜 다룬 개념·쪽을 우선해 출제한다.`,
   ].filter(Boolean).join('\n');
 
   const { data } = await askJSON({ task, schema: GEN_SCHEMA, signal });
@@ -111,15 +113,17 @@ export async function generateQuestions({ types, difficulty = 'medium', focus = 
 async function generateChunkVerified({ types, difficulty, focus, avoid, similarTo, seen, signal }) {
   let pending = [...types];
   const out = [];
+  let dups = 0; // 기존 문제와 겹쳐서 버린 수
   for (let round = 0; round < 2 && pending.length; round++) {
     let qs;
     try {
-      qs = await generateQuestions({ types: pending, difficulty, focus, avoid: [...avoid, ...out.map((q) => q.stem)], similarTo, signal });
+      qs = await generateQuestions({ types: pending, difficulty, focus, avoid: [...out.map((q) => `[${q.type}] ${q.stem.slice(0, 60)}`), ...avoid], similarTo, signal });
     } catch (e) {
       if (round === 0 || signal?.aborted) throw e;
       break;
     }
     const fresh = qs.filter((q) => !isNearDuplicate(q, [...seen, ...out]));
+    dups += qs.length - fresh.length;
     const verdicts = await verifyItems('quiz', fresh, { signal });
     for (let i = 0; i < fresh.length; i++) {
       if (!verdicts[i].pass) continue;
@@ -130,7 +134,7 @@ async function generateChunkVerified({ types, difficulty, focus, avoid, similarT
       out.push(fresh[i]);
     }
   }
-  return { qs: out, skipped: pending.length };
+  return { qs: out, skipped: pending.length, dups };
 }
 
 // 문제 은행에서 먼저 찾고, 모자란 만큼만 새로 만든다(검증 통과분만 은행에 저장).
@@ -142,17 +146,21 @@ export async function getQuestions({ count, typePool, difficulty, focus = '', fr
   const bankQs = fromBank.filter(Boolean);
   if (bankQs.length && onReady) onReady(bankQs); // 은행 문제는 바로 보여 준다
   const uniq = [];
-  let skipped = 0, firstErr = null;
+  let skipped = 0, firstErr = null, dups = 0, checked = 0;
   if (missing.length) {
     const seen = bankQuizQuestions();
     const avoidAll = [...existingStems({ focus, types: [...new Set(missing)] }), ...avoid];
-    // 2문항씩 나눠 동시에 만들고, 검증을 통과한 묶음부터 바로 내보낸다
+    checked = seen.length;
+    // 2문항씩 나눠 동시에 만들고, 검증을 통과한 묶음부터 바로 내보낸다.
+    // 무료 모델은 요청 횟수 제한이 빡빡하므로 5문항씩 묶어 요청 수를 줄인다.
+    const size = economyMode() ? 5 : 2;
     const chunks = [];
-    for (let i = 0; i < missing.length; i += 2) chunks.push(missing.slice(i, i + 2));
+    for (let i = 0; i < missing.length; i += size) chunks.push(missing.slice(i, i + size));
     await Promise.all(chunks.map((c) => generateChunkVerified({ types: c, difficulty, focus, avoid: avoidAll, seen, signal }).then((r) => {
       if (signal?.aborted) return;
       const fresh = r.qs.filter((q) => !isNearDuplicate(q, uniq)); // 묶음끼리 겹친 문제 제거
       skipped += r.skipped + (r.qs.length - fresh.length);
+      dups += r.dups + (r.qs.length - fresh.length);
       uniq.push(...fresh);
       fresh.forEach((q) => saveToBank(q, { feature }));
       if (fresh.length && onReady) onReady(fresh);
@@ -173,7 +181,7 @@ export async function getQuestions({ count, typePool, difficulty, focus = '', fr
     if (q && !used.has(q.id)) { used.add(q.id); ordered.push(q); }
   });
   pool.forEach((q) => { if (!used.has(q.id)) { used.add(q.id); ordered.push(q); } });
-  return { questions: ordered, fromBank: bankQs.length, generated: uniq.length, skipped };
+  return { questions: ordered, fromBank: bankQs.length, generated: uniq.length, skipped, dups, checked };
 }
 
 // 유사 문제 등: 은행을 거치지 않고 새로 만들되 검증과 저장은 똑같이 한다.

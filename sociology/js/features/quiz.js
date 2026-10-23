@@ -67,6 +67,7 @@ export function render(root, params) {
         if (!set) set = showSet(area, r.questions); else set.finish();
         area.prepend(h('div', { class: 'notice bank-note' },
           `문제 은행에서 ${r.fromBank}개, 새로 만든 문제 ${r.generated}개 (모두 자체 검증 통과)`,
+          r.checked ? ` · 문제 은행의 기존 문제 ${r.checked}개와 겹치지 않게 만들었어요${r.dups ? ` (겹친 ${r.dups}개는 버리고 새로 만듦)` : ''}.` : '',
           r.skipped ? ` · 검증을 두 번 통과하지 못한 ${r.skipped}개는 건너뛰었습니다.` : ''));
       } catch (e) {
         if (isCancel(e)) {

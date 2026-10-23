@@ -8,7 +8,7 @@ const BASE = 'https://openrouter.ai/api/v1';
 const TIMEOUT_MS = 240000;
 
 // 모델이 거부한 선택 기능은 이번 세션 동안 끈다
-const off = { schema: false, jsonObject: false, reasoning: false, system: false };
+const off = { schema: false, jsonObject: false, reasoning: false, system: false, models: false };
 
 export class TimeoutError extends Error {
   constructor() { super('OpenRouter가 제시간에 응답하지 않았습니다. 잠시 후 다시 시도하거나 [설정]에서 더 빠른 모델을 골라 보세요.'); this.name = 'TimeoutError'; }
@@ -20,13 +20,15 @@ function friendly(status, msg) {
   else if (status === 402) text = 'OpenRouter 크레딧이 부족합니다. openrouter.ai에서 크레딧을 충전하거나, [설정]에서 이름이 ":free"로 끝나는 무료 모델을 골라 주세요.';
   else if (status === 403) text = '이 요청은 OpenRouter에서 거부되었습니다(키 권한 또는 모델 제한).';
   else if (status === 404 || (status === 400 && /not a valid model|model.*not (found|exist)|no endpoints/i.test(msg))) text = 'OpenRouter 모델 이름을 찾을 수 없습니다. [설정]에서 모델을 다시 골라 주세요.';
-  else if (status === 429) text = /:free/.test(String(settings().openrouterModel)) ? '무료 모델의 요청 한도(분당·하루 횟수)를 넘었습니다. 잠시 후 다시 시도하거나 [설정]에서 다른 무료 모델을 골라 주세요.' : 'OpenRouter 요청 한도를 넘었습니다. 잠시 후 다시 시도해 주세요.';
+  else if (status === 429 && /per[- ]day|daily|requests per day/i.test(msg)) text = '오늘 쓸 수 있는 무료 모델 요청 횟수를 다 썼어요(OpenRouter 계정에 크레딧을 산 적이 없으면 하루 약 50회). 내일 다시 쓰거나, OpenRouter에 크레딧을 $10 이상 한 번 충전하면 무료 모델 한도가 하루 약 1000회로 늘어나요(무료 모델은 크레딧이 차감되지 않음). Google AI Studio의 무료 Gemini 키를 [설정]에 넣어 써도 됩니다.';
+  else if (status === 429) text = /:free/.test(String(settings().openrouterModel)) ? '무료 모델이 지금 너무 붐벼요(분당 요청 한도). 잠시 후 다시 시도하거나 [설정]에서 다른 무료 모델을 골라 주세요.' : 'OpenRouter 요청 한도를 넘었습니다. 잠시 후 다시 시도해 주세요.';
   else if (status >= 500) text = 'OpenRouter 또는 모델 서버가 혼잡합니다. 잠시 후 다시 시도해 주세요.';
   else if (status === 400 && /context|too long|maximum.*tokens/i.test(msg)) text = '선택한 범위의 자료가 너무 깁니다. 범위를 줄이거나 [설정]의 자료 최대 길이를 낮춰 주세요.';
   const err = new Error(text);
   err.status = status;
   err.raw = msg;
   err.badModel = /모델 이름을 찾을 수 없습니다/.test(text);
+  err.daily = status === 429 && /per[- ]day|daily|requests per day/i.test(msg);
   return err;
 }
 
@@ -49,7 +51,14 @@ async function post(key, body, { signal, timeout = TIMEOUT_MS, stream = false } 
     });
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
-      throw friendly(res.status, j.error?.message || res.statusText);
+      const err = friendly(res.status, [j.error?.message, j.error?.metadata?.raw].filter(Boolean).join(' ') || res.statusText);
+      if (res.status === 429) {
+        // 언제 다시 보내도 되는지 알려 주면 그만큼 기다린다
+        const ra = Number(res.headers.get('retry-after'));
+        const reset = Number(res.headers.get('x-ratelimit-reset') || j.error?.metadata?.headers?.['X-RateLimit-Reset']);
+        err.retryMs = ra > 0 ? ra * 1000 : reset > Date.now() ? reset - Date.now() : 0;
+      }
+      throw err;
     }
     if (stream) return res;
     const data = await res.json();
@@ -109,24 +118,82 @@ async function resolveModel(bad = '') {
   return next;
 }
 
+// ---------- 무료 모델: 요청 간격 조절 + 다른 무료 모델로 자동 전환 ----------
+const isFree = (model) => /:free$/.test(model);
+// 무료 모델은 분당 요청 수가 적어서, 동시에 2개까지·약 3초 간격으로 보낸다
+const FREE_GAP = 3200, FREE_PARALLEL = 2;
+let freeActive = 0, freeLast = 0;
+const freeQueue = [];
+function freeSlot() {
+  return new Promise((ok) => { freeQueue.push(ok); pump(); });
+}
+function pump() {
+  if (!freeQueue.length || freeActive >= FREE_PARALLEL) return;
+  const waitMs = Math.max(0, freeLast + FREE_GAP - Date.now());
+  if (waitMs) { setTimeout(pump, waitMs); return; }
+  freeActive++;
+  freeLast = Date.now();
+  const ok = freeQueue.shift();
+  let done = false;
+  ok(() => { if (done) return; done = true; freeActive--; pump(); }); // 두 번 불러도 한 번만
+  pump();
+}
+// 그 모델이 붐비면 OpenRouter가 대신 쓸 다른 무료 모델(최대 2개)
+async function freeFallbacks(model, needImages) {
+  try {
+    const list = await listORModels();
+    const SKIP = /(:beta|preview|exp|image|audio|tts|embed|search|online)/i;
+    const pool = list.filter((m) => m.free && m.id !== model && !SKIP.test(m.id) && (!needImages || m.images));
+    const pref = [/^google\/gemini/, /^openai\//, /^deepseek\//, /^qwen\//, /^meta-llama\//, /^mistralai\//];
+    const rank = (id) => { const k = pref.findIndex((re) => re.test(id)); return k < 0 ? 99 : k; };
+    return pool.sort((a, b) => rank(a.id) - rank(b.id) || verOf(b.id) - verOf(a.id)).slice(0, 2).map((m) => m.id);
+  } catch {
+    return [];
+  }
+}
+const sleep = (ms, signal) => new Promise((ok, no) => {
+  const t = setTimeout(ok, ms);
+  signal?.addEventListener('abort', () => { clearTimeout(t); no(new CancelledError()); }, { once: true });
+});
+let waitNoticeAt = 0;
+
 // 모델·선택 기능 문제를 자동으로 처리하며 요청한다
-async function request(key, model, body, opts) {
+async function request(key, model, body, opts = {}) {
   model = cleanORModel(model) || (await resolveModel());
-  for (let attempt = 0; attempt < 5; attempt++) {
+  const free = isFree(model);
+  const needImages = JSON.stringify(body.messages).includes('"image_url"');
+  const backups = free && !off.models ? await freeFallbacks(model, needImages) : [];
+  let waited = 0;
+  for (let attempt = 0; attempt < 9; attempt++) {
     const b = { ...body, model };
+    if (backups.length && !off.models) b.models = [model, ...backups];
     if (off.reasoning) delete b.reasoning;
     if (off.system) b.messages = mergeSystem(b.messages);
     if (b.response_format?.type === 'json_schema' && off.schema) b.response_format = off.jsonObject ? undefined : { type: 'json_object' };
+    const release = free ? await freeSlot() : null;
     try {
       return await post(key, b, opts);
     } catch (e) {
       const raw = String(e.raw || '');
+      // 예비 모델 목록(models)을 받지 않는 경우에만 끈다(오류 문장 속 'models/이름' 경로와 구분)
+      if (e.status === 400 && b.models && /(\bmodels\b(?!\/)[^.]*(invalid|not (allowed|supported)|unrecognized|must|array))|((invalid|unrecognized|unknown)[^.]*\bmodels\b(?!\/))/i.test(raw)) { off.models = true; continue; }
+      // 분당 한도: 알려 준 시간(없으면 점점 길게) 기다렸다가 다시 보낸다. 하루 한도는 기다려도 소용없다.
+      if (e.status === 429 && !e.daily && waited < 100000) {
+        const ms = Math.min(30000, e.retryMs || [6000, 12000, 20000, 30000][Math.min(3, attempt)]);
+        if (Date.now() - waitNoticeAt > 20000) { waitNoticeAt = Date.now(); toast(`무료 모델 요청 한도 때문에 ${Math.round(ms / 1000)}초 기다렸다가 자동으로 다시 보낼게요.`, 'info', Math.min(ms, 8000)); }
+        release?.(); // 기다리는 동안 다른 요청이 자리를 쓰게 한다
+        await sleep(ms, opts.signal);
+        waited += ms;
+        continue;
+      }
       if (e.badModel && attempt === 0) { model = await resolveModel(model); continue; }
       if (e.status === 400 && b.reasoning && /reasoning/i.test(raw)) { off.reasoning = true; continue; }
-      if (e.status === 400 && !off.system && /system|developer instruction/i.test(raw)) { off.system = true; continue; }
+      if (e.status === 400 && b.messages.some((m) => m.role === 'system') && /system|developer instruction/i.test(raw)) { off.system = true; continue; }
       if (e.status === 400 && b.response_format?.type === 'json_schema' && /response_format|json_schema|structured/i.test(raw)) { off.schema = true; continue; }
       if (e.status === 400 && b.response_format?.type === 'json_object' && /response_format|json/i.test(raw)) { off.jsonObject = true; continue; }
       throw e;
+    } finally {
+      release?.();
     }
   }
   throw new Error('OpenRouter 요청에 실패했습니다.');
