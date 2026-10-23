@@ -61,24 +61,48 @@ async function call(key, model, method, body, opts = {}) {
   }
 }
 
-async function callOnce(key, model, method, body, { stream = false, signal } = {}) {
+// 응답이 오지 않으면 무한히 기다리지 않는다(기본 4분: 긴 문제 생성도 넉넉히 끝나는 시간)
+const TIMEOUT_MS = 240000;
+export class TimeoutError extends Error {
+  constructor() { super('Gemini가 제시간에 응답하지 않았습니다. 잠시 후 다시 시도하거나 [설정]에서 더 빠른 모델(Flash)을 골라 보세요.'); this.name = 'TimeoutError'; }
+}
+// 사용자 취소(signal)와 시간 제한을 함께 쓰는 신호
+function withTimeout(signal, ms) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(new TimeoutError()), ms);
+  const onAbort = () => ctrl.abort(signal.reason);
+  if (signal) { if (signal.aborted) ctrl.abort(signal.reason); else signal.addEventListener('abort', onAbort, { once: true }); }
+  return { signal: ctrl.signal, done: () => { clearTimeout(timer); signal?.removeEventListener('abort', onAbort); }, timedOut: () => ctrl.signal.reason instanceof TimeoutError };
+}
+
+async function callOnce(key, model, method, body, { stream = false, signal, timeout = TIMEOUT_MS } = {}) {
+  const t = withTimeout(signal, timeout);
   let res;
   try {
     res = await fetch(`${BASE}/models/${encodeURIComponent(model)}:${method}${stream ? '?alt=sse' : ''}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify(body),
-      signal,
+      signal: t.signal,
     });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw friendly(res.status, j.error?.message || res.statusText);
+    }
+    if (!stream) {
+      // 본문까지 시간 제한 안에서 받는다
+      const data = await res.json();
+      return { json: async () => data };
+    }
+    return res; // 스트리밍은 받는 동안 따로 확인한다
   } catch (e) {
+    if (t.timedOut()) throw new TimeoutError();
     if (signal?.aborted) throw new CancelledError();
+    if (e.status) throw e;
     throw new Error('네트워크 연결을 확인해 주세요. (' + e.message + ')');
+  } finally {
+    t.done();
   }
-  if (!res.ok) {
-    const j = await res.json().catch(() => ({}));
-    throw friendly(res.status, j.error?.message || res.statusText);
-  }
-  return res;
 }
 
 // 생각 예산(thinkingBudget)을 지원하지 않는 모델이면 빼고 다시 요청한다
@@ -151,7 +175,10 @@ export async function geminiChat({ key, model, systemText, messages, onText, thi
   const dec = new TextDecoder();
   let buf = '', full = '';
   for (;;) {
-    const { value, done } = await reader.read();
+    // 90초 동안 아무것도 오지 않으면 멈춘 것으로 본다
+    let idle;
+    const step = await Promise.race([reader.read(), new Promise((_, no) => { idle = setTimeout(() => no(new TimeoutError()), 90000); })]).finally(() => clearTimeout(idle));
+    const { value, done } = step;
     if (done) break;
     buf += dec.decode(value, { stream: true });
     let i;
@@ -169,12 +196,30 @@ export async function geminiChat({ key, model, systemText, messages, onText, thi
   return full;
 }
 
+// 연결 확인: 짧은 요청 하나(생각 최소, 짧은 답). 200 응답이면 연결된 것으로 본다.
+export async function geminiPing({ key, model }) {
+  const body = {
+    contents: [{ role: 'user', parts: [{ text: '연결 확인입니다. "연결됨"이라고만 답하세요.' }] }],
+    generationConfig: { maxOutputTokens: 512, thinkingConfig: { thinkingBudget: 128 } },
+  };
+  if (off.thinking) delete body.generationConfig.thinkingConfig;
+  const res = await callThinking(key, model, 'generateContent', body, { timeout: 30000 });
+  const data = await res.json();
+  if (data.promptFeedback?.blockReason) throw new Error('Gemini가 요청을 거부했습니다.');
+  return partsText(data.candidates?.[0]) || '연결됨';
+}
+
 // 이 키로 쓸 수 있는 생성 모델 목록
 export async function listGeminiModels(key) {
   const out = [];
   let token = '';
   for (let i = 0; i < 5; i++) {
-    const res = await fetch(`${BASE}/models?pageSize=200${token ? '&pageToken=' + token : ''}`, { headers: { 'x-goog-api-key': key } });
+    let res;
+    try {
+      res = await fetch(`${BASE}/models?pageSize=200${token ? '&pageToken=' + token : ''}`, { headers: { 'x-goog-api-key': key }, signal: AbortSignal.timeout(20000) });
+    } catch (e) {
+      throw new Error(e?.name === 'TimeoutError' ? 'Gemini 모델 목록을 받지 못했습니다(시간 초과). 인터넷 연결을 확인해 주세요.' : '네트워크 연결을 확인해 주세요. (' + e.message + ')');
+    }
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
       throw friendly(res.status, j.error?.message || res.statusText);

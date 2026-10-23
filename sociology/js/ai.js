@@ -2,7 +2,7 @@
 import { settings } from './store.js';
 import { subject } from './subjects.js';
 import { buildMaterial, hasScope } from './docs.js';
-import { geminiJSON, geminiChat } from './gemini.js';
+import { geminiJSON, geminiChat, geminiPing } from './gemini.js';
 import { CancelledError } from './jobs.js';
 
 // 실제로 쓸 AI: 고른 AI의 키가 있으면 그것, 없고 다른 AI의 키만 있으면 그쪽을 쓴다.
@@ -238,17 +238,21 @@ export async function chat({ messages, onText }) {
 
 export async function testKey() {
   const s = settings();
-  if (useGemini()) {
-    const { key, model } = geminiAuth();
-    return geminiChat({ key, model, systemText: rules(), messages: [{ role: 'user', content: '연결 확인입니다. "연결됨"이라고만 답하세요.' }] });
+  if (useGemini()) return geminiPing(geminiAuth());
+  // 30초 안에 답이 없으면 멈춘 것으로 보고 알려 준다
+  const timeout = AbortSignal.timeout(30000);
+  try {
+    const msg = await run({
+      model: s.model,
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: '연결 확인입니다. "연결됨"이라고만 답하세요.' }],
+      output_config: { effort: 'low' },
+    }, { signal: timeout });
+    return textOf(msg);
+  } catch (e) {
+    if (timeout.aborted) throw new Error('Claude가 30초 안에 응답하지 않았습니다. 인터넷 연결을 확인하고 잠시 후 다시 시도해 주세요.');
+    throw e;
   }
-  const msg = await run({
-    model: s.model,
-    max_tokens: 2000,
-    messages: [{ role: 'user', content: '연결 확인입니다. "연결됨"이라고만 답하세요.' }],
-    output_config: { effort: 'low' },
-  });
-  return textOf(msg);
 }
 
 // JSON 스키마 헬퍼 (구조화 출력용: 모든 속성 필수, 추가 속성 금지)
