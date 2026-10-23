@@ -11,10 +11,11 @@ service cloud.firestore {
       }
       allow read, delete: if isOwner();
       allow create, update: if isOwner()
-        && request.resource.data.keys().hasOnly(['v', 't', 'apiKey', 'geminiKey'])
+        && request.resource.data.keys().hasOnly(['v', 't', 'apiKey', 'geminiKey', 'openrouterKey'])
         && (!('v' in request.resource.data) || request.resource.data.v is string)
         && (!('apiKey' in request.resource.data) || (collection == 'private' && request.resource.data.apiKey is string))
-        && (!('geminiKey' in request.resource.data) || (collection == 'private' && request.resource.data.geminiKey is string));
+        && (!('geminiKey' in request.resource.data) || (collection == 'private' && request.resource.data.geminiKey is string))
+        && (!('openrouterKey' in request.resource.data) || (collection == 'private' && request.resource.data.openrouterKey is string));
     }
     // 과목별 기록: users/{uid}/subjects/{과목}/{컬렉션}/{문서} (API 키는 여기에 둘 수 없다)
     match /users/{userId}/subjects/{subjectId}/{collection}/{docId} {

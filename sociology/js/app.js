@@ -120,7 +120,7 @@ async function route() {
     return;
   }
   if (!hasAIKey() && !NO_SCOPE_OK.has(r[0])) {
-    root.appendChild(h('div', { class: 'notice' }, 'AI 기능을 쓰려면 ', h('a', { href: '#/settings' }, '설정'), '에서 Claude 또는 Gemini API 키를 먼저 입력해 주세요.'));
+    root.appendChild(h('div', { class: 'notice' }, 'AI 기능을 쓰려면 ', h('a', { href: '#/settings' }, '설정'), '에서 Claude, Gemini 또는 OpenRouter API 키를 먼저 입력해 주세요.'));
   }
   const mod = await r[3]();
   if (token !== renderToken) return;

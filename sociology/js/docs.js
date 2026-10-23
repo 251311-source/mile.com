@@ -71,7 +71,7 @@ export async function ensureText(doc) {
 export async function syncAnalysis(doc, { analyze = true } = {}) {
   const { structureOf, analyzeDoc } = await import('./analysis.js');
   let m = doc.analysis?.analyzed ? doc.analysis : structureOf(doc);
-  if (analyze && !m.analyzed && (settings().apiKey || settings().geminiKey)) {
+  if (analyze && !m.analyzed && (settings().apiKey || settings().geminiKey || settings().openrouterKey)) {
     if (!doc.analysis) { m.tag = doc.tag; m.textSaved = !!doc.textSaved; saveMaterial(m).catch(() => {}); } // 구조부터 먼저 올려 둔다
     doc.analyzing = true;
     document.dispatchEvent(new CustomEvent('docanalysis', { detail: doc }));

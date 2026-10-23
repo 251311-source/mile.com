@@ -8,6 +8,7 @@ import { TYPES } from '../questions.js';
 import { saveSecret, waitSaved } from '../cloud.js';
 import { subject, SUBJECTS, SUBJECT_IDS } from '../subjects.js';
 import { listGeminiModels, pickModel, cleanModelId } from '../gemini.js';
+import { listORModels, pickORModel, cleanORModel } from '../openrouter.js';
 import { deleteAccount } from '../auth.js';
 import { fb } from '../firebase.js';
 import { legacySummary, askMigration } from '../migrate.js';
@@ -23,12 +24,33 @@ export function render(root) {
       clearTimeout(t);
       t = setTimeout(() => saveSecret(field, v).then(() => toast(v ? `${name} 키를 계정에 저장했어요.` : `${name} 키를 지웠어요.`)).catch((err) => toast(`${name} 키 저장 실패: ` + err.message, 'error')), 600);
       // 키가 하나뿐이면 그 AI를 자동으로 고른다
-      const other = field === 'apiKey' ? 'geminiKey' : 'apiKey';
-      if (v && !(s[other] || '').trim()) selectProvider(field === 'apiKey' ? 'anthropic' : 'gemini', false);
+      const PROV = { apiKey: 'anthropic', geminiKey: 'gemini', openrouterKey: 'openrouter' };
+      if (v && Object.keys(PROV).every((k) => k === field || !(s[k] || '').trim())) selectProvider(PROV[field], false);
     } });
   };
   const key = keyInput('apiKey', 'API 키 입력', 'sk-ant-...', 'API');
   const gKey = keyInput('geminiKey', 'Gemini API 키 입력', 'AIza...', 'Gemini API');
+  const oKey = keyInput('openrouterKey', 'OpenRouter API 키 입력', 'sk-or-...', 'OpenRouter API');
+
+  // OpenRouter 모델: 직접 입력 + 목록 불러오기(비워 두면 최신 Claude Sonnet을 자동으로 고른다)
+  const oModelInput = h('input', { class: 'input', type: 'text', value: s.openrouterModel || '', placeholder: '비워 두면 자동 선택 (예: anthropic/claude-sonnet-…)', 'aria-label': 'OpenRouter 모델 ID', oninput: (e) => { s.openrouterModel = cleanORModel(e.target.value); save(); } });
+  const oModelList = h('select', { class: 'input', 'aria-label': 'OpenRouter 모델 선택', onchange: (e) => { if (e.target.value) { s.openrouterModel = e.target.value; oModelInput.value = e.target.value; save(); } } }, h('option', { value: '' }, '목록을 불러와 고르기'));
+  const onORModel = (e) => { if (!oModelInput.isConnected) return document.removeEventListener('openroutermodel', onORModel); oModelInput.value = e.detail; };
+  document.addEventListener('openroutermodel', onORModel);
+  const loadORBtn = h('button', { class: 'btn small', onclick: () => busy(loadORBtn, async () => {
+    const list = await listORModels();
+    // 많이 쓰는 회사 순서로 보기 좋게
+    const rank = (id) => ['anthropic/', 'google/', 'openai/', 'deepseek/', 'x-ai/', 'meta-llama/', 'mistralai/', 'qwen/'].findIndex((p) => id.startsWith(p));
+    const sorted = [...list].sort((a, b) => ((rank(a.id) + 99) % 99) - ((rank(b.id) + 99) % 99) || a.id.localeCompare(b.id));
+    oModelList.replaceChildren(h('option', { value: '' }, '목록에서 고르기'), ...sorted.map((m) => h('option', { value: m.id, selected: m.id === s.openrouterModel }, `${m.label} (${m.id})${m.images ? '' : ' · 그림 인식 안 됨'}`)));
+    let note = '';
+    const cur = cleanORModel(s.openrouterModel);
+    if (!cur || !list.some((m) => m.id === cur)) {
+      const next = pickORModel(list, cur);
+      if (next) { s.openrouterModel = next; oModelInput.value = next; oModelList.value = next; save(); note = cur ? ` '${cur}'은(는) 없는 모델이라 '${next}'(으)로 바꿨어요.` : ` 기본 모델로 '${next}'을(를) 골랐어요.`; }
+    }
+    toast(`OpenRouter 모델 ${list.length}개를 불러왔어요.${note}`, 'info', note ? 7000 : 4000);
+  }) }, '모델 목록 불러오기');
   const testBtn = h('button', { class: 'btn', onclick: () => busy(testBtn, async () => { await testKey(); toast(`${providerLabel()}에 연결되었습니다. ✔`); }) }, '연결 확인');
 
   // Gemini 모델: 기본 목록 + 직접 입력 + 키로 사용 가능한 모델 불러오기
@@ -65,12 +87,20 @@ export function render(root) {
       field('Gemini 모델', gModelList),
       field('모델 ID (직접 입력 가능)', gModelInput)),
     h('div', { class: 'row' }, loadModelsBtn, h('span', { class: 'muted small' }, '새 모델이 나오면 목록을 불러오거나 모델 ID를 직접 입력하세요.')));
+  const openrouterBox = h('div', { class: 'provider-box' },
+    field('OpenRouter API 키 입력', oKey, '키 발급: openrouter.ai → Keys. 한 키로 Claude·Gemini·GPT 등 여러 모델을 쓸 수 있고, 사용량은 OpenRouter 크레딧에서 빠집니다.'),
+    h('div', { class: 'grid-2' },
+      field('OpenRouter 모델', oModelList),
+      field('모델 ID (직접 입력 가능)', oModelInput)),
+    h('div', { class: 'row' }, loadORBtn, h('span', { class: 'muted small' }, '스캔본 글자 인식에는 그림을 읽을 수 있는 모델(예: Claude, Gemini, GPT)이 필요합니다.')));
   const showProvider = () => {
-    claudeBox.classList.toggle('dim', s.provider === 'gemini');
-    geminiBox.classList.toggle('dim', s.provider !== 'gemini');
+    const p = s.provider || 'anthropic';
+    claudeBox.classList.toggle('dim', p !== 'anthropic');
+    geminiBox.classList.toggle('dim', p !== 'gemini');
+    openrouterBox.classList.toggle('dim', p !== 'openrouter');
   };
   showProvider();
-  const PROVIDERS = [['anthropic', 'Anthropic Claude'], ['gemini', 'Google Gemini']];
+  const PROVIDERS = [['anthropic', 'Anthropic Claude'], ['gemini', 'Google Gemini'], ['openrouter', 'OpenRouter']];
   const providerSeg = h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'AI 제공자' },
     PROVIDERS.map(([v, l]) => h('button', { type: 'button', 'data-provider': v, class: (s.provider || 'anthropic') === v ? 'on' : '', 'aria-pressed': String((s.provider || 'anthropic') === v), onclick: () => selectProvider(v, true) }, l)));
   function selectProvider(v, announce) {
@@ -134,9 +164,10 @@ export function render(root) {
     h('section', { class: 'card' },
       h('h2', null, 'AI 연결'),
       field('사용할 AI', h('div', { class: 'row wrap' }, providerSeg, testBtn)),
-      h('p', { class: 'muted small' }, '입력한 API 키는 로그인한 계정의 비공개 저장 공간(본인만 읽을 수 있음)에 저장되어, 다른 기기에서 로그인해도 자동으로 불러옵니다. 프로그램 코드에는 키가 들어 있지 않습니다. 요청은 브라우저에서 고른 AI 회사로 바로 전송됩니다. 두 키를 모두 넣어 두고 위에서 바꿔 쓸 수 있습니다.'),
+      h('p', { class: 'muted small' }, '입력한 API 키는 로그인한 계정의 비공개 저장 공간(본인만 읽을 수 있음)에 저장되어, 다른 기기에서 로그인해도 자동으로 불러옵니다. 프로그램 코드에는 키가 들어 있지 않습니다. 요청은 브라우저에서 고른 AI 회사로 바로 전송됩니다. 여러 키를 넣어 두고 위에서 바꿔 쓸 수 있습니다.'),
       claudeBox,
       geminiBox,
+      openrouterBox,
       h('div', { class: 'grid-3' },
         field('속도', select([['fast', '빠르게 (기본)'], ['balanced', '보통'], ['accurate', '정확하게 (느림)']], s.speed || 'fast', (v) => { s.speed = v; save(); }),
           'AI가 생각하는 깊이입니다. 빠르게: 문제가 빨리 나옵니다. 정확하게: 더 오래 걸리지만 어려운 문제·서술형 채점에 유리합니다.'),

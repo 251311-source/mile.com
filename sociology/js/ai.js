@@ -1,25 +1,33 @@
-// AI 호출. [설정]에서 고른 제공자(Anthropic Claude 또는 Google Gemini)를 사용자의 API 키로 브라우저에서 직접 호출한다.
+// AI 호출. [설정]에서 고른 제공자(Anthropic Claude, Google Gemini 또는 OpenRouter)를 사용자의 API 키로 브라우저에서 직접 호출한다.
 import { settings } from './store.js';
 import { subject } from './subjects.js';
 import { buildMaterial, hasScope } from './docs.js';
 import { geminiJSON, geminiChat, geminiPing } from './gemini.js';
+import { orJSON, orChat, orPing } from './openrouter.js';
 import { CancelledError } from './jobs.js';
 
 // 실제로 쓸 AI: 고른 AI의 키가 있으면 그것, 없고 다른 AI의 키만 있으면 그쪽을 쓴다.
+const KEY_OF = { anthropic: 'apiKey', gemini: 'geminiKey', openrouter: 'openrouterKey' };
 export function activeProvider() {
   const s = settings();
-  const has = { anthropic: !!(s.apiKey || '').trim(), gemini: !!(s.geminiKey || '').trim() };
-  const chosen = s.provider === 'gemini' ? 'gemini' : 'anthropic';
-  if (has[chosen]) return chosen;
-  const other = chosen === 'gemini' ? 'anthropic' : 'gemini';
-  return has[other] ? other : chosen;
+  const has = (p) => !!(s[KEY_OF[p]] || '').trim();
+  const chosen = KEY_OF[s.provider] ? s.provider : 'anthropic';
+  if (has(chosen)) return chosen;
+  return Object.keys(KEY_OF).find(has) || chosen;
 }
 export const hasAIKey = () => {
   const s = settings();
-  return !!((s.apiKey || '').trim() || (s.geminiKey || '').trim());
+  return Object.values(KEY_OF).some((k) => !!(s[k] || '').trim());
 };
-export const providerLabel = () => (activeProvider() === 'gemini' ? 'Gemini' : 'Claude');
+export const providerLabel = () => ({ gemini: 'Gemini', openrouter: 'OpenRouter' }[activeProvider()] || 'Claude');
 const useGemini = () => activeProvider() === 'gemini';
+const useOR = () => activeProvider() === 'openrouter';
+function orAuth() {
+  const s = settings();
+  const key = (s.openrouterKey || '').trim();
+  if (!key) throw new NeedKeyError('먼저 [설정]에서 OpenRouter API 키를 입력해 주세요.');
+  return { key, model: (s.openrouterModel || '').trim() };
+}
 // [설정 → 속도]: 빠르게(기본) / 보통 / 정확하게 → AI가 생각하는 깊이
 const SPEED = { fast: { effort: 'low', thinking: 512 }, balanced: { effort: 'medium', thinking: -1 }, accurate: { effort: 'high', thinking: -1 } };
 const speed = () => SPEED[settings().speed] || SPEED.fast;
@@ -40,7 +48,7 @@ export class NeedKeyError extends Error {
 let clientP = null, clientKey = null;
 async function client() {
   const key = (settings().apiKey || '').trim();
-  if (!key) throw new NeedKeyError('먼저 [설정]에서 사용할 AI(Claude 또는 Gemini)의 API 키를 입력해 주세요.');
+  if (!key) throw new NeedKeyError('먼저 [설정]에서 사용할 AI(Claude, Gemini 또는 OpenRouter)의 API 키를 입력해 주세요.');
   if (!clientP || clientKey !== key) {
     clientKey = key;
     clientP = import(SDK).then((m) => {
@@ -168,6 +176,15 @@ export async function askJSON({ task, schema, material = true, web = false, maxT
   if (material && !materialText && !hasScope()) throw new Error('먼저 [자료·범위]에서 자료를 올리고 학습 범위를 선택해 주세요.');
   const s = settings();
   const content = `${task}\n\n출력은 다음 JSON 스키마를 따르는 JSON 객체 하나다:\n${JSON.stringify(schema)}`;
+  if (useOR()) {
+    const auth = orAuth();
+    const sys = systemText(system(material, materialText));
+    const r = await orJSON({ ...auth, systemText: sys, prompt: content, schema, web, images, maxTokens, effort: effort || speed().effort, signal });
+    let data = parseJSON(r.text);
+    if (!data) data = parseJSON((await orJSON({ ...auth, signal, systemText: rules(), effort: 'low', prompt: `아래 텍스트에 담긴 내용을 스키마에 맞는 유효한 JSON 객체 하나로만 다시 출력하라. 내용은 바꾸지 마라.\n\n스키마:\n${JSON.stringify(schema)}\n\n텍스트:\n${r.text.slice(0, 60000)}`, schema })).text);
+    if (!data) throw new Error('AI 응답을 해석하지 못했습니다. 다시 시도해 주세요.');
+    return { data, searchResults: r.searchResults };
+  }
   if (useGemini()) {
     const { key, model } = geminiAuth();
     const sys = systemText(system(material, materialText));
@@ -220,6 +237,7 @@ async function repairJSON(text, schema, signal) {
 // 자유 대화(AI 질문 패널). onText로 스트리밍 텍스트를 받는다.
 export async function chat({ messages, onText }) {
   const s = settings();
+  if (useOR()) return orChat({ ...orAuth(), systemText: systemText(system(hasScope())), messages, onText, effort: speed().effort });
   if (useGemini()) {
     const { key, model } = geminiAuth();
     return geminiChat({ key, model, systemText: systemText(system(hasScope())), messages, onText, thinking: speed().thinking });
@@ -238,6 +256,7 @@ export async function chat({ messages, onText }) {
 
 export async function testKey() {
   const s = settings();
+  if (useOR()) return orPing(orAuth());
   if (useGemini()) return geminiPing(geminiAuth());
   // 30초 안에 답이 없으면 멈춘 것으로 보고 알려 준다
   const timeout = AbortSignal.timeout(30000);

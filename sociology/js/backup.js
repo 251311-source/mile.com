@@ -27,7 +27,7 @@ function subjectPayload(st, docs) {
 }
 const docsOfMaterials = (list) => (list || []).map((m) => ({ id: m.id, name: m.name, kind: m.kind, units: (m.pages || []).length, pages: (m.pages || []).map((p) => p.n) }));
 const currentDocs = () => allDocs().map((d) => ({ id: d.id, name: d.name, kind: d.kind, units: d.units.length, pages: d.units.map((u) => u.n) }));
-const wrap = (subjects, st) => JSON.stringify({ app: 'socstudy', version: 3, exportedAt: new Date().toISOString(), lastBackup: st.lastBackup || 0, settings: { ...st.settings, apiKey: '', geminiKey: '' }, subjects }, null, 1);
+const wrap = (subjects, st) => JSON.stringify({ app: 'socstudy', version: 3, exportedAt: new Date().toISOString(), lastBackup: st.lastBackup || 0, settings: { ...st.settings, apiKey: '', geminiKey: '', openrouterKey: '' }, subjects }, null, 1);
 
 // only: 과목 id(그 과목만) 또는 null(모든 과목)
 export async function buildBackup(only = null) {

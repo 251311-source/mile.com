@@ -51,9 +51,9 @@ let failed = false;
 
 const day = (ts) => { const d = new Date(ts || 0); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const metaOf = (st) => ({ scope: st.scope, recent: st.recent, firstUse: st.firstUse });
-const accountOf = (st) => ({ subject: st.prefSubject, lastBackup: st.lastBackup || 0, migratedAt: st.migratedAt || 0, settings: { model: st.settings.model, effort: st.settings.effort, maxChars: st.settings.maxChars, provider: st.settings.provider, geminiModel: st.settings.geminiModel, speed: st.settings.speed } });
+const accountOf = (st) => ({ subject: st.prefSubject, lastBackup: st.lastBackup || 0, migratedAt: st.migratedAt || 0, settings: { model: st.settings.model, effort: st.settings.effort, maxChars: st.settings.maxChars, provider: st.settings.provider, geminiModel: st.settings.geminiModel, openrouterModel: st.settings.openrouterModel, speed: st.settings.speed } });
 // API 키는 meta가 아니라 private 문서에만 둔다
-export const SECRET_FIELDS = ['apiKey', 'geminiKey'];
+export const SECRET_FIELDS = ['apiKey', 'geminiKey', 'openrouterKey'];
 const secretsOf = (settings) => Object.fromEntries(SECRET_FIELDS.map((k) => [k, settings[k] || '']));
 
 function toDocs(st, withAccount = true) {
