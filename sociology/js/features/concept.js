@@ -1,14 +1,15 @@
 // 4. 개념 맞히기 (단계별 힌트, 혼동 모드)
 import { h, add, pageHead, loadingBox, errorBox, sourceChips, setCurrent, field, select, toast } from '../ui.js';
 import { askJSON, T, SOURCES } from '../ai.js';
-import { uid, recordAttempt, addWrong, masteredNames } from '../store.js';
+import { S, uid, recordAttempt, addWrong, masteredNames, pushRecent } from '../store.js';
 import { openChatAbout } from '../panels.js';
 import { persistentArea, runJob, jobControls, isCancel } from '../jobs.js';
 import { segBtn } from './quiz.js';
 import { verifyItems, generateVerified } from '../verify.js';
-import { saveToBank } from '../bank.js';
+import { saveToBank, pageUse } from '../bank.js';
 import { reportButton } from '../report.js';
 import { learnedButton } from '../questions.js';
+import { pickRegions, regionLine } from '../docs.js';
 import { subject } from '../subjects.js';
 
 const ITEM = T.obj({ answer: T.str, aliases: T.arr(T.str), category: T.str, sociologist: T.str, clues: T.arr(T.str), explanation: T.str, sources: SOURCES });
@@ -17,7 +18,12 @@ const PAIRS = T.obj({ pairs: T.arr(T.obj({ a: ITEM, b: ITEM, distinction: T.str,
 const JUDGE = T.obj({ results: T.arr(T.obj({ key: T.str, correct: T.bool, comment: T.str })) });
 
 const opts = { mode: 'normal', count: 5 };
-const used = [];
+// 이미 낸 개념(계정에 저장되어 새로 고쳐도 유지) + 문제 은행에 있는 개념 맞히기 정답 → 다시 내지 않는다
+const usedList = () => {
+  const fromBank = S().bank.filter((e) => e.kind === 'concept' && e.status !== 'excluded').map((e) => e.q?.answer_text).filter(Boolean);
+  return [...new Set([...(S().recent.concept || []), ...fromBank])].slice(-80);
+};
+const remember = (names) => names.forEach((n) => pushRecent('concept', n, 120));
 
 export function render(root) {
   const area = persistentArea('concept'); // 화면을 떠나도 생성·풀이가 유지된다
@@ -52,11 +58,12 @@ export function render(root) {
             '- clues: 특징 5개를 막연한 것부터 구체적인 것 순서로. 단서 안에 answer나 aliases를 쓰지 않는다. 모두 자료에 근거한다.',
             '- category: "이론" 또는 "개념". sociologist: 관련 학자(없으면 빈 문자열). explanation: 2~3문장 설명. sources: 자료 위치.',
           ]).concat([
-            used.length && `- 다음은 이미 나왔으니 제외: ${used.slice(-30).join(', ')}`,
+            usedList().length && `- 다음은 이미 나왔으니 제외(범위에 다른 것이 남아 있으면 반드시 다른 것을 고른다): ${usedList().join(', ')}`,
+            regionLine(pickRegions(1, pageUse('concept'))[0]),
             masteredNames().length && `- 학습자가 학습 완료한 것이니 제외: ${masteredNames().slice(-60).join(', ')}`,
           ]).filter(Boolean).join('\n') });
           const items = (data.items || []).map(clean).filter(Boolean);
-          used.push(...items.map((x) => x.answer));
+          remember(items.map((x) => x.answer));
           return items;
         }, (items) => verifyItems('concept', items.map(forCheck), { signal }));
         if (!r.items.length) throw new Error('검증을 통과한 문제를 만들지 못했습니다. 다시 시도해 주세요.');
@@ -71,10 +78,10 @@ export function render(root) {
             '- 두 항목의 같은 순번 단서는 같은 관점(예: 1번은 사회 유형, 2번은 결속 근거)을 다뤄 비교가 되게 한다.',
             '- distinction: 둘을 구분하는 핵심 차이 2~3문장. sources: 근거 위치.',
             '- 학습 범위에 짝이 될 만한 것이 부족하면 있는 만큼만 만든다.',
-            used.length && `- 다음 짝은 이미 나왔으니 제외: ${used.slice(-30).join(', ')}`,
+            usedList().length && `- 다음 개념이 든 짝은 이미 나왔으니 제외: ${usedList().join(', ')}`,
           ].filter(Boolean).join('\n') });
           const pairs = (data.pairs || []).map((p) => ({ a: clean(p.a), b: clean(p.b), distinction: p.distinction, sources: p.sources })).filter((p) => p.a && p.b);
-          used.push(...pairs.map((p) => `${p.a.answer}/${p.b.answer}`));
+          remember(pairs.flatMap((p) => [p.a.answer, p.b.answer]));
           return pairs;
         }, async (pairs) => {
           const v = await verifyItems('concept', pairs.flatMap((p) => [forCheck(p.a), forCheck(p.b)]), { signal });

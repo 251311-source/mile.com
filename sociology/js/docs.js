@@ -476,6 +476,29 @@ export function scopeUnits() {
 }
 export const hasScope = () => scopeUnits().length > 0;
 
+// 같은 문제가 반복되지 않게: 학습 범위를 몇 쪽씩 구역으로 나누고, 덜 쓴 구역부터 고른다.
+// used: Map('D1:5' → 그 쪽을 근거로 한 기존 문제 수). 반환: [{ label: 'intro.pdf 5~7쪽', markers: '[[D1:5]], [[D1:6]], [[D1:7]]', keys }]
+export function pickRegions(n, used = new Map(), size = 3) {
+  const units = scopeUnits();
+  if (units.length <= size || n < 1) return [];
+  const regions = [];
+  for (let i = 0; i < units.length; i += size) {
+    const part = units.slice(i, i + size);
+    const keys = part.map(({ doc, unit }) => `${doc.tag}:${unit.n}`);
+    const use = keys.reduce((a, k) => a + (used.get(k) || 0), 0) / keys.length;
+    regions.push({ part, keys, score: use + Math.random() * 0.75 }); // 같은 점수면 무작위
+  }
+  regions.sort((a, b) => a.score - b.score);
+  return regions.slice(0, n).map(({ part, keys }) => {
+    const byDoc = new Map();
+    for (const { doc, unit } of part) { if (!byDoc.has(doc)) byDoc.set(doc, []); byDoc.get(doc).push(unit.n); }
+    const label = [...byDoc].map(([d, ns]) => `${d.name} ${ns[0]}${ns.length > 1 ? '~' + ns[ns.length - 1] : ''}${unitName(d)}`).join(', ');
+    return { label, markers: keys.map((k) => `[[${k}]]`).join(', '), keys };
+  });
+}
+// 구역을 정해 주는 출제 지시문 한 줄
+export const regionLine = (r) => r && `- 이번에는 주로 다음 위치의 내용에서 고른다(앞서 나온 것과 겹치지 않게 범위를 돌아가며 출제): ${r.markers} (${r.label}). 그 부분에 낼 것이 부족하면 가까운 쪽을 쓴다.`;
+
 export function scopeKey() {
   const parts = docs.map((d) => `${d.id}:${(S().scope[d.id] || []).join(',')}`).join('|');
   let h = 0;

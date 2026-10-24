@@ -4,7 +4,8 @@ import { h, clear, CIRC, shuffle, sourceChips, setCurrent, loadingBox, toast } f
 import { uid, recordAttempt, addWrong, markMastered, masteredNames, markLearned, undoLearned } from './store.js';
 import { openChatAbout } from './panels.js';
 import { verifyItems } from './verify.js';
-import { pickFromBank, existingStems, coverage, isNearDuplicate, bankQuizQuestions, saveToBank } from './bank.js';
+import { pickFromBank, existingStems, coverage, isNearDuplicate, bankQuizQuestions, saveToBank, pageUse } from './bank.js';
+import { pickRegions, regionLine } from './docs.js';
 import { reportButton } from './report.js';
 import { CancelledError } from './jobs.js';
 import { subject } from './subjects.js';
@@ -77,7 +78,7 @@ const GEN_SCHEMA = T.obj({ questions: T.arr(Q_SCHEMA) });
 
 // ---------- 생성 ----------
 // types: 각 문항의 유형 배열 (길이 = 문항 수)
-export async function generateQuestions({ types, difficulty = 'medium', focus = '', avoid = [], similarTo = null, signal }) {
+export async function generateQuestions({ types, difficulty = 'medium', focus = '', avoid = [], similarTo = null, region = null, signal }) {
   const covered = similarTo ? [] : coverage();
   const learned = similarTo ? [] : masteredNames().slice(-80);
   const plan = types.map((t, i) => `${i + 1}번: ${t}`).join(', ');
@@ -95,6 +96,7 @@ export async function generateQuestions({ types, difficulty = 'medium', focus = 
     '- concepts에 이 문제가 다루는 핵심 개념/이론 이름(1~3개), sociologists에 관련 학자 이름(없으면 빈 배열)을 자료에 쓰인 표기로 적는다.',
     '- 문항끼리 같은 내용을 반복하지 않는다. 범위 전체에 고르게 출제한다.',
     focus && `- 다음 주제를 중심으로 출제한다: ${focus}`,
+    !focus && !similarTo && regionLine(region),
     similarTo && `- 다음 문제와 같은 개념을 묻되 표현·사례·선지가 다른 새 문제를 만든다:\n${JSON.stringify(similarTo)}`,
     avoid.length && `- 아래는 문제 은행에 이미 있는 문제들이다(유형 무관, "→" 뒤는 정답). 이것과 중복되면 안 된다: 표현만 바꾼 문제, 유형만 바꿔 같은 사실·같은 정답을 묻는 문제도 중복이다. 다른 개념·다른 측면·다른 사례·다른 정답으로 출제한다:\n${avoid.slice(0, economyMode() ? 50 : 120).map((s) => '  · ' + s.slice(0, 100)).join('\n')}`,
     learned.length && `- 학습자가 '학습 완료'로 표시한 개념이다. 이 개념을 묻는 문제는 내지 않는다(선지나 비교 대상으로만 잠깐 나오는 것은 괜찮다): ${learned.join(', ')}`,
@@ -112,14 +114,14 @@ export async function generateQuestions({ types, difficulty = 'medium', focus = 
 }
 
 // 한 묶음(최대 4문항)을 생성 → 검증 → 실패한 문항만 한 번 더 생성 → 또 실패하면 건너뛴다.
-async function generateChunkVerified({ types, difficulty, focus, avoid, similarTo, seen, signal }) {
+async function generateChunkVerified({ types, difficulty, focus, avoid, similarTo, seen, region = null, signal }) {
   let pending = [...types];
   const out = [];
   let dups = 0; // 기존 문제와 겹쳐서 버린 수
   for (let round = 0; round < 2 && pending.length; round++) {
     let qs;
     try {
-      qs = await generateQuestions({ types: pending, difficulty, focus, avoid: [...out.map((q) => `[${q.type}] ${q.stem.slice(0, 60)}`), ...avoid], similarTo, signal });
+      qs = await generateQuestions({ types: pending, difficulty, focus, avoid: [...out.map((q) => `[${q.type}] ${q.stem.slice(0, 60)}`), ...avoid], similarTo, region, signal });
     } catch (e) {
       if (round === 0 || signal?.aborted) throw e;
       break;
@@ -158,7 +160,9 @@ export async function getQuestions({ count, typePool, difficulty, focus = '', fr
     const size = economyMode() ? 5 : 2;
     const chunks = [];
     for (let i = 0; i < missing.length; i += size) chunks.push(missing.slice(i, i + size));
-    await Promise.all(chunks.map((c) => generateChunkVerified({ types: c, difficulty, focus, avoid: avoidAll, seen, signal }).then((r) => {
+    // 묶음마다 덜 쓴 다른 구역을 맡긴다(같은 부분에서만 반복 출제되지 않게)
+    const regions = focus ? [] : pickRegions(chunks.length, pageUse('quiz'));
+    await Promise.all(chunks.map((c, ci) => generateChunkVerified({ types: c, difficulty, focus, avoid: avoidAll, seen, region: regions[ci] || regions[0] || null, signal }).then((r) => {
       if (signal?.aborted) return;
       const fresh = r.qs.filter((q) => !isNearDuplicate(q, uniq)); // 묶음끼리 겹친 문제 제거
       skipped += r.skipped + (r.qs.length - fresh.length);

@@ -146,6 +146,17 @@ export function isNearDuplicate(q, others) {
     return similarity([q.stem, q.context].join(' '), [o.stem, o.context].join(' ')) > 0.35;
   });
 }
+// 쪽마다 기존 문제가 몇 개 근거로 삼았는지 (덜 쓴 쪽에서 새로 내기 위해)
+export function pageUse(kind = null) {
+  const m = new Map();
+  for (const e of S().bank) {
+    if (kind && e.kind !== kind) continue;
+    if (e.status === 'excluded') continue;
+    const q = inScopeCopy(e);
+    for (const s of q?.sources || []) { const k = `${s.doc}:${s.page}`; m.set(k, (m.get(k) || 0) + 1); }
+  }
+  return m;
+}
 export function bankQuizQuestions() {
   return S().bank.filter((e) => e.kind === 'quiz' && e.status !== 'excluded').map((e) => e.q);
 }

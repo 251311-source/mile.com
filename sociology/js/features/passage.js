@@ -1,11 +1,11 @@
 // 2. 비판적 읽기: 문단 속 바뀐 단어 찾기
 import { h, add, clear, pageHead, loadingBox, errorBox, sourceChips, setCurrent, toast } from '../ui.js';
 import { askJSON, T, SOURCES } from '../ai.js';
-import { findInScope, needsOriginal } from '../docs.js';
+import { findInScope, needsOriginal, pickRegions, regionLine } from '../docs.js';
 import { uid, S, pushRecent, recordAttempt, addWrong, markMastered } from '../store.js';
 import { openChatAbout } from '../panels.js';
 import { verifyItems } from '../verify.js';
-import { saveToBank, similarity } from '../bank.js';
+import { saveToBank, similarity, pageUse } from '../bank.js';
 import { reportButton } from '../report.js';
 import { persistentArea, runJob, jobControls, isCancel } from '../jobs.js';
 import { subject } from '../subjects.js';
@@ -58,19 +58,25 @@ export function render(root) {
 
 async function generatePassage(signal) {
   const n = Math.floor(Math.random() * 5); // 0~4개, 사용자에게 알리지 않는다
-  const recent = (S().recent.passage || []).slice(-10);
+  const recent = (S().recent.passage || []).slice(-30);
+  // 최근 문단이 나온 쪽은 피하고 덜 쓴 구역에서 고르게 한다
+  const usedPages = new Map();
+  for (const k of S().recent.passagePages || []) usedPages.set(k, (usedPages.get(k) || 0) + 1);
+  for (const [k, v] of pageUse('passage')) usedPages.set(k, (usedPages.get(k) || 0) + v);
   const isRecent = (text) => recent.some((r) => text.startsWith(r.slice(0, 25)) || similarity(r, text.slice(0, r.length)) > 0.7);
   let verifyFails = 0;
   for (let attempt = 0; attempt < 5; attempt++) {
+    const [region] = pickRegions(1, usedPages, 2);
     const task = [
-      `학습 범위 자료에서 ${subject().passageItems}이 담긴 부분을 하나 골라, 그 내용을 읽기 쉬운 한 문단(150~400자)으로 구성해 original에 써라.`,
+      `학습 범위 자료에서 ${subject().passageItems}이 담긴 부분을 하나 골라, 그 내용을 읽기 쉬운 한 문단(400~700자, 5~8문장)으로 구성해 original에 써라. 한 개념만 짧게 정의하지 말고, 관련된 설명·비교·예시까지 이어서 충분히 담는다.`,
+      regionLine(region),
       '- 내용은 자료 그대로 반영한다: 자료에 없는 내용·예시·평가를 더하지 않고, 개념·이론·학자 이름과 핵심 용어는 자료 표기 그대로 쓴다.',
       '- 표현은 자유롭게 다듬는다: 슬라이드 글머리표·요약식 조각(예: "~함", "~확인")은 완전한 문장으로 바꾸고, 앞뒤를 자연스럽게 이어 하나의 문단으로 만든다. 띄어쓰기와 문장부호를 바르게 하고 줄바꿈 없이 쓴다. 자료 텍스트에 띄어쓰기가 빠져 있어도 바르게 띄어 쓴다.',
       n === 0
         ? '이번에는 단어를 바꾸지 않는다. modified는 original과 완전히 같게, changes는 빈 배열로 둔다.'
         : `original에서 정확히 ${n}개의 단어(또는 짧은 어구)를 뜻이 틀린 다른 단어로 바꿔 modified를 만든다. 바꾼 단어는 문법적으로 자연스러워서 내용을 이해해야만 찾을 수 있어야 한다(${subject().passageSwap}). 바뀐 부분 외에는 original과 글자 하나 다르지 않아야 한다. changes에 각 변경을 {wrong: modified 안의 틀린 단어, correct: original의 원래 단어, reason: 왜 틀린지}로 적는다. 같은 단어를 두 번 바꾸지 않는다.`,
       'sources에 문단 위치를 적는다. concepts, sociologists에 문단이 다루는 개념·학자를 적는다.',
-      recent.length && `최근에 쓴 문단과 다른 문단을 고른다: ${recent.join(' / ')}`,
+      recent.length && `최근에 쓴 문단과 내용이 겹치지 않는 다른 부분을 고른다(아래는 최근 문단의 첫머리): ${recent.join(' / ')}`,
     ].filter(Boolean).join('\n');
     const { data } = await askJSON({ task, schema: GEN, signal });
     const oneLine = (t) => String(t || '').replace(/\s*\n+\s*/g, ' ').replace(/[ \t]{2,}/g, ' ').trim(); // 한 문단으로
@@ -89,7 +95,8 @@ async function generatePassage(signal) {
       if (++verifyFails >= 2) throw new Error('검증을 통과한 문단을 만들지 못했습니다. [새 문단 받기]로 다시 시도해 주세요.');
       continue;
     }
-    pushRecent('passage', original.slice(0, 60));
+    pushRecent('passage', original.slice(0, 60), 30);
+    for (const s of sources) pushRecent('passagePages', `${s.doc}:${s.page}`, 60);
     const passage = {
       id: uid(), original, modified, changes,
       verified: true, // 자체 검증에서 자료 내용과 같은지 확인함
