@@ -42,9 +42,9 @@ export function render(root) {
         const keys = Object.keys(S().maps).sort((a, b) => (S().maps[b].created || 0) - (S().maps[a].created || 0));
         keys.slice(3).forEach((k) => delete S().maps[k]);
         save();
-        show();
+        show(true); // 생성 작업 안에서 부르므로 '실행 중' 검사를 건너뛴다
       } catch (e) {
-        if (isCancel(e)) { area.replaceChildren(...prev); show(); }
+        if (isCancel(e)) { area.replaceChildren(...prev); area.dataset.shown = ''; show(true); }
         else area.replaceChildren(errorBox(e, build));
         throw e;
       }
@@ -52,12 +52,12 @@ export function render(root) {
   }
 
   // 현재 범위의 지도가 있으면 바로, 없으면 가장 최근 지도 + [업데이트], 하나도 없으면 자동으로 만든다
-  function show() {
-    if (isRunning('map')) return;
+  function show(force = false) {
+    if (!force && isRunning('map')) return;
     const key = scopeKey();
     const exact = S().maps[key];
     const latest = exact || Object.values(S().maps).sort((a, b) => (b.created || 0) - (a.created || 0))[0];
-    if (!latest) { build(); return; }
+    if (!latest) { if (!force) build(); else area.replaceChildren(h('p', { class: 'muted empty' }, '개념 지도를 만들지 않았어요.'), h('button', { class: 'btn small', onclick: () => build() }, '다시 만들기')); return; }
     if (area.dataset.shown !== String(latest.created || key)) {
       area.dataset.shown = String(latest.created || key);
       area.replaceChildren(graphView(latest));
