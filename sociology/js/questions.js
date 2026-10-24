@@ -1,7 +1,7 @@
 // 문제 생성·렌더링·채점 공통 엔진. 종합 퀴즈, 시험 모드, 오답노트가 함께 쓴다.
 import { askJSON, T, SOURCES, economyMode } from './ai.js';
-import { h, clear, CIRC, shuffle, sourceChips, setCurrent, loadingBox } from './ui.js';
-import { uid, recordAttempt, addWrong, markMastered } from './store.js';
+import { h, clear, CIRC, shuffle, sourceChips, setCurrent, loadingBox, toast } from './ui.js';
+import { uid, recordAttempt, addWrong, markMastered, masteredNames, markLearned, undoLearned } from './store.js';
 import { openChatAbout } from './panels.js';
 import { verifyItems } from './verify.js';
 import { pickFromBank, existingStems, coverage, isNearDuplicate, bankQuizQuestions, saveToBank } from './bank.js';
@@ -79,6 +79,7 @@ const GEN_SCHEMA = T.obj({ questions: T.arr(Q_SCHEMA) });
 // types: 각 문항의 유형 배열 (길이 = 문항 수)
 export async function generateQuestions({ types, difficulty = 'medium', focus = '', avoid = [], similarTo = null, signal }) {
   const covered = similarTo ? [] : coverage();
+  const learned = similarTo ? [] : masteredNames().slice(-80);
   const plan = types.map((t, i) => `${i + 1}번: ${t}`).join(', ');
   const used = [...new Set(types)];
   const task = [
@@ -96,6 +97,7 @@ export async function generateQuestions({ types, difficulty = 'medium', focus = 
     focus && `- 다음 주제를 중심으로 출제한다: ${focus}`,
     similarTo && `- 다음 문제와 같은 개념을 묻되 표현·사례·선지가 다른 새 문제를 만든다:\n${JSON.stringify(similarTo)}`,
     avoid.length && `- 아래는 문제 은행에 이미 있는 문제들이다(유형 무관, "→" 뒤는 정답). 이것과 중복되면 안 된다: 표현만 바꾼 문제, 유형만 바꿔 같은 사실·같은 정답을 묻는 문제도 중복이다. 다른 개념·다른 측면·다른 사례·다른 정답으로 출제한다:\n${avoid.slice(0, economyMode() ? 50 : 120).map((s) => '  · ' + s.slice(0, 100)).join('\n')}`,
+    learned.length && `- 학습자가 '학습 완료'로 표시한 개념이다. 이 개념을 묻는 문제는 내지 않는다(선지나 비교 대상으로만 잠깐 나오는 것은 괜찮다): ${learned.join(', ')}`,
     covered.length && `- 기존 문제가 이미 많이 다룬 개념(괄호는 문제 수): ${covered.join(', ')}. 범위 안에서 아직 덜 다룬 개념·쪽을 우선해 출제한다.`,
   ].filter(Boolean).join('\n');
 
@@ -510,9 +512,30 @@ export function renderQuestion(q, { index, mode = 'practice', feature = 'quiz', 
     resultBox.replaceChildren(resultView(q, view.answer, res));
     actions.appendChild(h('button', { class: 'btn ghost', onclick: () => openChatAbout({ kind: 'question', q, answer: view.answer, result: res, label: TYPES[q.type] + ' 문제' }, '이 문제의 해설이 이해가 안 돼요. ') }, '💬 이 문제 AI에게 질문'));
     actions.appendChild(reportButton(q, { feature: view.feature, userAnswer: view.answer, wasWrong: !res.correct }));
+    actions.appendChild(learnedButton(q));
     focusCtx();
   };
   return view;
+}
+
+// [✅ 학습 완료]: 이 문제와 개념을 앞으로 출제하지 않는다(되돌리기 가능)
+export function learnedButton(q) {
+  let undo = null;
+  const btn = h('button', { class: 'btn ghost learned-btn', title: '이 문제와 이 문제의 개념을 앞으로 내지 않습니다. [문제 은행]에서 되돌릴 수 있어요.', onclick: () => {
+    if (undo) {
+      undoLearned(undo);
+      undo = null;
+      btn.textContent = '✅ 학습 완료';
+      btn.classList.remove('on');
+      return;
+    }
+    undo = markLearned(q);
+    btn.textContent = '↩ 학습 완료 취소';
+    btn.classList.add('on');
+    const names = undo.added.length ? undo.added.join(', ') : '이 문제';
+    toast(`'${names}'은(는) 학습 완료로 표시했어요. 앞으로 이 개념은 문제로 내지 않아요.`, 'info', 5000);
+  } }, '✅ 학습 완료');
+  return btn;
 }
 
 function stemWithBlanks(stem) {

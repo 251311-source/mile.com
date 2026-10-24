@@ -1,13 +1,14 @@
 // 4. 개념 맞히기 (단계별 힌트, 혼동 모드)
 import { h, add, pageHead, loadingBox, errorBox, sourceChips, setCurrent, field, select, toast } from '../ui.js';
 import { askJSON, T, SOURCES } from '../ai.js';
-import { uid, recordAttempt, addWrong } from '../store.js';
+import { uid, recordAttempt, addWrong, masteredNames } from '../store.js';
 import { openChatAbout } from '../panels.js';
 import { persistentArea, runJob, jobControls, isCancel } from '../jobs.js';
 import { segBtn } from './quiz.js';
 import { verifyItems, generateVerified } from '../verify.js';
 import { saveToBank } from '../bank.js';
 import { reportButton } from '../report.js';
+import { learnedButton } from '../questions.js';
 import { subject } from '../subjects.js';
 
 const ITEM = T.obj({ answer: T.str, aliases: T.arr(T.str), category: T.str, sociologist: T.str, clues: T.arr(T.str), explanation: T.str, sources: SOURCES });
@@ -52,6 +53,7 @@ export function render(root) {
             '- category: "이론" 또는 "개념". sociologist: 관련 학자(없으면 빈 문자열). explanation: 2~3문장 설명. sources: 자료 위치.',
           ]).concat([
             used.length && `- 다음은 이미 나왔으니 제외: ${used.slice(-30).join(', ')}`,
+            masteredNames().length && `- 학습자가 학습 완료한 것이니 제외: ${masteredNames().slice(-60).join(', ')}`,
           ]).filter(Boolean).join('\n') });
           const items = (data.items || []).map(clean).filter(Boolean);
           used.push(...items.map((x) => x.answer));
@@ -210,6 +212,7 @@ function answerBox(item, r, pts, ctx, next) {
     h('div', { class: 'row' },
       next && h('button', { class: 'btn ghost', onclick: () => openChatAbout(ctx, '이 개념을 더 설명해 주세요. ') }, '💬 AI에게 질문'),
       reportButton(conceptQ(item), { feature: 'concept' }),
+      learnedButton(conceptQ(item)),
       next && h('button', { class: 'btn primary', onclick: next }, '다음')));
 }
 

@@ -1,5 +1,5 @@
 // 문제 은행: 검증을 통과한 문제를 저장하고, 조건에 맞는 문제를 우선순위에 따라 다시 꺼낸다.
-import { S, save, bankEntry } from './store.js';
+import { S, save, bankEntry, isMasteredConcept } from './store.js';
 import { allDocs, docByTag } from './docs.js';
 import { shuffle } from './ui.js';
 
@@ -72,6 +72,7 @@ export function pickFromBank({ slots, difficulty, focus, exclude = new Set() }) 
   const cands = [];
   for (const e of S().bank) {
     if (!usable(e) || e.kind !== 'quiz' || exclude.has(e.id)) continue;
+    if ((e.q.concepts || []).some(isMasteredConcept)) continue; // 학습 완료한 개념은 다시 내지 않는다
     if (e.q.difficulty !== difficulty || !matchesFocus(e.q, focus)) continue;
     const q = inScopeCopy(e);
     if (q) cands.push({ e, q });

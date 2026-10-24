@@ -1,13 +1,13 @@
 // 문제 은행 화면: 유형별·개념별 저장 문제 수와 문제 목록
 import { subject } from '../subjects.js';
 import { h, add, clear, pageHead, select, fmtDate, pct } from '../ui.js';
-import { S } from '../store.js';
+import { S, unmasterConcept } from '../store.js';
 import { TYPES, DIFF, answerText } from '../questions.js';
 import { inScopeCopy } from '../bank.js';
 
 const KIND = { quiz: '퀴즈·시험', passage: '비판적 읽기', concept: '개념 맞히기', quote: '발화자 맞히기' };
 if (subject().id === 'ir') Object.assign(KIND, { quiz: '퀴즈·연표·개념 구별', concept: '이론 맞히기' });
-const STATUS = { active: '검증됨', reported: '신고됨', excluded: '제외됨' };
+const STATUS = { active: '검증됨', learned: '학습 완료', reported: '신고됨', excluded: '제외됨' };
 const filt = { type: 'all', status: 'all', q: '', limit: 50 };
 
 export function render(root) {
@@ -18,8 +18,10 @@ export function render(root) {
     h('div', { class: 'stat-row' },
       stat(String(bank.length), '저장된 문제'),
       stat(String(bank.filter((e) => e.status === 'active').length), '검증됨(출제 가능)'),
-      stat(String(bank.filter((e) => e.status !== 'active').length), '신고됨·제외됨'),
+      stat(String(bank.filter((e) => e.status === 'learned').length), '학습 완료'),
+      stat(String(bank.filter((e) => e.status === 'reported' || e.status === 'excluded').length), '신고됨·제외됨'),
       stat(String(inScope), '현재 학습 범위에서 사용 가능')));
+  root.appendChild(learnedBox());
   if (!bank.length) {
     root.appendChild(h('div', { class: 'notice' }, '아직 저장된 문제가 없습니다. 종합 퀴즈나 시험 모드를 풀면 문제가 쌓입니다.'));
     return;
@@ -89,4 +91,20 @@ function entry(e) {
     q.type !== 'passage' && h('details', null, h('summary', null, '정답과 해설'),
       h('div', { class: 'kv' }, h('span', null, '정답'), h('pre', null, answerText(q))),
       q.explanation && h('p', { class: 'small' }, q.explanation)));
+}
+
+// 학습 완료한 개념: 새 문제와 문제 은행 출제에서 빠진다. ✕로 되돌린다.
+function learnedBox() {
+  const box = h('div', { class: 'card learned-box' });
+  const draw = () => {
+    const list = S().mastered || [];
+    box.replaceChildren(
+      h('h3', null, `✅ 학습 완료한 개념 (${list.length})`),
+      list.length
+        ? h('div', { class: 'chip-row' }, list.map((m) => h('span', { class: 'chip' }, m.name, ' ',
+            h('button', { class: 'icon-btn', 'aria-label': `${m.name} 학습 완료 취소`, title: '다시 출제되게 되돌리기', onclick: () => { unmasterConcept(m.name); draw(); } }, '✕'))))
+        : h('p', { class: 'muted small' }, '문제를 푼 뒤 [✅ 학습 완료]를 누르면 그 개념은 앞으로 문제로 나오지 않아요. 여기서 ✕로 되돌릴 수 있어요.'));
+  };
+  draw();
+  return box;
 }

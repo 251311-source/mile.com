@@ -16,6 +16,7 @@ const DEFAULTS = () => ({
   bank: [],           // 문제 은행 (검증 통과 문제)
   reports: [],        // 신고한 문제
   pairs: [],          // 직접 추가한 헷갈리는 개념 쌍 (국제정치)
+  mastered: [],       // 학습 완료한 개념 [{ name, at }] — 새 문제에서 빼고, 문제 은행에서도 다시 내지 않는다
   timelines: {},      // { [scopeKey]: 사건·이론 연표 } (국제정치)
   confusions: {},     // { [scopeKey]: 자동 추출한 헷갈리는 개념 쌍 } (국제정치)
   prefSubject: 'soc', // 마지막으로 고른 과목 (계정 공통)
@@ -145,6 +146,38 @@ export function reattachRecords(removed) {
   state.wrong.unshift(...(removed.wrong || []).filter((w) => !ids.has(w.id)));
   state.attempts.push(...(removed.attempts || []));
   state.attempts.sort((a, b) => a.ts - b.ts);
+  save();
+}
+
+// ---------- 학습 완료 ----------
+const nrm = (s) => String(s || '').replace(/\s+/g, '').toLowerCase();
+export const masteredNames = () => state.mastered.map((m) => m.name);
+export const isMasteredConcept = (c) => state.mastered.some((m) => nrm(m.name) === nrm(c));
+// 문제 하나를 '학습 완료'로: 그 문제와 개념을 앞으로 출제에서 뺀다. 되돌리기용 정보를 돌려준다.
+export function markLearned(q) {
+  const added = [];
+  for (const c of (q.concepts || []).filter(Boolean)) {
+    if (!isMasteredConcept(c)) { state.mastered.push({ name: c, at: Date.now() }); added.push(c); }
+  }
+  const b = bankEntry(q.id);
+  const prevStatus = b?.status;
+  if (b) { b.status = 'learned'; b.updatedAt = Date.now(); }
+  const wrongs = state.wrong.filter((w) => w.q?.id === q.id && !w.mastered);
+  wrongs.forEach((w) => { w.mastered = true; w.masteredAt = Date.now(); });
+  save();
+  return { added, qid: q.id, prevStatus, wrongIds: wrongs.map((w) => w.id) };
+}
+export function undoLearned(u) {
+  state.mastered = state.mastered.filter((m) => !u.added.includes(m.name));
+  const b = bankEntry(u.qid);
+  if (b && b.status === 'learned') { b.status = u.prevStatus || 'active'; b.updatedAt = Date.now(); }
+  state.wrong.forEach((w) => { if (u.wrongIds.includes(w.id)) { w.mastered = false; delete w.masteredAt; } });
+  save();
+}
+export function unmasterConcept(name) {
+  state.mastered = state.mastered.filter((m) => nrm(m.name) !== nrm(name));
+  // 이 개념 때문에 빠졌던 문제는 다시 출제될 수 있게
+  for (const b of state.bank) if (b.status === 'learned' && !(b.q?.concepts || []).some(isMasteredConcept)) b.status = 'active';
   save();
 }
 

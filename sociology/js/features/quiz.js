@@ -2,6 +2,7 @@
 import { h, add, clear, pageHead, field, select, loadingBox, errorBox, pct } from '../ui.js';
 import { TYPES, DIFF, getQuestions, renderQuestion, quizTypes } from '../questions.js';
 import { subject } from '../subjects.js';
+import { S } from '../store.js';
 import { persistentArea, runJob, jobControls, isCancel } from '../jobs.js';
 
 const opts = { difficulty: 'medium', count: 5, mode: 'mixed', single: 'mc', mixed: null, focus: '', freshOnly: false };
@@ -43,7 +44,8 @@ export function render(root, params) {
       h('label', { class: 'check', title: '문제 은행에 저장된 문제를 쓰지 않고 모두 새로 만듭니다.' },
         h('input', { type: 'checkbox', checked: opts.freshOnly, onchange: (e) => { opts.freshOnly = e.target.checked; } }),
         h('span', null, '새 문제만 받기')),
-      h('span', { class: 'muted small grow' }, '끄면 문제 은행에서 조건에 맞는 문제를 먼저 쓰고, 모자란 만큼만 새로 만듭니다.'),
+      h('span', { class: 'muted small grow' }, '끄면 문제 은행에서 조건에 맞는 문제를 먼저 쓰고, 모자란 만큼만 새로 만듭니다.',
+        S().mastered?.length ? h('span', null, ' · 학습 완료로 뺀 개념 ', h('a', { href: '#/bank' }, `${S().mastered.length}개`)) : null),
       start));
   drawTypes();
 

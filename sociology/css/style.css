@@ -502,3 +502,9 @@ details.model summary { cursor: pointer; font-weight: 500; }
 .add-pair .input { flex: 1; min-width: 140px; }
 .compare-card .pair-col h3 { margin-top: 0; }
 @media (max-width: 640px) { .tl-item { grid-template-columns: 1fr; gap: 2px; } .match-table .match-row { grid-template-columns: 1fr; } }
+
+/* 학습 완료 */
+.learned-btn.on { background: var(--right-soft); color: var(--right); border-color: var(--right); }
+.learned-box .chip { display: inline-flex; align-items: center; gap: 4px; }
+.learned-box .icon-btn { padding: 0 4px; min-height: 0; font-size: 12px; }
+.map-bar { margin: 4px 0 8px; }

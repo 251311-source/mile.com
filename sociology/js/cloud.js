@@ -50,7 +50,7 @@ let pending = 0;
 let failed = false;
 
 const day = (ts) => { const d = new Date(ts || 0); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-const metaOf = (st) => ({ scope: st.scope, recent: st.recent, firstUse: st.firstUse });
+const metaOf = (st) => ({ scope: st.scope, recent: st.recent, firstUse: st.firstUse, mastered: st.mastered || [] });
 const accountOf = (st) => ({ subject: st.prefSubject, lastBackup: st.lastBackup || 0, migratedAt: st.migratedAt || 0, settings: { model: st.settings.model, effort: st.settings.effort, maxChars: st.settings.maxChars, provider: st.settings.provider, geminiModel: st.settings.geminiModel, openrouterModel: st.settings.openrouterModel, openrouterFree: !!st.settings.openrouterFree, speed: st.settings.speed } });
 // API 키는 meta가 아니라 private 문서에만 둔다
 export const SECRET_FIELDS = ['apiKey', 'geminiKey', 'openrouterKey'];
@@ -159,6 +159,7 @@ function assemble(map = synced, secrets = S().settings) {
 function applyMeta(st, m) {
   st.scope = m.scope || {};
   st.recent = m.recent || {};
+  st.mastered = m.mastered || [];
   if (m.firstUse) st.firstUse = m.firstUse;
 }
 function applyAccount(st, a) {

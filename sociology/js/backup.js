@@ -5,7 +5,7 @@ import { subject, SUBJECTS, SUBJECT_IDS } from './subjects.js';
 import { readSubject, writeSubject } from './cloud.js';
 
 export const BACKUP_REMIND_DAYS = 30;
-const ARRAYS = ['wrong', 'qlog', 'attempts', 'cards', 'exams', 'bank', 'reports', 'pairs'];
+const ARRAYS = ['wrong', 'qlog', 'attempts', 'cards', 'exams', 'bank', 'reports', 'pairs', 'mastered'];
 const OBJECTS = ['quoteBank', 'maps', 'timelines', 'confusions', 'recent', 'scope'];
 
 function localDate(d = new Date()) {
@@ -100,6 +100,7 @@ const KEYS = {
   bank: (b) => b.id,
   reports: (r) => r.id,
   pairs: (x) => x.id,
+  mastered: (x) => String(x.name || '').replace(/\s+/g, ''),
 };
 function mergeList(cur = [], inc = [], keyFn) {
   const map = new Map();
